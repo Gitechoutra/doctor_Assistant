@@ -6,13 +6,10 @@ all of it otherwise a command somebody has to remember to run:
   * **the roles.** `users.role_id` is NOT NULL and several routes look a role
     up by name, so a database restored from an older dump comes up broken with
     no symptom until a sign-in fails.
-  * **the two accounts.** There is no Staff Management screen to create a PA
-    or a doctor from — a two-person practice does not need one — so a database
-    with neither cannot grow them through the UI. Somebody who clones this and
-    runs `python app.py` would have a working server and no way to sign in to
-    it. The doctor's `doctors` row is created with the account, because a
-    doctor without one is invisible to `helpers/practice.practice_doctor` and
-    nothing can be booked.
+  * **the PA's account.** Somebody who clones this and runs `python app.py`
+    would otherwise have a working server and no way to sign in to it. Only
+    the PA: the practice's doctor is created from inside the application by
+    the PA, so there is nothing to seed and no fictional default to delete.
   * **the formulary and the prescribing catalogue.** An empty `medicines`
     table makes every line of every AI-suggested prescription come back
     flagged off-formulary; an empty `medicine_brands` table is a prescription
@@ -314,11 +311,19 @@ def ensure_usernames(app):
 
 
 def ensure_accounts(app):
-    """Creates the PA and doctor accounts, or rewrites them to match the
-    configured credentials.
+    """Creates the PA's account, or rewrites it to match the configured
+    credentials.
 
     Returns the roles it created accounts for. Same contract as
     `ensure_roles`: idempotent, and never raises.
+
+    **The PA only.** There is no default doctor: the practice's real doctor is
+    created by the PA through "Add doctor" (`routes/doctor_routes`), from the
+    details that doctor gives them. A default one written into the repository
+    meant every deployment came up as the same fictional person, and a restart
+    would recreate them after a practice deleted the row. So a fresh database
+    comes up with a PA to sign in as and no doctor, and the screens that ask
+    "which doctor?" render that as a prompt — see `helpers/practice`.
 
     Note what this does *not* do: it never creates a second account beside one
     whose credentials have changed. Restarting the server after changing a
@@ -329,14 +334,14 @@ def ensure_accounts(app):
     the credentials are defined once and behave identically whether they arrive
     via `python app.py` or `python -m portal.seeds`. That is also where the
     `SEED_ACCOUNT_SYNC=false` opt-out is documented, for deployments that want
-    the accounts left alone once they exist.
+    the account left alone once it exists.
 
     Must run after `ensure_roles` — an account needs its role to exist.
     """
     # Imported here rather than at module scope: helpers are imported early in
     # the app factory, and reaching into a seeder at that point would pull the
     # models in before they are registered.
-    from portal.models.role import DOCTOR, PA
+    from portal.models.role import PA
     from portal.seeders.seed_accounts import account_credentials, ensure_account
 
     created = []
@@ -350,7 +355,7 @@ def ensure_accounts(app):
                     )
                     return []
 
-            for role_name in (PA, DOCTOR):
+            for role_name in (PA,):
                 label = "PA" if role_name == PA else "Doctor"
                 _n, _e, _p, is_default_password = account_credentials(role_name)
                 user, was_created, changes = ensure_account(role_name)

@@ -10,6 +10,7 @@ import {
   HiOutlineIdentification,
   HiOutlineQueueList,
   HiOutlineSquares2X2,
+  HiOutlineUserPlus,
   HiOutlineUsers,
 } from "react-icons/hi2";
 import Logo from "./Logo";
@@ -34,6 +35,9 @@ const PA_NAV = [
   { to: "/dashboard/patients", label: "Patients", icon: HiOutlineUsers },
   { to: "/dashboard/appointments", label: "Appointments", icon: HiOutlineCalendarDays },
   { to: "/dashboard/queue", label: "Patient Queue", icon: HiOutlineQueueList },
+  // The practice's doctor is set up here. Not in the doctor's nav: they cannot
+  // sign in until the PA has made the account, so it could never be their job.
+  { to: "/dashboard/doctors", label: "Doctors", icon: HiOutlineUserPlus },
   { to: "/dashboard/reports", label: "Reports", icon: HiOutlineDocumentChartBar },
   { to: "/dashboard/profile", label: "Profile", icon: HiOutlineIdentification },
   { to: "/dashboard/settings", label: "Settings", icon: HiOutlineCog6Tooth },

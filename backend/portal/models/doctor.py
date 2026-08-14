@@ -32,21 +32,43 @@ class Doctor(db.Model):
     # The practice's own name, as it should appear on paperwork. Null falls
     # back to the doctor's name.
     practice_name = db.Column(db.String(200), nullable=True)
+    # The PA who set this doctor up. Nullable because a doctor can exist
+    # without one -- a row created before this column, or the first doctor of a
+    # practice seeded some other way -- and ON DELETE SET NULL rather than
+    # CASCADE because removing the PA's account must not take the doctor, the
+    # consultations hanging off them and the practice's whole record with it.
+    created_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), default=datetime.utcnow)
 
-    user = db.relationship("User", back_populates="doctor_profile")
+    # Two columns point at `users` now, so both relationships name the one they
+    # travel: without this SQLAlchemy cannot tell which join it should make.
+    user = db.relationship(
+        "User", back_populates="doctor_profile", foreign_keys=[user_id]
+    )
+    created_by = db.relationship("User", foreign_keys=[created_by_user_id])
     consultations = db.relationship("Consultation", back_populates="doctor")
 
     def to_dict(self):
+        creator = self.created_by
         return {
             "id": self.id,
             "user_id": self.user_id,
             "name": self.user.name if self.user else None,
             "email": self.user.email if self.user else None,
+            "username": self.user.username if self.user else None,
+            "is_active": self.user.is_active if self.user else None,
             "specialization": self.specialization,
             "qualification": self.qualification,
             "practice_name": self.practice_name,
             "registration_no": self.registration_no,
+            # Who set them up. Both halves: the id for a client that wants to
+            # compare it against the signed-in user, the name for one that just
+            # wants to show it.
+            "created_by_user_id": self.created_by_user_id,
+            "created_by_name": creator.name if creator else None,
+            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
         }
 
     def __repr__(self):

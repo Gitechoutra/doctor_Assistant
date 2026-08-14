@@ -200,10 +200,13 @@ CREATE TABLE `doctors` (
   `registration_no` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `qualification` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `practice_name` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_by_user_id` int DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT (now()),
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`),
-  CONSTRAINT `doctors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  KEY `doctors_created_by_fk` (`created_by_user_id`),
+  CONSTRAINT `doctors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `doctors_created_by_fk` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `generated_prescriptions` (
   `id` int NOT NULL AUTO_INCREMENT,

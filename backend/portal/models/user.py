@@ -39,7 +39,15 @@ class User(db.Model):
     # The only profile table left. A PA's user row is their whole account —
     # see models/role.ROLES_WITH_PROFILE.
     doctor_profile = db.relationship(
-        "Doctor", back_populates="user", uselist=False, cascade="all, delete-orphan"
+        "Doctor",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        # `doctors` also carries `created_by_user_id`, so this names the column
+        # it travels. Without it SQLAlchemy sees two paths to `users` and
+        # cannot choose -- and the cascade above must only ever follow the
+        # doctor's *own* account, never the PA who created them.
+        foreign_keys="Doctor.user_id",
     )
 
     def set_password(self, raw_password):

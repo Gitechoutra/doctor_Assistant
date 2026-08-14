@@ -22,6 +22,7 @@ const Dashboard = lazy(() => import("../pages/Dashboard"));
 const Patients = lazy(() => import("../pages/Patients"));
 const PatientDetails = lazy(() => import("../pages/PatientDetails"));
 const Appointments = lazy(() => import("../pages/Appointments"));
+const Doctors = lazy(() => import("../pages/Doctors"));
 const PatientQueue = lazy(() => import("../pages/PatientQueue"));
 const Consultations = lazy(() => import("../pages/Consultations"));
 const ConsultationRoom = lazy(() => import("../pages/ConsultationRoom"));
@@ -90,6 +91,10 @@ export default function AppRouter() {
 
               <Route element={<RoleRoute allow={PA_ONLY} />}>
                 <Route path="appointments" element={<Appointments />} />
+                {/* Where the practice's doctor comes from. There is no default
+                    one, and the doctor cannot create their own account — they
+                    have no way in until it exists. So this is the desk's. */}
+                <Route path="doctors" element={<Doctors />} />
               </Route>
 
               <Route element={<RoleRoute allow={DOCTOR_ONLY} />}>

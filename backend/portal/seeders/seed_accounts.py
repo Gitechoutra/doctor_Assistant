@@ -1,74 +1,67 @@
-"""The doctor's account, and the machinery both staff accounts are made with.
+"""The machinery a seeded staff account is made and kept in step with.
 
-A practice is two people, and neither can be created from inside the
-application -- there is no Staff Management screen to make them from, because
-a two-person practice does not need one. So they are reconciled here, and
-again on every start (see `helpers/bootstrap.ensure_accounts`), which means a
-fresh database or a restored dump comes up with something to sign in as.
+**Only the PA is seeded.** A practice is two people, but only one of them can
+be created before anybody has signed in: the PA runs the desk, and the desk is
+where the doctor's account comes from. There is no default doctor -- the one
+that used to be written into this file meant every checkout came up as the
+same fictional person, and a real practice's first job was to edit a row it
+had never asked for. The PA creates the real doctor through "Add doctor" (see
+`routes/doctor_routes.create_doctor`), using the details that doctor gives
+them, and the account works the moment it is made.
+
+So a fresh database comes up with a PA to sign in as and no doctor, which is
+the honest state of a practice nobody has set up yet. `helpers/practice`
+already answers "which doctor?" with None, and the screens that ask render it
+as a prompt rather than an error.
 
 **The PA's own defaults live in `seeders/seed_PA`**, which owns that account
-end to end; this module declares the doctor's and keeps the parts both share --
+end to end. What stays here is what makes an account and keeps it in step --
 `ensure_account`, `_apply_configured_credentials`, `account_credentials` and
-`report_account`. Splitting the data without splitting the machinery is
-deliberate: two copies of the "move, don't duplicate" rule below would be two
-things to keep in step, and the rule is the whole point of the module.
+`report_account` -- so there is one implementation of the rule below rather
+than one per role.
 
-Both accounts are configured from the environment, and both fall back to a
-documented default so a fresh checkout works with no setup at all:
+Configured from the environment, falling back to the documented defaults in
+`seed_PA` so a fresh checkout works with no setup at all:
 
     SEED_PA_NAME / SEED_PA_EMAIL / SEED_PA_PASSWORD
-    SEED_DOCTOR_NAME / SEED_DOCTOR_EMAIL / SEED_DOCTOR_PASSWORD
-    SEED_DOCTOR_SPECIALIZATION / SEED_DOCTOR_REGISTRATION_NO
     SEED_ACCOUNT_SYNC=false   leave existing accounts alone once created
 
 The rule that matters, inherited from the administrator seeder this replaces:
 **an account whose configured email has changed is moved, not duplicated.**
-Each account is found by its role, not by its address. Matching on email got
+The account is found by its role, not by its address. Matching on email got
 that case badly wrong -- it read a renamed account as an absent one and
 created a second beside it, holding the default password from the repository.
 
 `is_active` is never written. A disabled account is one somebody deliberately
 switched off, and restarting the server must not switch it back on.
-
-The doctor's account additionally gets its `doctors` row, in the same
-transaction. A doctor user with no doctor profile is a half-formed account:
-`helpers/practice.practice_doctor` would find nobody, so nothing could be
-booked, and every patient scoping rule would read the account as the PA.
 """
 
 import os
 
 from portal.extensions import db
-from portal.models.doctor import Doctor
-from portal.models.role import DOCTOR, PA, Role
+from portal.models.role import PA, Role
 from portal.models.user import User
 
-DEFAULTS = {
-    DOCTOR: {
-        "name": "Dr. Ramana Muddada",
-        "email": "doctor@mediassist.local",
-        "password": "Doctor@12345",
-    },
-}
+# No DEFAULTS table here any more. The PA's live in `seeders/seed_PA`, and the
+# doctor has none by design -- see the module docstring.
 
 
 def _defaults_for(role):
     """The configured defaults for one role.
 
-    The PA's live in `seeders/seed_PA`, which owns that account end to end;
-    only the doctor's are declared here. Imported inside the function rather
-    than at module scope because `seed_PA` imports this module for the shared
-    machinery below — at module scope the two would form a cycle.
+    Imported inside the function rather than at module scope because `seed_PA`
+    imports this module for the shared machinery below -- at module scope the
+    two would form a cycle.
     """
     if role == PA:
         from portal.seeders.seed_PA import PA_DEFAULTS
 
         return PA_DEFAULTS
-    return DEFAULTS[role]
+    raise KeyError(
+        f"No seed defaults for the '{role}' role. Only the PA is seeded; a "
+        f"doctor is created by the PA through POST /api/doctors."
+    )
 
-
-DEFAULT_SPECIALIZATION = "General Medicine"
-DEFAULT_QUALIFICATION = "MBBS, MD"
 
 # Spellings of "no" accepted from the environment. Anything else — including
 # an unset or empty value — leaves syncing on, so the documented default
@@ -155,7 +148,6 @@ def ensure_account(role_name):
     existing = User.query.filter_by(role_id=role.id).order_by(User.id).first()
     if existing:
         changes = _apply_configured_credentials(existing, name, email, password)
-        _ensure_doctor_profile(existing, role_name)
         return existing, False, changes
 
     clash = User.query.filter_by(email=email).first()
@@ -168,40 +160,15 @@ def ensure_account(role_name):
     user = User(name=name, email=email, role_id=role.id)
     user.set_password(password)
     db.session.add(user)
-    db.session.flush()  # assigns user.id for the profile below
-    _ensure_doctor_profile(user, role_name)
     db.session.commit()
     return user, True, []
-
-
-def _ensure_doctor_profile(user, role_name):
-    """The `doctors` row a doctor account is meaningless without.
-
-    Additive: an existing profile keeps whatever the doctor has since set on
-    their own profile page. Only the missing row is created.
-    """
-    if role_name != DOCTOR:
-        return None
-    profile = Doctor.query.filter_by(user_id=user.id).first()
-    if profile:
-        return profile
-    profile = Doctor(
-        user_id=user.id,
-        specialization=(
-            os.environ.get("SEED_DOCTOR_SPECIALIZATION") or DEFAULT_SPECIALIZATION
-        ),
-        qualification=DEFAULT_QUALIFICATION,
-        registration_no=(os.environ.get("SEED_DOCTOR_REGISTRATION_NO") or "").strip() or None,
-    )
-    db.session.add(profile)
-    return profile
 
 
 def report_account(role_name):
     """Seeds one role's account and prints what happened. Returns the user.
 
-    Shared with `seeders/seed_PA`, so the PA and the doctor report themselves
-    identically rather than through two copies of this that drift apart.
+    Lives here rather than in `seed_PA` because it belongs with the machinery
+    it reports on, and because a second seeded role would use it unchanged.
     """
     _n, _e, _p, is_default_password = account_credentials(role_name)
     user, created, changes = ensure_account(role_name)
@@ -225,10 +192,7 @@ def report_account(role_name):
     return user
 
 
-def run():
-    """The `python -m portal.seeds` entry point. Reports to stdout.
-
-    The doctor only — the PA is seeded by `seeders/seed_PA`, which
-    `portal/seeds.py` runs alongside this.
-    """
-    return [report_account(DOCTOR)]
+# No `run()` here. This module seeds nothing on its own any more: the PA is
+# `seeders/seed_PA.run()`, and the doctor is not seeded at all -- the PA
+# creates them through the application. `portal/seeds.py` calls seed_PA
+# directly.
