@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f2f1fd;
+  --color-brand-100: #e6e4fb;
+  --color-brand-200: #c9c5f7;
+  --color-brand-300: #a39cf0;
+  --color-brand-400: #8074e8;
+  --color-brand-500: #6a5cde;
+  --color-brand-600: #5b4bd1;
+  --color-brand-700: #4c3eb0;
+  --color-brand-800: #3e348e;
+  --color-brand-900: #332b71;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Anchor links in the landing nav jump to a section heading; without this the
+   sticky header covers it. */
+[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Vestibular safety: anything that moves on its own stops for a visitor who
+   has asked the OS for reduced motion. Framer Motion is told separately via
+   useReducedMotion; this covers the CSS animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes marquee-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* The slow ambient float behind the hero. Transform-only, so it never
+   triggers layout. */
+@keyframes soft-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+.animate-soft-float {
+  animation: soft-float 7s ease-in-out infinite;
+}

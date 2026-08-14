@@ -1,0 +1,26 @@
+[2026-08-13 09:58:54,764] INFO in __init__: Initializing portal -- environment: development, debug: True
+[2026-08-13 09:58:54,818] INFO in __init__: Initialized CORS for ['http://localhost:5173']
+[2026-08-13 09:58:57,010] INFO in bootstrap: Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+[2026-08-13 09:58:57,180] INFO in bootstrap: Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+[2026-08-13 09:58:57,192] INFO in bootstrap: Username check: all 18 present
+[2026-08-13 09:58:57,199] INFO in bootstrap: Department check: all 16 present
+[2026-08-13 09:58:57,208] INFO in bootstrap: Medicine check: all 9 present
+[2026-08-13 09:58:57,209] INFO in __init__: Portal initialization completed successfully
+ * Serving Flask app 'portal'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.29.123:5000
+Press CTRL+C to quit
+ * Restarting with stat
+[2026-08-13 09:58:58,114] INFO in __init__: Initializing portal -- environment: development, debug: True
+[2026-08-13 09:58:58,138] INFO in __init__: Initialized CORS for ['http://localhost:5173']
+[2026-08-13 09:58:59,632] INFO in bootstrap: Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+[2026-08-13 09:58:59,767] INFO in bootstrap: Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+[2026-08-13 09:58:59,779] INFO in bootstrap: Username check: all 18 present
+[2026-08-13 09:58:59,786] INFO in bootstrap: Department check: all 16 present
+[2026-08-13 09:58:59,793] INFO in bootstrap: Medicine check: all 9 present
+[2026-08-13 09:58:59,794] INFO in __init__: Portal initialization completed successfully
+ * Debugger is active!
+ * Debugger PIN: 984-727-822
