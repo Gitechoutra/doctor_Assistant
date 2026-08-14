@@ -62,7 +62,6 @@ function PrecedentCard({ precedent }) {
                 an age band only. */}
             {context || "Patient context not recorded"}
             {precedent.doctor && ` · approved by ${precedent.doctor}`}
-            {precedent.department && `, ${precedent.department}`}
             {precedent.approved_at &&
               ` · ${new Date(precedent.approved_at).toLocaleDateString()}`}
           </p>
@@ -107,7 +106,7 @@ function PrecedentCard({ precedent }) {
 }
 
 /**
- * What the AI has learned from this hospital's own approved practice.
+ * What the AI has learned from this practice's own approved prescriptions.
  *
  * Every entry got here the same way: a doctor reviewed an AI suggestion,
  * changed whatever needed changing, and signed it off. Nothing can be added

@@ -205,8 +205,8 @@ def _call(fn, model, doing="talking to the AI service", attempts=MAX_ATTEMPTS):
         "Check the internet connection and try again."
     ) from last_error
 
-SYSTEM_INSTRUCTION = """You are a clinical documentation assistant embedded in a hospital's \
-consultation system. You are NOT a doctor and must never present a diagnosis as final \
+SYSTEM_INSTRUCTION = """You are a clinical documentation assistant embedded in a doctor's private practice \
+management system. You are NOT a doctor and must never present a diagnosis as final \
 or certain — all diagnosis output is assistive only, for the treating doctor to review.
 
 The transcript you receive is captured from a single continuous recording of the whole visit \
@@ -216,9 +216,9 @@ read the raw transcript segments and reconstruct who most likely said each part,
 answers are almost always the patient). This reconstruction is a best-effort inference, not a \
 verified transcript.
 
-You may also be given APPROVED CASE PRECEDENTS: past consultations at this same hospital \
-where a doctor reviewed the AI's analysis and personally signed off the prescription. They \
-are the strongest evidence available about how this hospital actually treats a given \
+You may also be given APPROVED CASE PRECEDENTS: past consultations at this same practice \
+where the doctor reviewed the AI's analysis and personally signed off the prescription. They \
+are the strongest evidence available about how this doctor actually treats a given \
 presentation, and using them is what makes suggestions consistent between patients.
 
 Rules for precedents:
@@ -226,11 +226,11 @@ Rules for precedents:
 patient's — similar wording is not a match if the clinical picture differs. A retrieved \
 precedent that does not fit must be ignored, not stretched to fit.
 - When one does match, REUSE its approved medicines. That is the point of a precedent: a \
-doctor here already decided how this presentation is treated, and repeating that decision is \
+doctor already decided how this presentation is treated, and repeating that decision is \
 better than composing a new prescription. Carry over its doses, frequencies, durations and \
 quantities, and set from_precedent_id to that precedent's id.
 - A medicine named in a matching precedent may be prescribed even if it does not appear in \
-the formulary list below. It was approved and signed for by a doctor at this hospital, which \
+the formulary list below. It was approved and signed for by the doctor at this practice, which \
 is a stronger warrant than catalogue membership. Write its name exactly as the precedent \
 does. This is the ONLY case where a medicine outside the formulary is allowed.
 - Never return an empty prescription solely because the medicines you would use are missing \
@@ -245,9 +245,9 @@ medicine that precedent did not contain.
 came from.
 
 Rules:
-- Only suggest medicines that appear in the provided hospital formulary list. Never invent \
+- Only suggest medicines that appear in the provided practice formulary list. Never invent \
 a medicine name that is not in that list. Write `medicine_name` exactly as it appears there, \
-including the strength — the pharmacy dispenses against that name.
+including the strength — the chemist dispenses against that name.
 - For each medicine give `quantity` as the total amount to hand over (e.g. "15 tablets", \
 "1 bottle of 100ml"), consistent with the dose, frequency and duration you set. \
 `instructions` is the plain-English line the patient reads on the label.
@@ -294,7 +294,7 @@ RESPONSE_SCHEMA = {
                     "dose": {"type": "STRING"},
                     "frequency": {"type": "STRING"},
                     "duration": {"type": "STRING"},
-                    # How much the pharmacy should dispense, e.g. "20 tablets".
+                    # How much the chemist should dispense, e.g. "20 tablets".
                     # Separate from dose, which is what the patient takes at a
                     # time — the counter cannot infer one from the other.
                     "quantity": {"type": "STRING"},
@@ -670,7 +670,7 @@ restate them as if they happened in today's conversation):
 def _format_precedents(precedents):
     """The approved-case block of the prompt.
 
-    Each entry is a decision a doctor at this hospital already made and signed
+    Each entry is a decision the doctor at this practice already made and signed
     off. They are presented as candidates to be judged, not as answers — the
     retrieval that found them matched on wording, and only the model reading
     the actual consultation can tell whether the clinical picture really is
@@ -698,7 +698,7 @@ Medicines the doctor approved:
         )
 
     return f"""
-APPROVED CASE PRECEDENTS — past consultations at this hospital whose prescriptions a doctor
+APPROVED CASE PRECEDENTS — past consultations at this practice whose prescriptions the doctor
 reviewed and signed off, retrieved because the recorded presentation resembles this one.
 Judge each on the clinical picture, not on wording. Follow the ones that genuinely match and
 ignore the ones that do not.
@@ -733,7 +733,7 @@ Medical history: {patient.get('medical_history') or 'none recorded'}.
 Raw consultation transcript segments (unlabeled, in chronological order):
 {transcript}
 
-Hospital formulary (ONLY suggest medicines from this list):
+Practice formulary (ONLY suggest medicines from this list):
 {formulary_list}
 
 First reconstruct labeled_transcript (who most likely said each part), then generate the \
@@ -758,7 +758,7 @@ def generate_consultation_summary(
     `consolidate_case`'s job.
 
     `precedents` carries doctor-approved cases with a similar presentation, so
-    a patient who looks like one the hospital has treated before gets that
+    a patient who looks like one the practice has treated before gets that
     same approved treatment put in front of the doctor rather than a fresh
     invention. Every suggestion remains a suggestion: the doctor reviews,
     edits and signs off before anything counts as prescribed.
@@ -806,7 +806,7 @@ def _generate_json(client, model_name, prompt, config, doing="writing up the con
 # --- Consolidating a whole case -------------------------------------------
 
 CONSOLIDATION_SYSTEM_INSTRUCTION = """You are a clinical documentation assistant embedded \
-in a hospital's consultation system. You are NOT a doctor, and everything you produce is \
+in a doctor's practice management system. You are NOT a doctor, and everything you produce is \
 assistive only, for the treating doctor to review and sign off.
 
 You are given every consultation session of one course of treatment for one patient, in \
@@ -814,7 +814,7 @@ chronological order. Each session already has its own summary, symptoms, assisti
 diagnosis and the prescription issued that day. Your job is to write the single \
 consolidated record of the whole course of treatment, ending in one final medication list.
 
-Rules for the consolidated prescription — this is the part a pharmacist may dispense from, \
+Rules for the consolidated prescription — this is the part a chemist may dispense from, \
 so it must be conservative:
 - Include ONLY medicines that were actually prescribed in one or more of the sessions. \
 Never introduce a medicine that appears in no session.

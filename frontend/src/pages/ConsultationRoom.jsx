@@ -7,12 +7,9 @@ import {
   HiOutlineChevronDown,
   HiOutlineClipboardDocumentList,
   HiOutlineFolderOpen,
-  HiOutlineHeart,
 } from "react-icons/hi2";
 import PatientInfoPanel from "../components/PatientInfoPanel";
 import SummaryPanel from "../components/SummaryPanel";
-import AssignNurseModal from "../components/nursing/AssignNurseModal";
-import SurgeryPanel from "../components/nursing/SurgeryPanel";
 import CaseSessionCard from "../components/CaseSessionCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import {
@@ -22,7 +19,6 @@ import {
   startConsultation,
   transcribeTurn,
 } from "../services/consultationService";
-import { fetchAssignments } from "../services/nursingService";
 import { getSocket, joinConsultationRoom } from "../services/socket";
 
 function TranscriptLine({ message }) {
@@ -43,10 +39,6 @@ export default function ConsultationRoom() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [assigningNurse, setAssigningNurse] = useState(false);
-  // Whether a nurse is already watching this patient. Drives which step of
-  // the surgical pathway is offered — you assign once, not once per session.
-  const [activeAssignment, setActiveAssignment] = useState(null);
   const [isStartingNext, setIsStartingNext] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
   const [confirmingNextSession, setConfirmingNextSession] = useState(false);
@@ -75,16 +67,7 @@ export default function ConsultationRoom() {
 
   useEffect(() => {
     fetchConsultation(id)
-      .then((data) => {
-        setConsultation(data);
-        // A nurse is assigned to the patient, not to the session, so it has to
-        // be looked up rather than read off the consultation. A failure here
-        // is not worth an error banner — the pathway just offers the hand-off
-        // again, and the API refuses a second live assignment anyway.
-        return fetchAssignments({ patient_id: data.patient_id, status: "active" })
-          .then((rows) => setActiveAssignment(rows[0] || null))
-          .catch(() => setActiveAssignment(null));
-      })
+      .then(setConsultation)
       .finally(() => setLoading(false));
 
     joinConsultationRoom(id);
@@ -319,15 +302,10 @@ export default function ConsultationRoom() {
     return <p className="text-sm text-slate-400">Consultation not found.</p>;
   }
 
-  const patientDetail = consultation.patient_detail;
-  // Null for the great majority of patients — no surgery, so no nurse and no
-  // pathway. See components/nursing/SurgeryPanel.
-  const surgeryStage = patientDetail?.surgery_stage || null;
-
   const isCompleted = consultation.status === "completed";
-  // Only the doctor this consultation belongs to can record/end it — enforced
-  // server-side too, this just keeps the UI from offering controls that
-  // would 403 (e.g. admin oversight, or another doctor opening the link).
+  // Only the doctor this consultation belongs to can record or end it —
+  // enforced server-side too, this just keeps the UI from offering controls
+  // that would 403 (the PA can read this page, but not act on it).
   const canManage = Boolean(consultation.can_manage);
 
   const caseInfo = consultation.case;
@@ -428,22 +406,6 @@ export default function ConsultationRoom() {
                   {isStartingNext ? "Starting…" : "Start next session"}
                 </button>
               )
-            )}
-
-            {/* Handing the patient to a nurse only makes sense once the visit
-                is over and there's a prescription to carry across — and only
-                for a surgery case, which is what nursing care is for. The
-                full pathway (mark, operate, observe, discharge) is in the
-                Surgical status panel below; this is the shortcut for the one
-                step that is due right now. */}
-            {surgeryStage === "required" && (
-              <button
-                onClick={() => setAssigningNurse(true)}
-                className="flex items-center gap-1.5 rounded-full bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
-              >
-                <HiOutlineHeart className="h-4 w-4" />
-                Assign nurse
-              </button>
             )}
           </div>
         )}
@@ -600,26 +562,6 @@ export default function ConsultationRoom() {
             />
           )}
 
-          {/* Whether this case goes to theatre, and everything that follows
-              from it: the nurse hand-off, the post-operative watch, and the
-              discharge that ends both. Only offered once the visit is
-              documented — the decision belongs at the end of the examination,
-              not in the middle of it. */}
-          {isCompleted && (
-            <SurgeryPanel
-              patient={patientDetail}
-              canManage={canManage}
-              hasActiveAssignment={Boolean(activeAssignment)}
-              onAssignNurse={() => setAssigningNurse(true)}
-              onPatientUpdated={(patient) => {
-                setConsultation((c) => (c ? { ...c, patient_detail: patient } : c));
-                // Discharging closes the assignment, so the panel must stop
-                // believing one is live.
-                if (!patient.surgery_stage) setActiveAssignment(null);
-              }}
-            />
-          )}
-
           {/* The bridge from "this visit is documented" to "this treatment is
               documented" — the consolidated report lives on the case, not
               here, and a doctor finishing a session needs to know that. */}
@@ -673,22 +615,6 @@ export default function ConsultationRoom() {
           onConfirm={() => {
             setConfirmingNextSession(false);
             handleStartNextSession();
-          }}
-        />
-      )}
-
-      {assigningNurse && (
-        <AssignNurseModal
-          patientId={consultation.patient_id}
-          patientName={consultation.patient}
-          consultationId={consultation.id}
-          defaultPlan={consultation.summary?.possible_diagnosis || ""}
-          observationDays={patientDetail?.observation_days}
-          onClose={() => setAssigningNurse(false)}
-          onAssigned={(assignment) => {
-            setAssigningNurse(false);
-            setActiveAssignment(assignment);
-            navigate(`/dashboard/nursing/${assignment.id}`);
           }}
         />
       )}

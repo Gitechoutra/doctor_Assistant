@@ -1,117 +1,175 @@
+"""The numbers on each role's home screen.
+
+Two dashboards, one endpoint, and every count derived from the same helpers
+the page it links to uses. That is the rule this module exists to keep: a card
+reading "4 waiting" over a queue with three people in it is worse than no card
+at all, and the only way to guarantee it cannot happen is for the count and
+the list to come from one query.
+
+The PA's dashboard is the practice's day: who is booked, who is here, who has
+been seen. The doctor's is their own clinical work. They overlap deliberately
+-- both show the queue, because both are working from it.
+"""
+
 from flask import Blueprint
 from flask_jwt_extended import jwt_required
 
-from portal.helpers.auth_helper import get_current_doctor, get_current_nurse
+from portal.extensions import db
+from portal.helpers.auth_helper import get_current_doctor
 from portal.helpers.datetime_helper import local_day_bounds
 from portal.helpers.decorators import current_role
 from portal.helpers.patient_access import scope_patients
-from portal.helpers.queue_helper import scope_appointments
+from portal.helpers.practice import practice_doctor
+from portal.helpers.queue_helper import (
+    collapse_duplicates,
+    number_queue,
+    queue_query,
+    scope_appointments,
+    upcoming_query,
+)
 from portal.helpers.response import success
+from portal.models.appointment import Appointment
 from portal.models.consultation import Consultation
-from portal.models.nursing_assignment import NursingAssignment
 from portal.models.patient import Patient
 from portal.models.report import Report
-from portal.routes.appointment_routes import collapse_duplicates, open_appointments_query
 from portal.routes.report_routes import scope_reports
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
+# How many rows the "recent" lists carry. Enough to be a glance, few enough
+# that the dashboard is one request and not a page load.
+RECENT_LIMIT = 8
 
-def queue_size(query):
-    """How many cards the Appointments page will actually draw for this query.
 
-    Not `.count()`: the page collapses a patient's double-registrations into one
-    card, and a count taken in SQL would include the rows it hides — the card
-    would read "3 OPs" over a queue of two people. The queue is a work list of
-    the patients currently in the building, so loading it to count it is a few
-    rows, not a table scan.
+def _queue_payload(doctor):
+    """Today's queue, numbered, exactly as /appointments/queue returns it.
+
+    Sent with the dashboard rather than fetched separately: the queue *is* the
+    dashboard's centrepiece for both roles, and making the home screen wait on
+    a second round trip to draw its main panel is a visible stutter for no
+    benefit.
     """
-    return len(collapse_duplicates(query.all()))
+    numbered = number_queue(collapse_duplicates(queue_query(doctor).all()))
+    return [a.to_dict(queue_number=n) for a, n in numbered]
 
 
 @dashboard_bp.get("/summary")
 @jwt_required()
 def summary():
-    # The staff's day, not UTC's — see local_day_bounds. Only the genuinely
-    # date-bounded counts below use these; the queue card is not one of them.
-    today_start, today_end = local_day_bounds()
-
-    role = current_role()
+    day_start, day_end = local_day_bounds()
     doctor = get_current_doctor()
+    role = current_role()
 
-    # Reception's dashboard is the front desk's own work: who is registered and
-    # who is in today's queue. It deliberately carries no consultation, report
-    # or nursing figures — those are clinical, and the routes behind them
-    # return 403 for this role, so a card linking to one would be a dead end.
-    if role == "receptionist":
-        return success(
-            {
-                "scope": "front_desk",
-                "total_patients": Patient.query.count(),
-                "unassigned_patients": Patient.query.filter(
-                    Patient.assigned_doctor_id.is_(None)
-                ).count(),
-                # Counted the same way the Appointments page lists them —
-                # double-registrations collapsed — or the card would read one
-                # higher than the queue it links to.
-                "todays_appointments": queue_size(open_appointments_query()),
-                "todays_registrations": Patient.query.filter(
-                    Patient.created_at >= today_start, Patient.created_at <= today_end
-                ).count(),
-            }
-        )
+    queue = _queue_payload(doctor)
+    # Derived from the payload rather than counted again in SQL, so the number
+    # on the card is literally the length of the list under it.
+    waiting = sum(1 for a in queue if a["status"] == "waiting")
+    in_consultation = sum(1 for a in queue if a["status"] == "in_progress")
 
-    # A nurse's numbers live on /api/nursing/summary, which is scoped to their
-    # own assignments. Returning hospital-wide counts here would contradict it.
-    if role == "nurse":
-        nurse = get_current_nurse()
-        active = NursingAssignment.query.filter_by(status="active")
-        if nurse:
-            active = active.filter(NursingAssignment.nurse_id == nurse.id)
-        return success({"scope": "nursing", "active_assignments": active.count()})
+    todays_completed = scope_appointments(
+        Appointment.query.filter(
+            Appointment.status == "completed",
+            Appointment.arrived_at >= day_start,
+            Appointment.arrived_at <= day_end,
+        ),
+        doctor,
+    ).count()
 
-    # A doctor's dashboard should only reflect their own department/work —
-    # not every other doctor's patients — same scoping rule as Appointments.
-    # Admin accounts (no doctor profile) still see the hospital-wide view.
-    # Each card's query mirrors the filter its link applies on the target
-    # page, so the number and the rows behind it can't disagree.
-    appointments_query = open_appointments_query()
-    consultations_query = Consultation.query.filter_by(status="in_progress")
-    recent_query = Consultation.query.order_by(Consultation.created_at.desc())
-    # Both kinds of report count here — a single session's and a whole course
-    # of treatment's — scoped by the same helper the Reports page uses, so the
-    # card and the list it links to can't disagree.
-    reports_query = scope_reports(Report.query, doctor)
-    nursing_query = NursingAssignment.query.filter_by(status="active")
+    upcoming = upcoming_query(doctor).limit(RECENT_LIMIT).all()
+    upcoming_total = upcoming_query(doctor).count()
 
-    if doctor:
-        # The same helper list_appointments uses, not a second copy of the
-        # rule: this count links straight to that page, so anything it decides
-        # differently shows up as a card reading one number over a list of
-        # another.
-        appointments_query = scope_appointments(appointments_query, doctor)
-        consultations_query = consultations_query.filter(Consultation.doctor_id == doctor.id)
-        recent_query = recent_query.filter(Consultation.doctor_id == doctor.id)
-        nursing_query = nursing_query.filter(NursingAssignment.doctor_id == doctor.id)
-
-    todays_reports_query = reports_query.filter(
-        Report.generated_at >= today_start, Report.generated_at <= today_end
+    patients_query = scope_patients(Patient.query, doctor)
+    recent_patients = (
+        patients_query.order_by(Patient.created_at.desc()).limit(RECENT_LIMIT).all()
     )
 
-    # A doctor's patient count is their own list, matching what the Patients
-    # page shows them — a hospital-wide number they can't click through to
-    # would be worse than useless.
-    patients_query = scope_patients(Patient.query, doctor)
+    shared = {
+        "role": role,
+        "doctor": (practice_doctor().to_dict() if practice_doctor() else None),
+        # Today, at a glance. Same four numbers on both dashboards because both
+        # roles are working the same day from opposite ends of it.
+        "todays_appointments": len(queue),
+        "waiting": waiting,
+        "in_consultation": in_consultation,
+        "todays_completed": todays_completed,
+        "upcoming_total": upcoming_total,
+        "total_patients": patients_query.count(),
+        "todays_registrations": patients_query.filter(
+            Patient.created_at >= day_start, Patient.created_at <= day_end
+        ).count(),
+        "queue": queue,
+        "upcoming": [a.to_dict() for a in upcoming],
+    }
+
+    if doctor is None:
+        # The PA's view. No clinical figures — those are the doctor's work, and
+        # a card the PA could not click through to would be a dead end.
+        shared["scope"] = "front_desk"
+        shared["recent_patients"] = [p.to_dict() for p in recent_patients]
+        return success(shared)
+
+    # The doctor's view: their own clinical work on top of the shared day.
+    reports_query = scope_reports(Report.query, doctor)
+    recent_consultations = (
+        Consultation.query.filter(Consultation.doctor_id == doctor.id)
+        .order_by(Consultation.created_at.desc())
+        .limit(RECENT_LIMIT)
+        .all()
+    )
+
+    shared.update(
+        {
+            "scope": "clinical",
+            "active_consultations": Consultation.query.filter(
+                Consultation.doctor_id == doctor.id,
+                Consultation.status == "in_progress",
+            ).count(),
+            "reports_generated": reports_query.count(),
+            "todays_reports": reports_query.filter(
+                Report.generated_at >= day_start, Report.generated_at <= day_end
+            ).count(),
+            "consultations_total": Consultation.query.filter(
+                Consultation.doctor_id == doctor.id
+            ).count(),
+            "pending_prescriptions": Consultation.query.filter(
+                Consultation.doctor_id == doctor.id,
+                Consultation.status == "completed",
+                Consultation.prescription_verified_at.is_(None),
+                # Only sessions that actually produced a prescription. A visit
+                # with nothing to sign is not outstanding work.
+                Consultation.prescriptions.any(),
+            ).count(),
+            "recent_consultations": [c.to_dict() for c in recent_consultations],
+            "recent_patients": [p.to_dict() for p in recent_patients],
+        }
+    )
+    return success(shared)
+
+
+@dashboard_bp.get("/activity")
+@jwt_required()
+def activity():
+    """The practice's recent movement, for whoever wants a fuller feed than the
+    summary's eight rows."""
+    doctor = get_current_doctor()
+    consultations = Consultation.query
+    if doctor:
+        consultations = consultations.filter(Consultation.doctor_id == doctor.id)
 
     return success(
         {
-            "scope": "clinical",
-            "todays_appointments": queue_size(appointments_query),
-            "active_consultations": consultations_query.count(),
-            "total_patients": patients_query.count(),
-            "reports_generated": reports_query.count(),
-            "todays_reports": todays_reports_query.count(),
-            "nursing_assignments": nursing_query.count(),
-            "recent_consultations": [c.to_dict() for c in recent_query.limit(10).all()],
+            "consultations": [
+                c.to_dict(include_summary=True)
+                for c in consultations.order_by(Consultation.created_at.desc())
+                .limit(20)
+                .all()
+            ],
+            "appointments": [
+                a.to_dict()
+                for a in scope_appointments(Appointment.query, doctor)
+                .order_by(db.func.coalesce(Appointment.arrived_at, Appointment.created_at).desc())
+                .limit(20)
+                .all()
+            ],
         }
     )

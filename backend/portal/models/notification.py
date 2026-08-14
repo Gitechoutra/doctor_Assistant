@@ -14,24 +14,16 @@ class Notification(db.Model):
     # Drives the icon/accent the bell menu renders for each row.
     category = db.Column(
         db.Enum(
+            # Somebody joined the queue, arrived, or was booked.
             "appointment",
+            # A consultation finished -- what tells the PA the patient is done
+            # and they can settle up and call the next one in.
             "consultation",
             "report",
-            "nursing",
-            # A doctor's own patient list changed -- registered to them, or
-            # routed to them by reception. Its own category rather than
-            # "appointment": those are queue events, this is "you now have a
-            # patient you didn't a moment ago," and the Alerts page reads it
-            # out separately for exactly that reason.
+            # A patient was added to the practice. Its own category rather
+            # than "appointment": that is a queue event, this is "there is
+            # somebody on the books who wasn't a moment ago."
             "patient_assignment",
-            # A doctor prescribed something the catalogue lacks, and the
-            # pharmacy is the only party who can close that gap.
-            "pharmacy",
-            # The administrator gave this person a shift. Its own category
-            # rather than "system" because it is the one notification that
-            # tells somebody where to be, and it should not sit behind the
-            # same grey icon as a password notice.
-            "shift",
             "system",
             name="notification_category",
         ),

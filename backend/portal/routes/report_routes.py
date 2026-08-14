@@ -6,7 +6,7 @@ from flask_jwt_extended import get_jwt_identity
 from portal.extensions import db
 from portal.helpers.auth_helper import get_current_doctor
 from portal.helpers.broadcast import dashboard_changed
-from portal.helpers.decorators import clinical_only
+from portal.helpers.decorators import clinical_read, doctor_only
 from portal.helpers.notify import notify
 from portal.helpers.response import error, success
 from portal.models.consultation import Consultation
@@ -57,7 +57,7 @@ def scope_reports(query, doctor):
 
 
 @report_bp.get("")
-@clinical_only
+@clinical_read
 def list_reports():
     query = scope_reports(Report.query, get_current_doctor())
     reports = query.order_by(Report.generated_at.desc()).all()
@@ -65,7 +65,7 @@ def list_reports():
 
 
 @report_bp.post("")
-@clinical_only
+@doctor_only
 def generate_report():
     """Generates a PDF for one session (`consultation_id`) or a whole course
     of treatment (`case_id`).
@@ -187,7 +187,7 @@ def _generate_case_report(case_id):
 
 
 @report_bp.get("/<int:report_id>/download")
-@clinical_only
+@clinical_read
 def download_report(report_id):
     report = Report.query.get(report_id)
     if not report:

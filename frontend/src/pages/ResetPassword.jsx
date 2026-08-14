@@ -161,7 +161,7 @@ export default function ResetPassword() {
               ) : null}
             </p>
             <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-center text-xs leading-relaxed text-brand-800">
-              Nobody at the hospital — including your administrator — can see the
+              Nobody at the practice can see the
               password you choose here.
             </p>
 

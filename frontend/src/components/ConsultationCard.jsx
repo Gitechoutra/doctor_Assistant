@@ -55,10 +55,10 @@ function MedicineRow({ medicine }) {
           {medicine.medicine_name}
         </p>
         {!medicine.matched_formulary && (
-          // Gemini may name something outside the hospital formulary; the
+          // Gemini may name something outside the practice's formulary; the
           // doctor should notice that.
           <span
-            title="Not in the hospital formulary"
+            title="Not in the practice's formulary"
             className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
           >
             off-formulary

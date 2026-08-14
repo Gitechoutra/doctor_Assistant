@@ -1,12 +1,12 @@
 /**
- * Calendar dates as the hospital reads them.
+ * Calendar dates as the practice reads them.
  *
  * Everything here is wall-clock local on purpose. The shift schedule and the doctor
  * availability screens both store and compare plain `YYYY-MM-DD` days, and a
  * day is whatever day it is in the building — not in UTC.
  */
 
-/** Today (or today ± offsetDays) as YYYY-MM-DD in the *hospital's* timezone.
+/** Today (or today ± offsetDays) as YYYY-MM-DD in the *practice's* timezone.
  *
  *  Built from the local date parts rather than `toISOString()`, which converts
  *  to UTC first and so returns the wrong day for part of every day: east of

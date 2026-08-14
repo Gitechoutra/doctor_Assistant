@@ -25,7 +25,7 @@ function toRow(prescription) {
     instructions: prescription.instructions || "",
     notes: prescription.notes || "",
     is_custom: Boolean(prescription.is_custom),
-    // Carried through so a line the AI proposed that the pharmacy doesn't
+    // Carried through so a line the AI proposed that the catalogue doesn't
     // stock can be shown as needing replacement rather than silently failing
     // on save.
     matched_formulary: prescription.matched_formulary !== false,
@@ -36,11 +36,11 @@ const inputClass =
   "w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
 
 /**
- * Manual entry, for a medicine the pharmacy does not carry.
+ * Manual entry, for a medicine the catalogue does not carry.
  *
  * Deliberately behind a button rather than letting the name field be typed
  * freely: choosing to go off-catalogue is a decision worth making on purpose,
- * and it puts the medicine in front of the pharmacy afterwards. A typo in a
+ * and it adds the medicine to the practice's catalogue afterwards. A typo in a
  * search box should not quietly become one.
  */
 function CustomMedicineForm({ onAdd, onCancel }) {
@@ -74,8 +74,8 @@ function CustomMedicineForm({ onAdd, onCancel }) {
     >
       <p className="text-sm font-semibold text-slate-800">Add a medicine by hand</p>
       <p className="mt-0.5 text-[11px] text-slate-500">
-        For something the pharmacy does not stock. It goes on this prescription as written,
-        and the pharmacy is asked afterwards whether to add it to the medicine database.
+        For something the catalogue does not carry. It goes on this prescription as
+        written, and is added to the practice's catalogue so it is there next time.
       </p>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -185,10 +185,10 @@ function CustomMedicineForm({ onAdd, onCancel }) {
 }
 
 /**
- * Edits the prescription: search the pharmacy, add with +, then adjust.
+ * Edits the prescription: search the catalogue, add with +, then adjust.
  *
  * Medicines are picked rather than typed. The name field is deliberately
- * read-only — a prescription that names something the pharmacy doesn't carry
+ * read-only — a prescription that names something the catalogue doesn't carry
  * cannot be dispensed, and the server rejects one, so letting a doctor type
  * freely would only produce an error at save time.
  *
@@ -222,7 +222,7 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
           duration: "",
           quantity: "",
           route: "",
-          // Pre-filled from the pharmacy's own instructions for this medicine,
+          // Pre-filled from the catalogue's own instructions for this medicine,
           // so the common case needs no typing at all.
           instructions: medicine.usage_instructions || "",
           notes: "",
@@ -249,7 +249,7 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
       setErrorMsg(
         `${unstocked
           .map((r) => r.medicine_name)
-          .join(", ")} is not in your department's pharmacy list. Remove it, pick a ` +
+          .join(", ")} is not in the practice's medicine list. Remove it, pick a ` +
           "stocked medicine, or re-enter it with Add custom medicine."
       );
       return;
@@ -271,7 +271,7 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
         <MedicineSearch alreadyAdded={addedBrandIds} onAdd={addMedicine} />
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-slate-400">
-            Medicines come from the pharmacy's inventory for your department, in stock now.
+            Medicines come from the practice's own catalogue.
             Press <span className="font-semibold">+</span> to add one, then set the dosage
             below.
           </p>
@@ -335,14 +335,15 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                 )}
                 {row.is_custom && (
                   <p className="mt-1.5 text-[11px] text-amber-700">
-                    Not in the pharmacy database. It will be prescribed as written, and the
-                    pharmacy will be asked whether to add it permanently.
+                    Not in the catalogue. It will be prescribed as written, and added to
+                    the practice's catalogue so it is there next time.
                   </p>
                 )}
                 {!row.matched_formulary && !row.is_custom && (
                   <p className="mt-1 flex items-start gap-1.5 text-xs font-medium text-amber-700">
                     <HiOutlineExclamationTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Not stocked by your department — remove it and pick a stocked medicine.
+                    Not in the practice's catalogue — remove it, or re-enter it as a
+                    custom medicine.
                   </p>
                 )}
               </div>

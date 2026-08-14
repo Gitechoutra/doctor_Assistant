@@ -7,7 +7,7 @@ this table is how the cost gets paid back. Each hand-entered medicine becomes
 a request the pharmacy can review and, if it belongs there, add permanently.
 
 One row per medicine name rather than per prescription. Five doctors writing
-the same missing drug is one decision for the pharmacist, not five, and the
+the same missing drug is one entry in the catalogue, not five, and the
 count is itself the evidence that it belongs in the catalogue.
 
 Requests are raised when a prescription is *finalized*, not when it is drafted:
@@ -28,7 +28,7 @@ def normalise_name(name):
 
     Case and spacing only — no attempt to equate "Vitamin D3 60000" with
     "Cholecalciferol 60000". Guessing that two differently-written names are
-    the same medicine is exactly the judgement the pharmacist is being asked
+    the same medicine is exactly the judgement somebody is being asked
     to make, and getting it wrong here would silently merge two requests.
     """
     return " ".join((name or "").strip().lower().split())
@@ -39,7 +39,7 @@ class CustomMedicineRequest(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     normalized_name = db.Column(db.String(150), nullable=False, unique=True)
-    # As the first doctor wrote it, so the pharmacist sees real clinical
+    # As the doctor first wrote it, so the entry keeps real clinical
     # wording rather than the lowercased key.
     medicine_name = db.Column(db.String(150), nullable=False)
     strength = db.Column(db.String(80), nullable=True)
@@ -52,13 +52,12 @@ class CustomMedicineRequest(db.Model):
     instructions = db.Column(db.Text, nullable=True)
     notes = db.Column(db.Text, nullable=True)
 
-    # Who has needed it, and how often — what tells a pharmacist whether this
-    # is a one-off or a genuine gap in the catalogue.
+    # How often it has been needed — what tells the practice whether this is a
+    # one-off or a genuine gap in the catalogue.
     times_prescribed = db.Column(db.Integer, nullable=False, default=0)
     first_requested_at = db.Column(db.DateTime, nullable=True)
     last_requested_at = db.Column(db.DateTime, nullable=True)
     requested_by_doctor_id = db.Column(db.Integer, db.ForeignKey("doctors.id"), nullable=True)
-    department_id = db.Column(db.Integer, db.ForeignKey("departments.id"), nullable=True)
 
     # Indexed (added via a raw migration, not this flag originally — declared
     # here too so `flask db migrate` sees it and stops proposing to drop it).
@@ -79,7 +78,6 @@ class CustomMedicineRequest(db.Model):
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), default=datetime.utcnow)
 
     doctor = db.relationship("Doctor")
-    department = db.relationship("Department")
     reviewer = db.relationship("User")
     created_brand = db.relationship("MedicineBrand")
 
@@ -99,8 +97,6 @@ class CustomMedicineRequest(db.Model):
             "requested_by": self.doctor.user.name
             if self.doctor and self.doctor.user
             else None,
-            "department_id": self.department_id,
-            "department": self.department.name if self.department else None,
             "status": self.status,
             "reviewed_by": self.reviewer.name if self.reviewer else None,
             "reviewed_at": to_utc_iso(self.reviewed_at),

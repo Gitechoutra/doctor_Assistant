@@ -1,6 +1,14 @@
 import axios from "axios";
 import { API_BASE_URL, API_ORIGIN } from "../config";
 
+// One place for the localStorage keys, exported so AuthContext writes the
+// same names this module reads. They used to be spelled out as string
+// literals in both files, which is how a rename breaks sign-in in a way that
+// only shows up as "logged out again on every reload".
+export const ACCESS_TOKEN_KEY = "mediassist_access_token";
+export const REFRESH_TOKEN_KEY = "mediassist_refresh_token";
+export const USER_KEY = "mediassist_user";
+
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
@@ -16,7 +24,7 @@ export function assetUrl(path) {
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("yasodha_access_token");
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -24,9 +32,9 @@ api.interceptors.request.use((config) => {
 });
 
 function signOut() {
-  localStorage.removeItem("yasodha_access_token");
-  localStorage.removeItem("yasodha_refresh_token");
-  localStorage.removeItem("yasodha_user");
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
   if (!window.location.pathname.startsWith("/login")) {
     window.location.href = "/login";
   }
@@ -38,7 +46,7 @@ let refreshing = null;
 
 function refreshAccessToken() {
   if (refreshing) return refreshing;
-  const refreshToken = localStorage.getItem("yasodha_refresh_token");
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refreshToken) return Promise.reject(new Error("no refresh token"));
 
   // A bare axios call, not `api`: the instance's request interceptor would
@@ -51,7 +59,7 @@ function refreshAccessToken() {
     .then((res) => {
       const token = res.data?.data?.access_token;
       if (!token) throw new Error("refresh returned no token");
-      localStorage.setItem("yasodha_access_token", token);
+      localStorage.setItem(ACCESS_TOKEN_KEY, token);
       return token;
     })
     .finally(() => {

@@ -1,11 +1,11 @@
 /**
  * The medicine vocabularies, in one place.
  *
- * Dosage forms and routes were previously spelled out in the prescription
- * editor, the pharmacy medicine form and the doctor-requests page. Three
- * copies of the same list is three chances for them to disagree — and the
- * values are contracts with the backend enums (`medicine_brand.FORMS`,
- * `medication_order.ROUTES`), so a drift here is a validation error there.
+ * Dosage forms and routes were previously spelled out in each form that used
+ * them, and every extra copy of a list is another chance for them to
+ * disagree. The values are contracts with the backend enums
+ * (`medicine_brand.FORMS`, `generated_prescription.ROUTES`), so a drift here
+ * is a validation error there.
  */
 
 export const FORM_OPTIONS = [

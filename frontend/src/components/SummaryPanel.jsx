@@ -140,7 +140,7 @@ export default function SummaryPanel({
 
   const busy = busyAction !== null || savingRx;
   // Printing is gated on the doctor's sign-off: the PDF is what leaves the
-  // hospital, so it must not exist until someone has stood behind it. The
+  // practice, so it must not exist until someone has stood behind it. The
   // API enforces the same rule, so a disabled button isn't the only guard.
   const canPrint = verified && !editing;
   const lockedReason = "Only the treating doctor can change this prescription";
@@ -194,7 +194,7 @@ export default function SummaryPanel({
 
         {/* Where the suggestion below came from. Shown above the prescription
             rather than tucked under it: a doctor deciding whether to accept
-            these medicines should know whether they are this hospital's own
+            these medicines should know whether they are this practice's own
             approved practice or the model's own proposal, before they read
             the list. */}
         {precedents.length > 0 && (
@@ -247,7 +247,6 @@ export default function SummaryPanel({
                     </ul>
                     <p className="mt-2 text-[11px] text-slate-400">
                       Approved by {p.doctor || "a doctor"}
-                      {p.department ? `, ${p.department}` : ""}
                       {p.approved_at
                         ? ` on ${new Date(p.approved_at).toLocaleDateString()}`
                         : ""}
@@ -256,7 +255,7 @@ export default function SummaryPanel({
                 ))}
                 <p className="text-[11px] italic text-slate-400">
                   Past cases are shown without patient details. They are guidance from this
-                  hospital's own approved practice, not a rule — your review decides what is
+                  practice's own approved history, not a rule — your review decides what is
                   prescribed.
                 </p>
               </div>
@@ -469,7 +468,7 @@ export default function SummaryPanel({
           message={
             "Are you sure you have reviewed the prescription? After verification it is " +
             "finalized and ready for printing.\n\nYour approval also adds this case — the " +
-            "symptoms, diagnosis and these exact medicines — to the hospital's knowledge " +
+            "symptoms, diagnosis and these exact medicines — to the practice's knowledge " +
             "base, so future patients presenting the same way are suggested this same " +
             "treatment for a doctor to review. No patient details are stored with it, and " +
             "withdrawing the sign-off removes it again."

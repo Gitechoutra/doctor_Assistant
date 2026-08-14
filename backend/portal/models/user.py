@@ -36,19 +36,10 @@ class User(db.Model):
     )
 
     role = db.relationship("Role", back_populates="users")
+    # The only profile table left. A PA's user row is their whole account —
+    # see models/role.ROLES_WITH_PROFILE.
     doctor_profile = db.relationship(
         "Doctor", back_populates="user", uselist=False, cascade="all, delete-orphan"
-    )
-    nurse_profile = db.relationship(
-        "Nurse", back_populates="user", uselist=False, cascade="all, delete-orphan"
-    )
-    pharmacist_profile = db.relationship(
-        "Pharmacist", back_populates="user", uselist=False, cascade="all, delete-orphan"
-    )
-    # HR details for Staff Management. Separate from the operational profiles
-    # above, which the clinical code joins against — see models/staff_profile.
-    staff_profile = db.relationship(
-        "StaffProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
     def set_password(self, raw_password):
@@ -63,51 +54,27 @@ class User(db.Model):
         return f"/api/auth/avatar/{self.avatar_path}" if self.avatar_path else None
 
     def to_dict(self):
-        # Doctors and nurses both sit in a department; whichever profile this
-        # user has is where the department comes from, so one shape serves
-        # every role instead of the frontend branching on it.
-        profile = self.doctor_profile or self.nurse_profile
+        from portal.models.role import role_label
+
+        doctor = self.doctor_profile
         return {
             "id": self.id,
             "name": self.name,
             "username": self.username,
             "email": self.email,
             "role": self.role.name if self.role else None,
+            # "PA" / "Doctor", so the UI never has to title-case a slug and
+            # never renders "Pa".
+            "role_label": role_label(self.role.name) if self.role else None,
             "avatar_url": self.avatar_url,
             "is_active": self.is_active,
-            # The Doctor row's own id, not the department it sits in — an
-            # Emergency Case is claimed by doctor id, so the client needs this
-            # to tell "mine" from "someone else's" without a second lookup.
-            "doctor_id": self.doctor_profile.id if self.doctor_profile else None,
-            "specialization": (
-                self.doctor_profile.specialization if self.doctor_profile else None
-            ),
-            "registration_no": (
-                self.doctor_profile.registration_no if self.doctor_profile else None
-            ),
-            "department": (
-                profile.department.name if profile and profile.department else None
-            ),
-            "department_id": profile.department_id if profile else None,
-            # Nurse-only, null for everyone else — the nurse profile page reads
-            # these the same way the doctor page reads specialization.
-            "employee_no": (
-                self.nurse_profile.employee_no if self.nurse_profile else None
-            ),
-            # No "shift" here. The session user used to carry the single
-            # shift on the nurse profile, which the nursing sidebar showed
-            # by default. Shifts are now dated rows an administrator
-            # schedules, read from /api/shifts.
-            # Pharmacy-only: which counter this user works. Every stock query
-            # is scoped by it, so the frontend needs it on the session user.
-            "branch_id": (
-                self.pharmacist_profile.branch_id if self.pharmacist_profile else None
-            ),
-            "branch": (
-                self.pharmacist_profile.branch.name
-                if self.pharmacist_profile and self.pharmacist_profile.branch
-                else None
-            ),
+            # The Doctor row's own id. Null for the PA, and every "is this my
+            # patient / my consultation?" check on the client reads it.
+            "doctor_id": doctor.id if doctor else None,
+            "specialization": doctor.specialization if doctor else None,
+            "qualification": doctor.qualification if doctor else None,
+            "registration_no": doctor.registration_no if doctor else None,
+            "practice_name": doctor.practice_name if doctor else None,
         }
 
     def __repr__(self):

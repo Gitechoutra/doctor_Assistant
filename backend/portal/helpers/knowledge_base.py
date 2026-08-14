@@ -133,14 +133,12 @@ def learn_from_approval(consultation):
     # autoflush of a half-populated row fails on its NOT NULL columns — so no
     # relationship may be reached for after the row joins the session.
     patient = consultation.patient
-    doctor = consultation.doctor
     existing = ClinicalPrecedent.query.filter_by(
         source_consultation_id=consultation.id
     ).first()
 
     values = {
         "doctor_id": consultation.doctor_id,
-        "department_id": doctor.department_id if doctor else None,
         "symptoms": summary.symptoms,
         "diagnosis": summary.possible_diagnosis,
         "medicines": json.dumps(medicines),
@@ -271,7 +269,6 @@ def snapshot_matches(matches):
             "doctor": precedent.doctor.user.name
             if precedent.doctor and precedent.doctor.user
             else None,
-            "department": precedent.department.name if precedent.department else None,
             "approved_at": precedent.approved_at.isoformat() if precedent.approved_at else None,
         }
         for precedent, similarity in matches

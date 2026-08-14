@@ -61,14 +61,14 @@ def _settings():
 
     # MAIL_FROM is accepted in either form a config file writes it:
     #
-    #     from_address = care@yasodhahospitals.com
-    #     from_address = Yasodha Hospitals <care@yasodhahospitals.com>
+    #     from_address = hello@yourpractice.com
+    #     from_address = Your Practice <hello@yourpractice.com>
     #
     # parseaddr splits the second into its parts. Without this the whole
     # string would be treated as an address and re-wrapped by formataddr into
     # `Name <Name <addr>>`, which is not a valid header -- and the Message-ID
     # domain, taken from the text after the last '@', would end up as
-    # "yasodhahospitals.com>".
+    # "yourpractice.com>".
     display, address = parseaddr((cfg.get("MAIL_FROM") or "").strip())
 
     return {
@@ -205,24 +205,24 @@ def _strip_tags(markup):
 # -- Layout ------------------------------------------------------------------
 
 
-def _hospital():
-    return current_app.config.get("HOSPITAL") or {}
+def _practice():
+    return current_app.config.get("PRACTICE") or {}
 
 
 def _layout(heading, lede, blocks, footer_note=None):
-    """Wraps composed content in the hospital's letterhead.
+    """Wraps composed content in the practice's letterhead.
 
     `blocks` is a list of ready HTML fragments, kept as a list so a composer
     reads as the sequence of things the recipient sees.
     """
-    hospital = _hospital()
-    name = html.escape(hospital.get("name") or "Hospital Portal")
-    tagline = html.escape(hospital.get("tagline") or "")
+    practice = _practice()
+    name = html.escape(practice.get("name") or "MediAssist AI")
+    tagline = html.escape(practice.get("tagline") or "")
 
     contact_bits = [
-        html.escape(hospital.get(k))
+        html.escape(practice.get(k))
         for k in ("address", "phone", "email")
-        if hospital.get(k)
+        if practice.get(k)
     ]
     contact = " &nbsp;·&nbsp; ".join(contact_bits)
 
@@ -319,7 +319,7 @@ def send_staff_credentials(
 ):
     """The one an administrator's "Create staff account" triggers.
 
-    Carries everything the staff member needs and nothing the hospital keeps a
+    Carries everything the account holder needs and nothing the practice keeps a
     copy of: name, role, username, email, the temporary password, where to
     sign in, and the single-use link that replaces the temporary password with
     one only they know.
@@ -334,21 +334,21 @@ def send_staff_credentials(
     a staff member trying the old password and one knowing not to.
     """
     role = role_label(role_name or (user.role.name if user.role else None))
-    hospital = _hospital().get("name") or "the hospital portal"
+    practice = _practice().get("name") or "MediAssist AI"
     expiry = _expiry_phrase(link_minutes)
     greeting = greeting_name(user.name)
 
     subject = (
-        f"Your updated {hospital} sign-in details"
+        f"Your updated {practice} sign-in details"
         if reissued
-        else f"Your {hospital} staff account"
+        else f"Your {practice} account"
     )
 
     lede = (
         "Your sign-in details have been reissued. Anything sent to you before this "
         "message no longer works."
         if reissued
-        else f"An account has been created for you at {html.escape(hospital)}. "
+        else f"An account has been created for you at {html.escape(practice)}. "
         "Here is everything you need to sign in."
     )
 
@@ -381,7 +381,7 @@ def send_staff_credentials(
         blocks,
         footer_note=(
             "Keep this message private, and delete it once you have set your own "
-            "password. Nobody at the hospital — including your administrator — can "
+            "password. Nobody at the practice can "
             "see the password you choose."
         ),
     )
@@ -389,7 +389,7 @@ def send_staff_credentials(
     text_body = f"""\
 Hello {greeting},
 
-{"Your sign-in details have been reissued. Anything sent to you before this message no longer works." if reissued else f"An account has been created for you at {hospital}."}
+{"Your sign-in details have been reissued. Anything sent to you before this message no longer works." if reissued else f"An account has been created for you at {practice}."}
 
   Name:                {user.name or ""}
   Role:                {role}
@@ -405,10 +405,10 @@ Please set your own password now. This link works once and expires in {expiry}:
 {reset_link}
 
 Keep this message private, and delete it once you have set your own password.
-Nobody at the hospital, including your administrator, can see the password you
+Nobody at the practice can see the password you
 choose.
 
--- {_hospital().get("name") or "Hospital Portal"}
+-- {_practice().get("name") or "MediAssist AI"}
 This is an automated message; please do not reply to it.
 """
 
@@ -417,7 +417,7 @@ This is an automated message; please do not reply to it.
 
 def send_password_reset(user, *, reset_link, link_minutes):
     """The one "forgot password" triggers."""
-    hospital = _hospital().get("name") or "the hospital portal"
+    practice = _practice().get("name") or "MediAssist AI"
     expiry = _expiry_phrase(link_minutes)
     greeting = greeting_name(user.name)
 
@@ -433,7 +433,7 @@ def send_password_reset(user, *, reset_link, link_minutes):
 
     html_body = _layout(
         "Reset your password",
-        f"Somebody asked to reset the password for your {html.escape(hospital)} account.",
+        f"Somebody asked to reset the password for your {html.escape(practice)} account.",
         blocks,
         footer_note=(
             "If this wasn't you, no action is needed — your current password still "
@@ -445,7 +445,7 @@ def send_password_reset(user, *, reset_link, link_minutes):
     text_body = f"""\
 Hello {greeting},
 
-Somebody asked to reset the password for your {hospital} account.
+Somebody asked to reset the password for your {practice} account.
 
 Use this link to choose a new one. It works once and expires in {expiry}:
 
@@ -456,11 +456,11 @@ Your username is: {user.username or user.email or ""}
 If this wasn't you, no action is needed -- your current password still works
 and this link can be ignored.
 
--- {_hospital().get("name") or "Hospital Portal"}
+-- {_practice().get("name") or "MediAssist AI"}
 This is an automated message; please do not reply to it.
 """
 
-    return send_email(user.email, f"Reset your {hospital} password", html_body, text_body)
+    return send_email(user.email, f"Reset your {practice} password", html_body, text_body)
 
 
 def send_password_changed(user, *, login_link):
@@ -470,7 +470,7 @@ def send_password_changed(user, *, login_link):
     taken over, and it is the only signal they would get -- an attacker who
     used a stolen link is otherwise entirely silent.
     """
-    hospital = _hospital().get("name") or "the hospital portal"
+    practice = _practice().get("name") or "MediAssist AI"
     greeting = greeting_name(user.name)
 
     blocks = [
@@ -484,10 +484,10 @@ def send_password_changed(user, *, login_link):
 
     html_body = _layout(
         "Your password was changed",
-        f"This is a confirmation from {html.escape(hospital)}.",
+        f"This is a confirmation from {html.escape(practice)}.",
         blocks,
         footer_note=(
-            "If you did not do this, contact your hospital administrator "
+            "If you did not do this, contact the practice "
             "immediately — somebody else may have access to your account."
         ),
     )
@@ -495,16 +495,16 @@ def send_password_changed(user, *, login_link):
     text_body = f"""\
 Hello {greeting},
 
-Your {hospital} password has been changed. Use it the next time you sign in;
+Your {practice} password has been changed. Use it the next time you sign in;
 any temporary password you were sent no longer works.
 
 Sign in at: {login_link}
 
-If you did not do this, contact your hospital administrator immediately --
+If you did not do this, contact the practice immediately --
 somebody else may have access to your account.
 
--- {_hospital().get("name") or "Hospital Portal"}
+-- {_practice().get("name") or "MediAssist AI"}
 This is an automated message; please do not reply to it.
 """
 
-    return send_email(user.email, f"Your {hospital} password was changed", html_body, text_body)
+    return send_email(user.email, f"Your {practice} password was changed", html_body, text_body)

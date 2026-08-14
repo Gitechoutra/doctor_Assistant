@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY } from "../services/api";
 import {
   fetchCurrentUser,
   login as loginRequest,
@@ -7,20 +8,27 @@ import {
 
 const AuthContext = createContext(null);
 
-const USER_KEY = "yasodha_user";
+/** The two roles this application has. Every branch on `user.role` in the UI
+ *  compares against one of these rather than a bare string, so a rename is a
+ *  single edit here and a compile error everywhere it was missed. */
+export const ROLE_PA = "pa";
+export const ROLE_DOCTOR = "doctor";
 
 /** Reads the cached user, treating anything unreadable as "signed out".
  *
  *  localStorage is external input: it survives deploys, is editable by hand,
  *  and holds whatever an older build of this app wrote. Parsing it without a
  *  guard threw inside this provider's first render — and because the provider
- *  wraps the whole router, that blanked every page, including the public
- *  landing page, on every reload until the key was cleared by hand.
+ *  wraps the whole router, that blanked every page on every reload until the
+ *  key was cleared by hand.
  *
  *  The bad value is dropped rather than left in place, so one reload recovers
  *  instead of failing identically forever. A cached user missing `id` or
- *  `role` is discarded too: RoleRoute and the sidebar branch on `role`, and a
- *  half-shaped object would fail further in, where the cause is less obvious.
+ *  `role` is discarded too: the sidebar and the route guards branch on `role`,
+ *  and a half-shaped object would fail further in, where the cause is less
+ *  obvious. So is one whose role is neither of the two above — that is a
+ *  session from the hospital build of this app (a nurse, a pharmacist, an
+ *  admin), and honouring it would put somebody in a UI with no home to land on.
  */
 function readStoredUser() {
   const stored = localStorage.getItem(USER_KEY);
@@ -28,9 +36,13 @@ function readStoredUser() {
   try {
     const parsed = JSON.parse(stored);
     if (parsed && typeof parsed === "object" && parsed.id && parsed.role) {
-      return parsed;
+      if (parsed.role === ROLE_PA || parsed.role === ROLE_DOCTOR) {
+        return parsed;
+      }
+      console.warn("Ignoring cached user: unknown role.", parsed.role);
+    } else {
+      console.warn("Ignoring cached user: unexpected shape.", parsed);
     }
-    console.warn("Ignoring cached user: unexpected shape.", parsed);
   } catch (err) {
     console.warn("Ignoring cached user: could not be parsed.", err);
   }
@@ -59,12 +71,13 @@ export function AuthProvider({ children }) {
   async function login(identifier, password) {
     setIsLoading(true);
     try {
-      const { access_token, refresh_token, user: loggedInUser } = await loginRequest(
-        identifier,
-        password
-      );
-      localStorage.setItem("yasodha_access_token", access_token);
-      localStorage.setItem("yasodha_refresh_token", refresh_token);
+      const {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        user: loggedInUser,
+      } = await loginRequest(identifier, password);
+      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
       setUser(loggedInUser);
       return loggedInUser;
     } finally {
@@ -74,8 +87,8 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     await logoutRequest();
-    localStorage.removeItem("yasodha_access_token");
-    localStorage.removeItem("yasodha_refresh_token");
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     setUser(null);
   }
 
@@ -97,6 +110,8 @@ export function AuthProvider({ children }) {
     user,
     isAuthenticated: Boolean(user),
     isLoading,
+    isPA: user?.role === ROLE_PA,
+    isDoctor: user?.role === ROLE_DOCTOR,
     login,
     logout,
     updateUser,

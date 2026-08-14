@@ -5,7 +5,7 @@ import api from "./api";
 // so there is no endpoint to add or edit one by hand.
 
 export async function fetchPrecedents(params = {}) {
-  // Accepts { status: active|retired|all }, { department_id }, { search }.
+  // Accepts { status: active|retired|all } and { search }.
   const res = await api.get("/knowledge", { params });
   return res.data.data;
 }

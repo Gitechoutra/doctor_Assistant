@@ -1,12 +1,10 @@
 import api from "./api";
 
 /**
- * Medicines this doctor can prescribe, matching `query`.
+ * Medicines the doctor can prescribe, matching `query`.
  *
- * Reads the pharmacy's catalogue, already narrowed server-side to the
- * doctor's own department and to what is in stock — so anything this returns
- * can actually be dispensed today. An empty query returns the first page of
- * that inventory, so opening the picker shows options rather than a blank box.
+ * The practice's own catalogue. An empty query returns its first page, so
+ * opening the picker shows options rather than a blank box.
  */
 export async function searchMedicines(query = "") {
   const res = await api.get("/prescriptions/medicines", { params: { q: query } });

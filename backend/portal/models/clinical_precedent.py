@@ -69,7 +69,6 @@ class ClinicalPrecedent(db.Model):
         db.Integer, db.ForeignKey("consultations.id"), nullable=False, unique=True
     )
     doctor_id = db.Column(db.Integer, db.ForeignKey("doctors.id"), nullable=False)
-    department_id = db.Column(db.Integer, db.ForeignKey("departments.id"), nullable=True)
 
     # --- The clinical content, which is what gets matched and shown ---------
     symptoms = db.Column(db.Text, nullable=True)
@@ -119,7 +118,6 @@ class ClinicalPrecedent(db.Model):
 
     source_consultation = db.relationship("Consultation")
     doctor = db.relationship("Doctor")
-    department = db.relationship("Department")
 
     @property
     def is_active(self):
@@ -177,7 +175,6 @@ class ClinicalPrecedent(db.Model):
             "age_band": self.age_band,
             "gender": self.gender,
             "doctor": self.doctor.user.name if self.doctor and self.doctor.user else None,
-            "department": self.department.name if self.department else None,
             "times_suggested": self.times_suggested,
             "times_accepted": self.times_accepted,
             "approved_at": to_utc_iso(self.approved_at),

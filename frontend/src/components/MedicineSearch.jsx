@@ -6,17 +6,12 @@ import {
 } from "react-icons/hi2";
 import { searchMedicines } from "../services/prescriptionService";
 
-const AVAILABILITY_STYLE = {
-  available: "bg-emerald-50 text-emerald-700",
-  low_stock: "bg-amber-50 text-amber-700",
-};
-
 /**
- * Type-ahead over the pharmacy's medicines, with a + to add one.
+ * Type-ahead over the practice's medicine catalogue, with a + to add one.
  *
- * The list comes from the pharmacy module and is already limited to this
- * doctor's department and to medicines in stock, so anything offered here can
- * be dispensed today — which is the point of picking rather than typing.
+ * The list is the practice's own formulary. Picking from it rather than
+ * typing is what keeps a prescription line resolvable — to a generic, to a
+ * stored precedent, and to the same medicine next time.
  *
  * `alreadyAdded` are brand ids on the prescription; those rows stay visible
  * but show as added rather than disappearing, so a doctor who searches for
@@ -80,7 +75,7 @@ export default function MedicineSearch({ alreadyAdded = [], onAdd }) {
           value={term}
           onChange={(e) => setTerm(e.target.value)}
           onFocus={() => setOpen(true)}
-          placeholder="Search medicines from the pharmacy — name, generic or condition…"
+          placeholder="Search medicines — name, generic or condition…"
           aria-label="Search medicines"
           className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
         />
@@ -108,8 +103,8 @@ export default function MedicineSearch({ alreadyAdded = [], onAdd }) {
                 No medicine matches &ldquo;{term}&rdquo;.
               </p>
               <p className="mt-1 text-xs text-slate-400">
-                Only medicines your department stocks and that are in stock appear here. Ask
-                the pharmacy to add or restock it.
+                Only medicines in the practice's catalogue appear here. Use Add custom
+                medicine to prescribe something that is not in it.
               </p>
             </div>
           ) : (
@@ -127,13 +122,9 @@ export default function MedicineSearch({ alreadyAdded = [], onAdd }) {
                         <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
                           {m.form_label}
                         </span>
-                        {AVAILABILITY_STYLE[m.availability] && (
-                          <span
-                            className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                              AVAILABILITY_STYLE[m.availability]
-                            }`}
-                          >
-                            {m.in_stock} in stock
+                        {m.strength && (
+                          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                            {m.strength}
                           </span>
                         )}
                       </div>

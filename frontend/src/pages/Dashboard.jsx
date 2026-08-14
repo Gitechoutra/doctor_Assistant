@@ -1,188 +1,340 @@
+import { Link, useNavigate } from "react-router-dom";
 import {
   HiOutlineCalendarDays,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineUsers,
+  HiOutlineCheckCircle,
+  HiOutlineClipboardDocumentList,
+  HiOutlineClock,
   HiOutlineDocumentChartBar,
+  HiOutlineQueueList,
   HiOutlineUserPlus,
-  HiOutlineExclamationTriangle,
+  HiOutlineUsers,
 } from "react-icons/hi2";
+import Avatar from "../components/Avatar";
+import QueueBoard from "../components/QueueBoard";
 import StatCard from "../components/StatCard";
-import { useAuth } from "../context/AuthContext";
 import useLiveSummary from "../hooks/useLiveSummary";
+import { useAuth } from "../context/AuthContext";
+import { startAppointment } from "../services/appointmentService";
+import { useState } from "react";
 
-const STATUS_STYLES = {
-  scheduled: "bg-slate-100 text-slate-600",
-  in_progress: "bg-amber-100 text-amber-700",
-  completed: "bg-emerald-100 text-emerald-700",
-};
+/** "20 Aug, 10:30" — enough to place an appointment without the year, which
+ *  is noise for anything inside the booking window. */
+function whenLabel(iso) {
+  if (!iso) return "No time set";
+  const date = new Date(iso);
+  return date.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-function StatusBadge({ status }) {
-  const label = status.replace("_", " ");
+function Panel({ title, action, children }) {
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[status] || "bg-slate-100 text-slate-600"}`}
-    >
-      {label}
-    </span>
+    <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-slate-800">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
   );
 }
 
+function EmptyLine({ children }) {
+  return <p className="py-6 text-center text-xs text-slate-400">{children}</p>;
+}
+
+/**
+ * The home screen for both roles.
+ *
+ * One page, because both people are working the same day — the PA from the
+ * front of it and the doctor from the consulting room. The numbers along the
+ * top are deliberately the same four for each (who is booked, who is here,
+ * who is with the doctor, who has been seen): a shared count is what lets the
+ * two of them talk to each other about the day without checking whose screen
+ * is right. Underneath, each gets what only they act on.
+ */
 export default function Dashboard() {
-  const { user } = useAuth();
-  // Counts refresh themselves on server pushes, tab focus and a slow poll,
-  // which is why there is no refresh control here — it would only duplicate
-  // something already happening. `refresh` stays on the hook and is still
-  // wired to those triggers inside it.
-  const { summary, loading, errorMsg } = useLiveSummary();
+  const { user, isDoctor } = useAuth();
+  const { summary, loading, errorMsg, refresh } = useLiveSummary();
+  const navigate = useNavigate();
+  const [startingId, setStartingId] = useState(null);
 
-  return (
-    <div>
-      <div className="min-w-0">
-        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-          Welcome back, {user?.name}
-        </h1>
-      </div>
-
-      {errorMsg && (
-        <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-          {errorMsg}
-        </p>
-      )}
-
-      {loading ? (
-        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+  if (loading && !summary) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-56 animate-pulse rounded-lg bg-slate-100" />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />
           ))}
         </div>
-      ) : (
-        summary &&
-        // Reception gets the front desk's own numbers. The clinical cards are
-        // deliberately absent rather than zeroed: the pages behind them 403
-        // for this role, so a card linking to one would be a dead end.
-        (summary.scope === "front_desk" ? (
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Registered Patients"
-              value={summary.total_patients}
-              hint="Everyone on file"
-              icon={HiOutlineUsers}
-              to="/dashboard/patients"
-            />
-            <StatCard
-              label="Registered Today"
-              value={summary.todays_registrations}
-              hint="New patients today"
-              icon={HiOutlineUserPlus}
-              to="/dashboard/patients"
-            />
-            <StatCard
-              label="Today's Queue"
-              value={summary.todays_appointments}
-              hint="Waiting & in consultation"
-              icon={HiOutlineCalendarDays}
-              // No filter: the card counts the live queue, so it links to the
-              // queue itself. A `?filter=today` here used to hide anyone
-              // still waiting from an earlier day, leaving the card reading 0
-              // over a page that listed them.
-              to="/dashboard/appointments"
-            />
-            <StatCard
-              label="Awaiting a Doctor"
-              value={summary.unassigned_patients}
-              hint={
-                summary.unassigned_patients
-                  ? "Route these to a doctor"
-                  : "Everyone is routed"
-              }
-              icon={HiOutlineExclamationTriangle}
-              to="/dashboard/patients"
-            />
-          </div>
-        ) : (
-          <>
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                label="Today's Appointments"
-                value={summary.todays_appointments}
-                hint="Waiting & in consultation"
-                icon={HiOutlineCalendarDays}
-                // Links to the whole queue, unfiltered — this is the count of
-                // patients still to be seen, including anyone carried over
-                // from an earlier day.
-                to="/dashboard/appointments"
-              />
-              <StatCard
-                label="Active Consultations"
-                value={summary.active_consultations}
-                hint="In progress"
-                icon={HiOutlineChatBubbleLeftRight}
-                // In-progress visits live in the queue (with a Resume button);
-                // Consultations is the completed-only record.
-                to="/dashboard/appointments?status=in_progress"
-              />
-              <StatCard
-                label="Patients"
-                value={summary.total_patients}
-                hint="Total patients"
-                icon={HiOutlineUsers}
-                to="/dashboard/patients"
-              />
-              <StatCard
-                label="Reports Generated"
-                value={summary.reports_generated}
-                hint={`${summary.todays_reports} today · ${summary.reports_generated} total`}
-                icon={HiOutlineDocumentChartBar}
-                to="/dashboard/reports"
-              />
-            </div>
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+      </div>
+    );
+  }
 
-            <div className="mt-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900">
-                  Recent Consultations
-                </h2>
+  const data = summary || {};
+  const queue = data.queue || [];
+  const firstName = (user?.name || "").replace(/^Dr\.?\s*/i, "").split(" ")[0];
+
+  async function handleStart(appointment) {
+    setStartingId(appointment.id);
+    try {
+      const consultation = await startAppointment(appointment.id);
+      navigate(`/dashboard/consultations/${consultation.id}`);
+    } catch {
+      refresh();
+    } finally {
+      setStartingId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Good day{firstName ? `, ${isDoctor ? "Dr. " : ""}${firstName}` : ""}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {isDoctor
+              ? "Your patients and consultations for today."
+              : "The practice's day at a glance."}
+          </p>
+        </div>
+        {!isDoctor && (
+          <Link
+            to="/dashboard/patients?new=1"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            <HiOutlineUserPlus className="h-4.5 w-4.5" />
+            Add patient
+          </Link>
+        )}
+      </header>
+
+      {errorMsg && (
+        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">{errorMsg}</p>
+      )}
+
+      {/* The same four numbers for both, so the desk and the room agree. */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="In the queue today"
+          value={data.todays_appointments}
+          hint="Patients here now, waiting or being seen"
+          icon={HiOutlineQueueList}
+          to="/dashboard/queue"
+        />
+        <StatCard
+          label="Waiting"
+          value={data.waiting}
+          hint="Checked in, not yet called"
+          icon={HiOutlineClock}
+          to="/dashboard/queue"
+        />
+        <StatCard
+          label="In consultation"
+          value={data.in_consultation}
+          hint="With the doctor right now"
+          icon={HiOutlineChatBubbleLeftRight}
+          to="/dashboard/queue"
+        />
+        <StatCard
+          label="Completed today"
+          value={data.todays_completed}
+          hint="Consultations finished today"
+          icon={HiOutlineCheckCircle}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Panel
+            title="Patient queue"
+            action={
+              <Link
+                to="/dashboard/queue"
+                className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+              >
+                Open queue →
+              </Link>
+            }
+          >
+            <QueueBoard
+              queue={queue}
+              onStart={isDoctor ? handleStart : undefined}
+              startingId={startingId}
+              emptyMessage={
+                isDoctor
+                  ? "Nobody is waiting. Patients appear here as the PA checks them in."
+                  : "Nobody is waiting. Book a walk-in from Appointments."
+              }
+            />
+          </Panel>
+        </div>
+
+        <div className="space-y-5">
+          <Panel
+            title="Upcoming appointments"
+            action={
+              !isDoctor && (
+                <Link
+                  to="/dashboard/appointments"
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                >
+                  Manage →
+                </Link>
+              )
+            }
+          >
+            {(data.upcoming || []).length === 0 ? (
+              <EmptyLine>Nothing booked ahead.</EmptyLine>
+            ) : (
+              <ul className="space-y-3">
+                {data.upcoming.map((appointment) => (
+                  <li key={appointment.id} className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500">
+                      <HiOutlineCalendarDays className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to={`/dashboard/patients/${appointment.patient_id}`}
+                        className="block truncate text-sm font-medium text-slate-700 hover:text-brand-700"
+                      >
+                        {appointment.patient}
+                      </Link>
+                      <p className="truncate text-xs text-slate-400">
+                        {whenLabel(appointment.scheduled_at)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          {isDoctor ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <StatCard
+                  label="Prescriptions to sign"
+                  value={data.pending_prescriptions}
+                  hint="Finished visits awaiting sign-off"
+                  icon={HiOutlineClipboardDocumentList}
+                  to="/dashboard/consultations"
+                />
+                <StatCard
+                  label="Reports"
+                  value={data.reports_generated}
+                  hint={`${data.todays_reports ?? 0} issued today`}
+                  icon={HiOutlineDocumentChartBar}
+                  to="/dashboard/reports"
+                />
               </div>
 
-              {summary.recent_consultations.length === 0 ? (
-                <p className="py-10 text-center text-sm text-slate-400">
-                  No consultations yet. They&apos;ll appear here once a
-                  doctor starts one.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[36rem] text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
-                        <th className="pb-3 font-medium">Patient</th>
-                        <th className="pb-3 font-medium">Doctor</th>
-                        <th className="pb-3 font-medium">Started</th>
-                        <th className="pb-3 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {summary.recent_consultations.map((c) => (
-                        <tr key={c.id} className="border-b border-slate-50 last:border-0">
-                          <td className="py-3 font-medium text-slate-800">{c.patient}</td>
-                          <td className="py-3 text-slate-500">{c.doctor}</td>
-                          <td className="py-3 text-slate-500">
-                            {c.started_at
-                              ? new Date(c.started_at).toLocaleString()
-                              : "—"}
-                          </td>
-                          <td className="py-3">
-                            <StatusBadge status={c.status} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        ))
-      )}
+              <Panel
+                title="Recent consultations"
+                action={
+                  <Link
+                    to="/dashboard/consultations"
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                  >
+                    All →
+                  </Link>
+                }
+              >
+                {(data.recent_consultations || []).length === 0 ? (
+                  <EmptyLine>No consultations recorded yet.</EmptyLine>
+                ) : (
+                  <ul className="space-y-3">
+                    {data.recent_consultations.slice(0, 5).map((consultation) => (
+                      <li key={consultation.id}>
+                        <Link
+                          to={`/dashboard/consultations/${consultation.id}`}
+                          className="flex items-center gap-3 rounded-lg p-1 transition hover:bg-slate-50"
+                        >
+                          <Avatar name={consultation.patient} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-slate-700">
+                              {consultation.patient}
+                            </p>
+                            <p className="truncate text-xs text-slate-400">
+                              {consultation.status === "in_progress"
+                                ? "In progress"
+                                : whenLabel(consultation.ended_at || consultation.started_at)}
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <StatCard
+                  label="Total patients"
+                  value={data.total_patients}
+                  hint="On the practice's books"
+                  icon={HiOutlineUsers}
+                  to="/dashboard/patients"
+                />
+                <StatCard
+                  label="Registered today"
+                  value={data.todays_registrations}
+                  hint="New patients added today"
+                  icon={HiOutlineUserPlus}
+                  to="/dashboard/patients"
+                />
+              </div>
+
+              <Panel
+                title="Recently registered"
+                action={
+                  <Link
+                    to="/dashboard/patients"
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+                  >
+                    All →
+                  </Link>
+                }
+              >
+                {(data.recent_patients || []).length === 0 ? (
+                  <EmptyLine>No patients registered yet.</EmptyLine>
+                ) : (
+                  <ul className="space-y-3">
+                    {data.recent_patients.slice(0, 5).map((patient) => (
+                      <li key={patient.id}>
+                        <Link
+                          to={`/dashboard/patients/${patient.id}`}
+                          className="flex items-center gap-3 rounded-lg p-1 transition hover:bg-slate-50"
+                        >
+                          <Avatar name={patient.name} imageUrl={patient.photo_url} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-slate-700">
+                              {patient.name}
+                            </p>
+                            <p className="truncate text-xs text-slate-400">
+                              {[patient.code, patient.phone].filter(Boolean).join(" · ")}
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

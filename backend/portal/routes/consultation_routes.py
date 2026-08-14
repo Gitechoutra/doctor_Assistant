@@ -6,7 +6,7 @@ from flask_jwt_extended import get_jwt_identity
 
 from portal.ai import gemini_client
 from portal.extensions import db, socketio
-from portal.helpers.auth_helper import get_current_doctor, get_current_nurse
+from portal.helpers.auth_helper import get_current_doctor
 from portal.helpers import custom_medicines, knowledge_base
 from portal.helpers.audit import (
     CONSULTATION_ENDED,
@@ -28,7 +28,7 @@ from portal.helpers.case_helper import (
     prior_session_context,
     todays_session,
 )
-from portal.helpers.decorators import clinical_only
+from portal.helpers.decorators import clinical_read, doctor_only
 from portal.helpers.formulary import formulary_payload, prescribable_for, resolve_medicine
 from portal.helpers.notify import notify, role_user_ids
 from portal.helpers.patient_access import can_access_patient
@@ -40,11 +40,11 @@ from portal.helpers.queue_helper import (
 )
 from portal.helpers.response import error, success
 from portal.models.consultation import Consultation
+from portal.models.role import PA
 from portal.models.consultation_summary import ConsultationSummary
 from portal.models.conversation_message import ConversationMessage
 from portal.models.generated_prescription import GeneratedPrescription
-from portal.models.medication_order import ROUTES
-from portal.models.nursing_assignment import NursingAssignment
+from portal.models.generated_prescription import ROUTES
 from portal.models.patient import Patient
 from portal.websocket.consultation_socket import consultation_room
 
@@ -60,7 +60,7 @@ LIST_LIMIT = 100
 
 
 @consultation_bp.get("")
-@clinical_only
+@clinical_read
 def list_consultations():
     """Consultation history — completed consultations only.
 
@@ -124,7 +124,7 @@ def list_consultations():
 
 
 @consultation_bp.post("")
-@clinical_only
+@doctor_only
 def start_consultation():
     """Starts a consultation session for a patient.
 
@@ -205,11 +205,6 @@ def start_consultation():
     return success(_room_payload(consultation, can_manage=True), message="Consultation started", status=201)
 
 
-def _department_of(consultation):
-    doctor = consultation.doctor
-    return doctor.department.name if doctor and doctor.department else "shared"
-
-
 def _is_owning_doctor(consultation):
     doctor = get_current_doctor()
     return bool(doctor and doctor.id == consultation.doctor_id)
@@ -246,10 +241,11 @@ def _room_payload(consultation, can_manage=None):
     stops, say, the previous-session history disappearing off the screen after
     a prescription is verified.
 
-    `can_manage` tells the frontend whether to show live recording controls:
-    viewing is fine for anyone (e.g. admin oversight), but only the doctor the
-    consultation belongs to may record audio or end it. Enforced for real in
-    each route; this flag just hides controls that would 403 anyway.
+    `can_manage` tells the frontend whether to show the recording controls:
+    the PA may read a consultation, but only the doctor it belongs to may
+    record audio, prescribe or end it. Enforced for real in each route — every
+    one of those is `@doctor_only`; this flag just hides controls that would
+    403 anyway.
     """
     data = consultation.to_dict(include_detail=True)
     data["can_manage"] = _is_owning_doctor(consultation) if can_manage is None else can_manage
@@ -268,30 +264,20 @@ def _may_view_consultation(consultation):
 
     The rules are the ones the rest of the app already runs on:
 
-      * a doctor  — the module-wide patient rule (`can_access_patient`), which
-        is what `start_consultation` checks before creating one of these
-      * a nurse   — only a patient actually handed to them, the same scope
-        `helpers/nursing_access` applies to the record hanging off it
-      * admin     — everything, which is the oversight the room's `can_manage`
-        flag was already written for
+      * the doctor — the module-wide patient rule (`can_access_patient`),
+        which is what `start_consultation` checks before creating one of these
+      * the PA     — every consultation in the practice. Reading the record is
+        desk work (see `helpers/decorators`); writing to it is not, and every
+        route that writes is gated `@doctor_only` regardless of this.
     """
     doctor = get_current_doctor()
     if doctor:
         return can_access_patient(consultation.patient, doctor)
-
-    nurse = get_current_nurse()
-    if nurse:
-        return bool(
-            NursingAssignment.query.filter_by(
-                patient_id=consultation.patient_id, nurse_id=nurse.id
-            ).first()
-        )
-
     return True
 
 
 @consultation_bp.get("/<int:consultation_id>")
-@clinical_only
+@clinical_read
 def get_consultation(consultation_id):
     consultation = Consultation.query.get(consultation_id)
     if not consultation:
@@ -304,7 +290,7 @@ def get_consultation(consultation_id):
 
 
 @consultation_bp.post("/<int:consultation_id>/transcribe")
-@clinical_only
+@doctor_only
 def transcribe_turn(consultation_id):
     consultation = Consultation.query.get(consultation_id)
     if not consultation:
@@ -368,7 +354,7 @@ MAX_TEXT = 2000
 
 
 @consultation_bp.put("/<int:consultation_id>/prescriptions")
-@clinical_only
+@doctor_only
 def replace_prescriptions(consultation_id):
     """Replaces the prescription with the doctor's edited version.
 
@@ -398,10 +384,8 @@ def replace_prescriptions(consultation_id):
     if len(items) > MAX_PRESCRIPTION_ITEMS:
         return error(f"A prescription can hold at most {MAX_PRESCRIPTION_ITEMS} medicines", status=422)
 
-    # Matched against the department's inventory. Out-of-stock items are
-    # included: a doctor deliberately choosing a medicine the shelf is
-    # momentarily out of is still naming a real product.
-    prescribable = prescribable_for(consultation.doctor, include_out_of_stock=True)
+    # Matched against the practice's catalogue -- see helpers/formulary.
+    prescribable = prescribable_for(consultation.doctor)
 
     cleaned = []
     for index, item in enumerate(items):
@@ -423,9 +407,8 @@ def replace_prescriptions(consultation_id):
         # the two, and it can only come from the manual-entry form.
         if brand is None and medicine_id is None and not is_custom:
             return error(
-                f"“{name}” is not in this department's medicine list. Pick a stocked "
-                "medicine from the search box, or use Add custom medicine to enter it "
-                "by hand.",
+                f"“{name}” is not in the practice's medicine list. Pick one from "
+                "the search box, or use Add custom medicine to enter it by hand.",
                 status=422,
             )
 
@@ -470,7 +453,7 @@ def replace_prescriptions(consultation_id):
 
 
 @consultation_bp.post("/<int:consultation_id>/prescriptions/verify")
-@clinical_only
+@doctor_only
 def verify_prescription(consultation_id):
     """Records the treating doctor's sign-off on the prescription.
 
@@ -541,25 +524,14 @@ def verify_prescription(consultation_id):
                 entity_id=request.id,
                 detail=(
                     f"{request.medicine_name} prescribed by hand and added to the "
-                    f"{_department_of(consultation)} catalogue (medicine {brand.id}) "
-                    "for the pharmacy to complete"
+                    f"practice catalogue (medicine {brand.id})"
                 ),
             )
-        # The medicine is already usable; what the pharmacy still owes it is
-        # the commercial detail a prescription cannot carry.
-        names = ", ".join(r.medicine_name for r, _ in raised)
-        notify(
-            role_user_ids("pharmacist"),
-            title="Medicine added by a doctor",
-            body=(
-                f"{doctor_display} prescribed {names}, which was not in the database. "
-                "It has been added automatically — please complete its category, "
-                "manufacturer and price."
-            ),
-            category="pharmacy",
-            link="/pharmacy/medicines/requests",
-            exclude_user_id=get_jwt_identity(),
-        )
+        # No notification goes out for this any more. In the hospital it told
+        # the pharmacy to fill in a category and a price on a medicine a doctor
+        # had typed by hand; a practice has no pharmacy, and the entry is
+        # already usable for prescribing exactly as written. The audit rows
+        # above are the record that it happened.
 
     db.session.commit()
     # Flips the Rx badge on any open Consultations list.
@@ -569,7 +541,7 @@ def verify_prescription(consultation_id):
 
 
 @consultation_bp.delete("/<int:consultation_id>/prescriptions/verify")
-@clinical_only
+@doctor_only
 def unverify_prescription(consultation_id):
     """Withdraws a sign-off, e.g. it was clicked by mistake.
 
@@ -609,7 +581,7 @@ def unverify_prescription(consultation_id):
 
 
 @consultation_bp.post("/<int:consultation_id>/continue")
-@clinical_only
+@doctor_only
 def continue_consultation(consultation_id):
     """Reopens a just-ended consultation so more of the same conversation can
     be recorded.
@@ -677,17 +649,17 @@ def continue_consultation(consultation_id):
 
 
 @consultation_bp.post("/<int:consultation_id>/end")
-@clinical_only
+@doctor_only
 def end_consultation(consultation_id):
     consultation = Consultation.query.get(consultation_id)
     if not consultation:
         return error("Consultation not found", status=404)
     # Ownership is checked before the already-completed shortcut, not after.
     # The other way round, ending an *already finished* consultation returned
-    # 200 to anyone `clinical_only` let through — an admin included — because
-    # the no-op branch answered before the guard ran. Harmless in effect, but
-    # it reported success for an action admin is not allowed to take, and
-    # anything reading that response could reasonably conclude it had.
+    # 200 to anyone the role gate let through, because the no-op branch
+    # answered before the guard ran. Harmless in effect, but it reported
+    # success for an action the caller was not allowed to take, and anything
+    # reading that response could reasonably conclude it had.
     #
     # Pressing End twice is still a no-op *for the doctor it belongs to*,
     # which is the only person it was ever idempotent for.
@@ -699,8 +671,8 @@ def end_consultation(consultation_id):
     if not consultation.messages:
         return error("Cannot end a consultation with no conversation recorded", status=422)
 
-    # The doctor's own department's pharmacy inventory, in stock — so every
-    # suggestion is something the counter can actually dispense today.
+    # The practice's catalogue, so every AI suggestion names a real product
+    # the doctor could actually write.
     prescribable = prescribable_for(consultation.doctor)
 
     # What this hospital's doctors have already approved for a presentation
@@ -834,8 +806,10 @@ def end_consultation(consultation_id):
         if consultation.session_number and consultation.session_number > 1
         else "a consultation"
     )
+    # The PA, so the desk knows the patient is done and can settle up, book a
+    # follow-up and call the next one in without watching the queue board.
     notify(
-        role_user_ids("admin"),
+        role_user_ids(PA),
         title="Consultation completed",
         body=f"{doctor_name} finished {session_label} with {patient_name}. Summary is ready.",
         category="consultation",

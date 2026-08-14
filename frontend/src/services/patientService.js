@@ -1,56 +1,58 @@
 import api from "./api";
 
 /**
- * The patient list for one stage of the journey.
+ * The practice's patients.
  *
- *   consulted (default) seen and finished — what the Patients page shows
- *   awaiting            registered but never seen, or in Appointments now
- *   all                 everything, for pickers that must offer any patient
+ *   all       (default) everyone on the books — the Patients page
+ *   consulted seen and finished, and not booked in again right now
+ *   awaiting  booked, waiting or in consultation
  *
- * A patient is never in both consulted and awaiting: going back into the
- * queue moves them to awaiting until that consultation finishes too.
- *
- * `search` narrows the list by name, patient code, phone or email. It only
- * ever narrows — the server scopes the result to what the caller may see
- * either way, so a doctor searching still sees only their own patients.
+ * `search` narrows by name, patient code, phone or email, matching any part
+ * of any of them — "rah" finds Rahul. It only ever narrows: the server scopes
+ * the result to what the caller may see either way.
  */
-export async function fetchPatients(scope = "consulted", search) {
+export async function fetchPatients(scope = "all", search, limit) {
   const params = { scope };
   if (search) params.search = search;
+  if (limit) params.limit = limit;
   const res = await api.get("/patients", { params });
   return res.data.data;
 }
 
-/** How many patients sit on each side of the split, for the tab labels. */
+/** How many patients sit in each scope, for the tab labels. */
 export async function fetchPatientCounts() {
   const res = await api.get("/patients/counts");
   return res.data.data;
 }
 
-/** One patient record, full detail — for a page that already knows the id
- * (an Emergency Case, a nursing record) rather than browsing the list. */
+/** One patient record, full detail. */
 export async function fetchPatient(patientId) {
   const res = await api.get(`/patients/${patientId}`);
   return res.data.data;
 }
 
+/**
+ * Registers a patient. PA only.
+ *
+ * `book_now: true` also puts them in today's queue, in the same transaction —
+ * the walk-in case. Without it the patient is simply added to the books.
+ */
 export async function createPatient(payload) {
   const res = await api.post("/patients", payload);
   return res.data.data;
 }
 
-// Front-desk only (admin/receptionist): routes a patient to the doctor who
-// will treat them, which is also what decides who can see the record.
-export async function assignPatientDoctor(patientId, doctorId) {
-  const res = await api.patch(`/patients/${patientId}/assignment`, {
-    assigned_doctor_id: doctorId,
-  });
+/** Corrects registration details. Open to the PA and to the doctor. */
+export async function updatePatient(patientId, payload) {
+  const res = await api.patch(`/patients/${patientId}`, payload);
   return res.data.data;
 }
 
-// Front-desk only (admin/receptionist): removes a registration that should
-// never have existed. The server refuses any patient with a consultation,
-// case or nursing record — those are medical records and are kept.
+/**
+ * Removes a registration that should never have existed. PA only, and the
+ * server refuses any patient with a consultation or a case — those are
+ * medical records and are kept.
+ */
 export async function deletePatient(patientId) {
   const res = await api.delete(`/patients/${patientId}`);
   return res.data.data;
@@ -65,43 +67,5 @@ export async function uploadPatientPhoto(patientId, file) {
 
 export async function removePatientPhoto(patientId) {
   const res = await api.delete(`/patients/${patientId}/photo`);
-  return res.data.data;
-}
-
-// Corrects registration details. Open to the front desk and the treating
-// doctor; the server rejects nurses and ignores any attempt to change the
-// assigned doctor through this route.
-export async function updatePatient(patientId, payload) {
-  const res = await api.patch(`/patients/${patientId}`, payload);
-  return res.data.data;
-}
-
-/**
- * The surgical pathway — doctor-only, and the gate on nurse assignment.
- *
- * A patient with `surgery_stage === null` needs no surgery and is never
- * offered a nurse: the API refuses the hand-off, not just the UI. The stages
- * run required → post_op → ready_for_discharge, and discharge clears it.
- */
-export async function markSurgeryRequired(patientId, payload = {}) {
-  const res = await api.post(`/patients/${patientId}/surgery`, payload);
-  return res.data.data;
-}
-
-/** Takes the case back off the pathway. Refused once a nurse is watching. */
-export async function clearSurgery(patientId) {
-  const res = await api.delete(`/patients/${patientId}/surgery`);
-  return res.data.data;
-}
-
-/** Operated: starts the post-operative observation clock. */
-export async function completeSurgery(patientId, payload = {}) {
-  const res = await api.post(`/patients/${patientId}/surgery/complete`, payload);
-  return res.data.data;
-}
-
-/** Ends the pathway and closes the nurse's assignment with it. */
-export async function dischargePatient(patientId, payload = {}) {
-  const res = await api.post(`/patients/${patientId}/discharge`, payload);
   return res.data.data;
 }

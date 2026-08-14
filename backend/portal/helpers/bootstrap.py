@@ -1,46 +1,40 @@
 """Reconciliation that runs every time the app starts.
 
-Two things a database has to have before anybody can do anything, and both
-are otherwise a command somebody has to remember to run:
+What a MediAssist AI database has to have before anybody can do anything, and
+all of it otherwise a command somebody has to remember to run:
 
   * **the roles.** `users.role_id` is NOT NULL and several routes look a role
-    up by name, so a database restored from an older dump — or migrated before
-    a role was added — comes up broken with no symptom until staff creation
-    fails.
-  * **an administrator.** The admin role is the one Staff Management refuses
-    to grant, so a database with no admin cannot grow one through the UI. A
-    teammate who pulls and runs `python app.py` would have a working server
-    and no way to sign in to it.
-
-Doing both at boot removes that class of problem: whatever `python app.py` is
-pointed at, the roles exist and there is an account to sign in with by the
-time it serves a request.
-
-  * **the departments and the formulary.** Reference lists the rest of the
-    app is written against rather than demo content: a doctor account needs a
-    department to belong to, the OP queue is filed by department, and an empty
-    `medicines` table makes every line of every AI-suggested prescription come
-    back flagged off-formulary. A teammate pulling the code got neither, and
-    the failure only showed up later as an odd-looking prescription.
+    up by name, so a database restored from an older dump comes up broken with
+    no symptom until a sign-in fails.
+  * **the two accounts.** There is no Staff Management screen to create a PA
+    or a doctor from — a two-person practice does not need one — so a database
+    with neither cannot grow them through the UI. Somebody who clones this and
+    runs `python app.py` would have a working server and no way to sign in to
+    it. The doctor's `doctors` row is created with the account, because a
+    doctor without one is invisible to `helpers/practice.practice_doctor` and
+    nothing can be booked.
+  * **the formulary and the prescribing catalogue.** An empty `medicines`
+    table makes every line of every AI-suggested prescription come back
+    flagged off-formulary; an empty `medicine_brands` table is a prescription
+    picker with nothing in it. Neither fails loudly — they show up later as an
+    odd-looking prescription, or as a doctor hand-typing every line.
 
 Doing all of it at boot removes that class of problem: whatever `python app.py`
-is pointed at, the roles exist, there is an account to sign in with, and the
+is pointed at, the roles exist, there are accounts to sign in with, and the
 reference data the workflows assume is there by the time it serves a request.
 
 Every check is *additive*. Nothing here renames, overwrites or deletes a row
-that already exists — a hospital's own departments and its tuned medicine
-defaults survive every restart untouched.
-
-Deliberately not here: demo doctors, nurses, patients and pharmacy stock.
-Those are sample content, not startup requirements, and stay in
-`seeders/seed_core.py` behind an explicit command.
+that already exists — a practice's own medicine edits survive every restart
+untouched. The one exception is deliberate and documented: the two configured
+accounts are brought back in step with their environment credentials, which is
+how a changed password takes effect (see `seeders/seed_accounts`).
 """
 
 from sqlalchemy import Enum, inspect
 
 from portal.extensions import db
-from portal.models.department import DEFAULT_DEPARTMENTS, Department
 from portal.models.medicine import DEFAULT_FORMULARY, Medicine
+from portal.models.medicine_brand import MedicineBrand
 from portal.models.role import DEFAULT_ROLES, Role
 from portal.models.user import User
 
@@ -170,26 +164,26 @@ def ensure_schema(app):
         return []
 
 
-def ensure_departments(app):
-    """Inserts any of DEFAULT_DEPARTMENTS the database is missing.
+def ensure_medicine_brands(app):
+    """Inserts any prescribing-catalogue entry the database is missing.
 
-    Matched on name, which is unique on the table. A department the hospital
-    added itself is never touched, and one of ours that somebody renamed is
-    treated as absent and re-added under its original name rather than the
-    rename being undone — the two then coexist, which is recoverable, whereas
-    renaming a department out from under its doctors is not.
+    Reconciled at boot rather than left to a seed command, unlike the hospital
+    version where this was the pharmacy's own starting inventory. Here it is
+    what the prescription picker draws from, and an empty table is not a
+    cosmetic gap -- it is a doctor hand-typing every line of every
+    prescription. A practice that has never run a seed command still gets a
+    working formulary.
+
+    Matched on (brand_name, strength), the table's own unique pair, and only
+    ever inserted: a brand somebody has edited keeps their edit.
     """
+    from portal.seeders.seed_medicines import MEDICINE_BRANDS, seed_medicine_brands
 
     def work():
-        existing = {name for (name,) in db.session.query(Department.name).all()}
-        missing = [n for n in DEFAULT_DEPARTMENTS if n not in existing]
-        for name in missing:
-            db.session.add(Department(name=name))
-        if missing:
-            db.session.commit()
-        return _report(app, "Department", missing, len(DEFAULT_DEPARTMENTS))
+        created = seed_medicine_brands()
+        return _report(app, "Prescribing catalogue", created, len(MEDICINE_BRANDS))
 
-    return _guarded(app, Department, "Department", work)
+    return _guarded(app, MedicineBrand, "Prescribing catalogue", work)
 
 
 def ensure_medicines(app):
@@ -228,7 +222,7 @@ def ensure_roles(app):
     """Inserts any of DEFAULT_ROLES that the database is missing.
 
     Additive only. An existing role is left exactly as it is — including its
-    description, which an administrator may have edited deliberately, and
+    description, which may have been edited deliberately, and
     which the seeder is the right place to refresh in bulk.
 
     Never raises. Startup failing because of a transient database problem is
@@ -287,8 +281,8 @@ def ensure_usernames(app):
     """Gives a username to any account that hasn't got one.
 
     Accounts arrive by more doors than Staff Management: the demo seeder, the
-    older `POST /doctors` and `POST /nursing/nurses` routes, and every row that
-    existed before usernames did. Rather than teach each of them separately,
+    the account seeder, and every row that existed before usernames did.
+    Rather than teach each of them separately,
     the invariant is restored here on every start — one place, and one that a
     restored dump passes through too.
 
@@ -319,98 +313,99 @@ def ensure_usernames(app):
     return _guarded(app, User, "Username", work)
 
 
-def ensure_admin(app):
-    """Creates the default administrator, or rewrites the existing one to match
-    the configured credentials.
+def ensure_accounts(app):
+    """Creates the PA and doctor accounts, or rewrites them to match the
+    configured credentials.
 
-    Returns True if it created one. Same contract as `ensure_roles`:
-    idempotent, and never raises.
+    Returns the roles it created accounts for. Same contract as
+    `ensure_roles`: idempotent, and never raises.
 
-    Note what this does *not* do: it never creates a second account beside an
-    administrator whose credentials have changed. Restarting the server after
-    changing the configured email must leave you with one admin, moved — not
-    two, the second holding a password that is published in the repository.
+    Note what this does *not* do: it never creates a second account beside one
+    whose credentials have changed. Restarting the server after changing a
+    configured email must leave you with one PA, moved — not two, the second
+    holding a password that is published in the repository.
 
-    The actual work is `seeders/seed_admin.ensure_admin_account`, so that rule
-    and the credentials are defined once and behave identically whether they
-    arrive via `python app.py` or `python -m portal.seeds`. That is also where
-    the `SEED_ADMIN_SYNC=false` opt-out is documented, for deployments that
-    want the account left alone once it exists.
+    The actual work is `seeders/seed_accounts.ensure_account`, so that rule and
+    the credentials are defined once and behave identically whether they arrive
+    via `python app.py` or `python -m portal.seeds`. That is also where the
+    `SEED_ACCOUNT_SYNC=false` opt-out is documented, for deployments that want
+    the accounts left alone once they exist.
 
-    Must run after `ensure_roles` — the account needs its role to exist.
+    Must run after `ensure_roles` — an account needs its role to exist.
     """
     # Imported here rather than at module scope: helpers are imported early in
     # the app factory, and reaching into a seeder at that point would pull the
     # models in before they are registered.
-    from portal.seeders.seed_admin import admin_credentials, ensure_admin_account
+    from portal.models.role import DOCTOR, PA
+    from portal.seeders.seed_accounts import account_credentials, ensure_account
 
+    created = []
     try:
         with app.app_context():
             for table in (Role.__tablename__, User.__tablename__):
                 if not inspect(db.engine).has_table(table):
                     app.logger.info(
-                        "Admin check: '%s' table does not exist yet -- run "
-                        "'flask db upgrade' first. Skipping.",
+                        "Account check: '%s' table does not exist yet. Skipping.",
                         table,
                     )
-                    return False
+                    return []
 
-            _name, _email, _password, is_default_password = admin_credentials()
-            admin, created, changes = ensure_admin_account()
+            for role_name in (PA, DOCTOR):
+                label = "PA" if role_name == PA else "Doctor"
+                _n, _e, _p, is_default_password = account_credentials(role_name)
+                user, was_created, changes = ensure_account(role_name)
 
-            if created:
-                app.logger.info(
-                    "Admin check: created the default administrator -- %s", admin.email
-                )
-                if is_default_password:
-                    app.logger.warning(
-                        "That admin uses the default password. Set SEED_ADMIN_PASSWORD, "
-                        "or change it after the first sign-in."
+                if was_created:
+                    created.append(role_name)
+                    app.logger.info(
+                        "Account check: created the %s account -- %s", label, user.email
                     )
-                return True
-
-            if changes:
-                app.logger.info(
-                    "Admin check: updated the administrator (%s) from the configured "
-                    "credentials -- %s",
-                    admin.email,
-                    ", ".join(changes),
-                )
-                if is_default_password and "password" in changes:
-                    app.logger.warning(
-                        "That admin now uses the default password from the repository. "
-                        "Set SEED_ADMIN_PASSWORD."
+                    if is_default_password:
+                        app.logger.warning(
+                            "That %s account uses the default password. Set "
+                            "SEED_%s_PASSWORD, or change it after the first sign-in.",
+                            label,
+                            label.upper(),
+                        )
+                elif changes:
+                    app.logger.info(
+                        "Account check: updated the %s account (%s) from the "
+                        "configured credentials -- %s",
+                        label,
+                        user.email,
+                        ", ".join(changes),
                     )
-            else:
-                # The existing admin's own address and username -- not the
-                # configured ones. With syncing off the two can differ, and
-                # logging the configured value would imply the check had
-                # touched the account.
-                #
-                # Both identifiers, because login accepts either and "the
-                # admin cannot sign in" is nearly always someone typing an
-                # address the account no longer has. One line in the startup
-                # log answers it without opening the database.
-                app.logger.info(
-                    "Admin check: an administrator already exists -- left untouched. "
-                    "Signs in as '%s' or %s",
-                    admin.username or "(no username yet)",
-                    admin.email,
-                )
+                else:
+                    # The account's own address and username -- not the
+                    # configured ones. With syncing off the two can differ, and
+                    # logging the configured value would imply the check had
+                    # touched the account.
+                    #
+                    # Both identifiers, because login accepts either and "I
+                    # cannot sign in" is nearly always someone typing an address
+                    # the account no longer has. One line in the startup log
+                    # answers it without opening the database.
+                    app.logger.info(
+                        "Account check: the %s account already exists -- left "
+                        "untouched. Signs in as '%s' or %s",
+                        label,
+                        user.username or "(no username yet)",
+                        user.email,
+                    )
 
-            if not admin.is_active:
-                app.logger.warning(
-                    "The only administrator (%s) is disabled. No replacement has "
-                    "been created -- re-enable it in the database if you are "
-                    "locked out.",
-                    admin.email,
-                )
-            return False
+                if not user.is_active:
+                    app.logger.warning(
+                        "The %s account (%s) is disabled. No replacement has been "
+                        "created -- re-enable it in the database if you are locked out.",
+                        label,
+                        user.email,
+                    )
+            return created
 
     except Exception as exc:  # noqa: BLE001 - startup must not die over this
         try:
             db.session.rollback()
         except Exception:  # noqa: BLE001
             pass
-        app.logger.warning("Could not verify the administrator account at startup: %s", exc)
-        return False
+        app.logger.warning("Could not verify the practice accounts at startup: %s", exc)
+        return created

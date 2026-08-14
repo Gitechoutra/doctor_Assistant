@@ -215,17 +215,23 @@ export default function Profile() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Role</label>
-              {/* Read-only: promoting yourself is an admin action, and the API
-                  ignores these fields on PATCH /auth/me. */}
-              <input type="text" disabled className={inputClass} value={user?.role || "—"} />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Department</label>
+              {/* Read-only, and `role_label` rather than `role`: the raw slug
+                  would render the PA's role as "pa". The API ignores this
+                  field on PATCH /auth/me regardless. */}
               <input
                 type="text"
                 disabled
                 className={inputClass}
-                value={user?.department || "—"}
+                value={user?.role_label || user?.role || "—"}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-600">Qualification</label>
+              <input
+                type="text"
+                disabled
+                className={inputClass}
+                value={user?.qualification || "—"}
               />
             </div>
           </div>
@@ -242,7 +248,7 @@ export default function Profile() {
               {saving ? "Saving…" : "Save changes"}
             </button>
             <Link
-              to={`${user?.role === "nurse" ? "/nurse" : "/dashboard"}/settings`}
+              to="/dashboard/settings"
               className="text-sm font-semibold text-brand-600 transition hover:text-brand-700"
             >
               Change password →

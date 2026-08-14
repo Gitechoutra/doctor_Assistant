@@ -5,21 +5,17 @@ import { useAuth } from "../context/AuthContext";
 /**
  * Where an unmatched URL lands.
  *
- * The "back to" link is chosen by role rather than hard-coded to /dashboard:
- * a nurse or pharmacist sent there is immediately redirected out again by
- * their layout, which reads as the app bouncing them around.
+ * Signed in goes to the dashboard, signed out to the public page. There used
+ * to be a per-role lookup here, because a nurse or a pharmacist sent to
+ * /dashboard was immediately redirected out again by their own layout — with
+ * one workspace for both roles there is nothing left to bounce off.
  */
-const HOME_BY_ROLE = {
-  nurse: { to: "/nurse", label: "Back to the nursing station" },
-  pharmacist: { to: "/pharmacy", label: "Back to the pharmacy counter" },
-};
-
 export default function NotFound() {
   const { pathname } = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const home = isAuthenticated
-    ? HOME_BY_ROLE[user?.role] || { to: "/dashboard", label: "Back to the dashboard" }
+    ? { to: "/dashboard", label: "Back to the dashboard" }
     : { to: "/", label: "Back to the home page" };
 
   return (

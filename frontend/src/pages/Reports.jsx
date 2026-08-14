@@ -57,9 +57,9 @@ export default function Reports() {
         ) : reports.length === 0 ? (
           <div className="rounded-2xl border border-slate-100 bg-white py-16 text-center shadow-sm">
             <p className="mx-auto max-w-xl text-sm text-slate-400">
-              No reports generated yet. A single-session report appears here once a doctor
-              prints or downloads a completed consultation; the full-treatment report appears
-              when a case is closed and its final prescription is verified.
+              No reports yet. A visit report appears here once the doctor has signed
+              off that consultation&rsquo;s prescription; a full-treatment report appears
+              when a case is closed and its final prescription is signed.
             </p>
           </div>
         ) : (

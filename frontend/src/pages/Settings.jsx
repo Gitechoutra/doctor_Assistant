@@ -16,9 +16,9 @@ function Field({ label, value }) {
 
 export default function Settings() {
   const { user } = useAuth();
-  // This page is entirely account-level, so it serves the nursing module too —
+  // This page is entirely account-level, and one workspace serves both roles —
   // only the cross-link has to know which shell it's rendered inside.
-  const home = user?.role === "nurse" ? "/nurse" : "/dashboard";
+  const home = "/dashboard";
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -72,13 +72,12 @@ export default function Settings() {
           <Avatar name={user?.name} imageUrl={user?.avatar_url} size="lg" />
           <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Name" value={user?.name} />
-            {/* The name they sign in with. Issued by the hospital and mailed
+            {/* The name they sign in with. Issued with the account and mailed
                 to them once, which makes "what was my username again?" a
                 question this page should answer. */}
             <Field label="Username" value={user?.username} />
             <Field label="Email" value={user?.email} />
             <Field label="Role" value={user?.role} />
-            {user?.department && <Field label="Department" value={user.department} />}
           </div>
         </div>
       </div>

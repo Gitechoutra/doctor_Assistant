@@ -1,10 +1,9 @@
 import LegalPage from "./LegalPage";
-import { HOSPITAL } from "../../components/landing/content";
 
 const SECTIONS = [
   {
     heading: "1. Who may use the platform",
-    body: "Accounts are issued by the hospital to its own staff. Sharing credentials, or signing in on someone else's behalf, breaks the audit trail that the clinical record depends on and is not permitted.",
+    body: "The practice has two accounts: the doctor's and the PA's. Sharing either, or signing in on the other's behalf, breaks the audit trail the clinical record depends on and is not permitted — it is what makes a prescription attributable to the person who signed it.",
   },
   {
     heading: "2. The AI is assistive, never the prescriber",
@@ -23,7 +22,7 @@ const SECTIONS = [
     heading: "4. Acceptable use",
     items: [
       "Do not enter information about a patient you are not treating.",
-      "Do not export or share patient data outside the hospital's approved channels.",
+      "Do not export or share patient data outside the practice's approved channels.",
       "Do not attempt to access records outside your role, or to circumvent the access controls.",
       "Report suspected security problems rather than exploring them.",
     ],
@@ -34,7 +33,7 @@ const SECTIONS = [
   },
   {
     heading: "6. Records and audit",
-    body: "Clinical entries are append-only. Doses, observations, notes, alerts and messages cannot be edited or deleted once recorded; corrections are made by adding a further entry. Every change writes an audit record naming who made it and when.",
+    body: "The audit trail is append-only: every change writes a record naming who made it, in what role, and when. Nothing in the application edits or deletes an audit entry.",
   },
   {
     heading: "7. Changes to these terms",
@@ -42,7 +41,7 @@ const SECTIONS = [
   },
   {
     heading: "8. Contact",
-    body: `Questions about these terms can be sent to ${HOSPITAL.email} or ${HOSPITAL.phone}.`,
+    body: "Add the practice's own email address and telephone number here before publishing this page.",
   },
 ];
 
@@ -51,7 +50,7 @@ export default function Terms() {
     <LegalPage
       title="Terms & Conditions"
       updated="3 August 2026"
-      intro="These terms cover use of the Yasodha AI Medical Assistant by hospital staff. The section on AI-assisted prescribing is the one to read carefully."
+      intro="These terms cover use of MediAssist AI by the practice. The section on AI-assisted prescribing is the one to read carefully."
       sections={SECTIONS}
     />
   );

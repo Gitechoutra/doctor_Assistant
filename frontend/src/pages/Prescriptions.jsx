@@ -93,7 +93,7 @@ function PrescriptionCard({ record }) {
             ]
               .filter(Boolean)
               .join(" · "),
-            [record.doctor, record.department].filter(Boolean).join(" · ") || "—",
+            record.doctor || "—",
           ]}
         />
 

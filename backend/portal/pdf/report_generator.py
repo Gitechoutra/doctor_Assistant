@@ -29,11 +29,11 @@ EMERALD = colors.HexColor("#047857")
 AMBER = colors.HexColor("#b45309")
 
 styles = getSampleStyleSheet()
-STYLE_HOSPITAL_NAME = ParagraphStyle(
-    "HospitalName", parent=styles["Heading1"], fontSize=17, textColor=BRAND_PURPLE, spaceAfter=0, leading=20
+STYLE_PRACTICE_NAME = ParagraphStyle(
+    "PracticeName", parent=styles["Heading1"], fontSize=17, textColor=BRAND_PURPLE, spaceAfter=0, leading=20
 )
-STYLE_HOSPITAL_META = ParagraphStyle(
-    "HospitalMeta", parent=styles["Normal"], fontSize=7.5, textColor=SLATE_500, leading=10
+STYLE_PRACTICE_META = ParagraphStyle(
+    "PracticeMeta", parent=styles["Normal"], fontSize=7.5, textColor=SLATE_500, leading=10
 )
 STYLE_DOC_TITLE = ParagraphStyle(
     "DocTitle", parent=styles["Normal"], fontSize=11, textColor=SLATE_500, alignment=2
@@ -73,7 +73,7 @@ def _info_row(label, value):
 
 
 def _logo(size=16 * mm):
-    """The hospital mark, drawn rather than loaded.
+    """The practice mark, drawn rather than loaded.
 
     Keeping it as vector primitives means the PDF needs no image asset on
     disk and can't break if one goes missing — the frontend's SVG logo would
@@ -104,9 +104,9 @@ def _qr_code(value, size=22 * mm):
     return drawing
 
 
-def _hospital_lines(hospital):
-    contact = " · ".join(filter(None, [hospital.get("phone"), hospital.get("email")]))
-    return list(filter(None, [hospital.get("address"), contact, hospital.get("website")]))
+def _practice_lines(practice):
+    contact = " · ".join(filter(None, [practice.get("phone"), practice.get("email")]))
+    return list(filter(None, [practice.get("address"), contact, practice.get("website")]))
 
 
 PRESCRIPTION_TABLE_STYLE = TableStyle(
@@ -184,14 +184,14 @@ def verification_line(verified_at, verifier_name, what="prescription"):
 
 
 def generate_consultation_pdf(consultation, output_path):
-    """Renders a consultation's summary into a hospital-letterhead-style PDF."""
+    """Renders a consultation's summary into a practice-letterhead PDF."""
     patient = consultation.patient
     doctor = consultation.doctor
     summary = consultation.summary
     prescriptions = consultation.prescriptions
 
     config = get_config()
-    hospital = config.HOSPITAL
+    practice = config.PRACTICE
     generated_at = datetime.now()
 
     doc = SimpleDocTemplate(
@@ -202,16 +202,16 @@ def generate_consultation_pdf(consultation, output_path):
         leftMargin=20 * mm,
         rightMargin=20 * mm,
         title=f"Consultation Report — {patient.name if patient else 'Patient'}",
-        author=hospital.get("name") or "Hospital",
+        author=practice.get("name") or "MediAssist AI",
     )
     story = []
 
-    # --- Letterhead: logo + hospital details -------------------------------
-    hospital_block = [Paragraph(hospital.get("name") or "Hospital", STYLE_HOSPITAL_NAME)]
-    if hospital.get("tagline"):
-        hospital_block.append(Paragraph(hospital["tagline"], STYLE_HOSPITAL_META))
-    for line in _hospital_lines(hospital):
-        hospital_block.append(Paragraph(line, STYLE_HOSPITAL_META))
+    # --- Letterhead: logo + practice details -------------------------------
+    practice_block = [Paragraph(practice.get("name") or "MediAssist AI", STYLE_PRACTICE_NAME)]
+    if practice.get("tagline"):
+        practice_block.append(Paragraph(practice["tagline"], STYLE_PRACTICE_META))
+    for line in _practice_lines(practice):
+        practice_block.append(Paragraph(line, STYLE_PRACTICE_META))
 
     right_block = [
         Paragraph("Consultation Report", STYLE_DOC_TITLE),
@@ -231,7 +231,7 @@ def generate_consultation_pdf(consultation, output_path):
         )
 
     header = Table(
-        [[_logo(), hospital_block, right_block]],
+        [[_logo(), practice_block, right_block]],
         colWidths=[20 * mm, 95 * mm, 55 * mm],
     )
     header.setStyle(
@@ -271,7 +271,7 @@ def generate_consultation_pdf(consultation, output_path):
             _info_row("Patient Name", patient.name if patient else "—")
             + _info_row("Doctor", doctor_name),
             _info_row("Patient ID", f"PAT{patient.id:04d}" if patient else "—")
-            + _info_row("Department", doctor.department.name if doctor and doctor.department else "—"),
+            + _info_row("Qualification", (doctor.qualification if doctor else None) or "—"),
             _info_row("Age / Gender", age_gender or "—")
             + _info_row("Credentials", doctor_credentials or "—"),
             _info_row("Contact", (patient.phone if patient else None) or "—")
@@ -341,8 +341,8 @@ def generate_consultation_pdf(consultation, output_path):
         sig_lines.append(doctor.specialization)
     if doctor and doctor.registration_no:
         sig_lines.append(f"Reg. No. {doctor.registration_no}")
-    if doctor and doctor.department:
-        sig_lines.append(doctor.department.name)
+    if doctor and doctor.qualification:
+        sig_lines.append(doctor.qualification)
 
     signature_block = [
         Paragraph("_______________________", ParagraphStyle("SigLine", parent=STYLE_BODY, alignment=2)),
@@ -368,7 +368,7 @@ def generate_consultation_pdf(consultation, output_path):
     story.append(footer_table)
 
     def draw_footer(canvas, document):
-        """Hospital footer on every page, so a detached second page is still
+        """Practice footer on every page, so a detached second page is still
         identifiable."""
         canvas.saveState()
         width, _ = A4
@@ -379,7 +379,7 @@ def generate_consultation_pdf(consultation, output_path):
 
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(SLATE_400)
-        left = " · ".join(filter(None, [hospital.get("name"), hospital.get("phone")]))
+        left = " · ".join(filter(None, [practice.get("name"), practice.get("phone")]))
         canvas.drawString(20 * mm, y, left)
         canvas.drawRightString(
             width - 20 * mm,

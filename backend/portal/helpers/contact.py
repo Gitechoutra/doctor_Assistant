@@ -1,7 +1,7 @@
 """How a phone number and an email address are checked, everywhere.
 
 There are five doors an address or a number can come through -- Staff
-Management, the older doctor and nurse routes, patient registration, the
+the practice accounts, patient registration, the
 profile screen and the sign-in form -- and each of them used to decide for
 itself what "valid" meant. Two of them decided nothing at all. That is how a
 staff directory ends up holding `+91 98765 43210` in one row and `9876543210`
@@ -11,7 +11,7 @@ credentials email goes nowhere.
 So the rules live here, once, and every route calls in:
 
   * `normalize_phone` -- exactly ten digits, or an error.
-  * `normalize_email` -- a well-formed address at a domain the hospital
+  * `normalize_email` -- a well-formed address at a domain the practice
     accepts, lowercased, or an error.
 
 Both return `(value, error_message)` and both treat empty as "not given"
@@ -30,7 +30,7 @@ from flask import current_app
 # or letters.
 #
 # Deliberately not a general international phone format: this is an Indian
-# hospital's directory and every number in it is a ten-digit mobile. Widening
+# practice's records and every number in them is a ten-digit mobile. Widening
 # it later means changing this constant and the matching hint in
 # frontend/src/utils/contact.js, which is why the message spells the rule out
 # rather than saying "invalid".
@@ -78,14 +78,15 @@ def normalize_phone(raw):
 # address and nothing else is famously not worth writing.
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-# The domains this hospital issues and accepts addresses at. Config overrides
-# it (ALLOWED_EMAIL_DOMAINS, comma-separated) so a hospital that renames its
-# domain does not need a code change, and `*` there turns the restriction off
-# for a deployment that does not want it.
+# The domains the practice accepts addresses at. Config overrides it
+# (ALLOWED_EMAIL_DOMAINS, comma-separated) so a practice using its own domain
+# does not need a code change, and `*` there turns the restriction off for a
+# deployment that does not want it -- which most single practices will, since
+# patients arrive with whatever address they already have.
 #
 # Mirrors EMAIL_DOMAINS in frontend/src/utils/contact.js -- keep the two in
 # step. The browser copy only decides what to show; this one is the boundary.
-DEFAULT_EMAIL_DOMAINS = ("gmail.com", "yasodhahospitals.com")
+DEFAULT_EMAIL_DOMAINS = ("gmail.com", "outlook.com")
 
 # What to write in config to accept any domain.
 ANY_DOMAIN = "*"

@@ -1,41 +1,51 @@
-# Yasodha AI Medical Assistant
+# MediAssist AI
 
-An AI-powered voice consultation system for hospital use: doctors and
-patients speak naturally, the conversation is transcribed live, and Gemini
-generates a clinical summary, assistive diagnosis, prescription suggestions
-(drawn only from the hospital's medicine formulary), and a downloadable PDF
-report.
+**Smart Practice Management for Doctors.**
 
-## Status: Milestone 1 — Foundation
+A practice management system for one doctor and their PA (Personal Assistant).
+The PA registers patients, books appointments and runs the day's queue; the
+doctor calls patients in, records the consultation, prescribes and signs. Both
+work from the same records, so neither has to ask the other what happened.
 
-This milestone delivers: MySQL schema, Flask backend (JWT auth, dashboard
-API), and a React + Tailwind frontend (landing page, login, dashboard shell)
-wired end-to-end against real data.
+The consultation itself is voice-assisted: the conversation is transcribed, and
+Gemini drafts a clinical summary, an assistive diagnosis and a prescription
+suggestion drawn only from the practice's own formulary. None of it counts
+until the doctor reviews and signs it, and editing a signed prescription clears
+the signature.
 
-**Not yet built** (future milestones): live voice consultation UI, WebSocket
-transcript streaming, Gemini summarization/prescription generation, Whisper
-STT, PDF report generation, full CRUD for patients/doctors/medicines,
-deployment.
+## Two roles, and only two
+
+| | PA | Doctor |
+|---|---|---|
+| Register / edit patients | ✅ | edit only |
+| Book, reschedule, cancel, check in | ✅ | ❌ |
+| See the day's queue | ✅ | ✅ |
+| Start / end a consultation | ❌ | ✅ |
+| Diagnose, prescribe, sign off | ❌ | ✅ |
+| Issue a report | ❌ | ✅ |
+| **Read** consultations, prescriptions, reports | ✅ | ✅ |
+
+The split is separation of duties, not seniority. The PA can read the whole
+clinical record — that is what running a desk requires, since patients ring up
+and ask — but cannot write to any of it. Enforced on the server
+(`portal/helpers/decorators.py`), not merely hidden in the interface.
 
 ## Structure
 
 ```
-AI_medical/
-├── backend/        Flask API (see backend/README below)
-├── frontend/        React + Vite + Tailwind app
-├── database/        schema.sql (generated snapshot of the built schema) and
-│                    archive/ (dumps of tables dropped from the live schema)
-└── documentation/    setup notes
+doctor_Assistant/
+├── backend/        Flask API + MySQL
+├── frontend/       React + Vite + Tailwind
+├── database/       schema.sql (generated snapshot) and change scripts
+└── documentation/  setup notes
 ```
 
 ## Quick start
 
 ### 1. Database
 
-MySQL database `hospital` already created locally. To recreate elsewhere:
-
 ```sql
-CREATE DATABASE hospital CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE doctor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ### 2. Backend
@@ -43,126 +53,100 @@ CREATE DATABASE hospital CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```bash
 cd backend
 python -m venv venv
-./venv/Scripts/activate            # Windows
+./venv/Scripts/activate                # Windows
 pip install -r requirements.txt
-cp config/dev.ini.example config/dev.ini   # then fill in the DB password,
-                                           # secret keys and Gemini key
-flask db upgrade                    # create tables
-python -m portal.seeds              # seed roles, admin account, and default medicine master data
-python app.py                       # http://127.0.0.1:5000
+# Fill in config/dev.ini: DB password, secret keys, Gemini key.
+python -c "from portal import create_app; from portal.extensions import db; \
+           app=create_app(); app.app_context().push(); db.create_all()"
+python app.py                          # http://127.0.0.1:5000
 ```
 
-Configuration lives in `backend/config/dev.ini` (git-ignored). `config.py`
-reads it, or `config/prod.ini` when `APP_ENV=production`; any single value
-can be overridden by an environment variable of the name documented in
-`dev.ini.example`, so a server never needs the file on disk.
+The first start creates everything the practice needs to run: the two roles,
+the two accounts, the doctor's practice profile, and the prescribing catalogue.
+See `portal/helpers/bootstrap.py` — every check is additive and runs on every
+start, so a fresh clone or a restored dump comes up usable.
 
-The one seeded login is the administrator:
+**The two seeded logins:**
 
-- Admin: `goddumahesh2@gmail.com` (or the username `admin`) / `Admin@123`
+| Role | Sign in as | Password |
+|---|---|---|
+| PA | `pa@mediassist.local` | `PA@12345` |
+| Doctor | `doctor@mediassist.local` | `Doctor@12345` |
 
-Override it with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME`
-before the first run — see `portal/seeders/seed_admin.py`, which also brings an
-existing admin back in step with those values on every start.
-
-**No doctor or nurse account is seeded.** Create staff through Staff
-Management once signed in as the admin; each new account is emailed a
-temporary password and a single-use link to set their own.
-
-The seeder creates reference data: roles, the default admin account, the
-departments, and the default medicine master data (the clinical formulary and
-the pharmacy brand catalogue, in `portal/seeders/seed_medicines.py`) — every
-developer gets the same medicines after `git pull` without inserting them by
-hand. Re-running `python -m portal.seeds` is always safe: existing rows,
-including any medicine a developer added or edited manually, are left
-untouched. It deliberately does not create patients: a patient with no
-assigned doctor is invisible to every doctor (see
-`portal/helpers/patient_access.py`), so demo rows only ever showed up as
-clutter. Register patients through the front desk instead.
-
-`portal/seeders/seed_core.py` still holds demo staff, patients and stock if
-sample content is ever wanted; it is run by hand, never automatically.
+Change them. Set `SEED_PA_PASSWORD` and `SEED_DOCTOR_PASSWORD` in the
+environment, or change the passwords after the first sign-in and set
+`SEED_ACCOUNT_SYNC=false` so a restart leaves them alone. Names, emails and the
+doctor's specialisation are configurable the same way — see
+`portal/seeders/seed_accounts.py`.
 
 ### 3. Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev                     # http://localhost:5173
+cp .env.example .env       # set VITE_API_BASE_URL=http://127.0.0.1:5000/api
+npm run dev                # http://localhost:5173
 ```
-
-`frontend/.env` sets `VITE_API_BASE_URL` (defaults to
-`http://127.0.0.1:5000/api`).
-
-## Verifying it works
-
-1. Start the backend, then the frontend.
-2. Open `http://localhost:5173` → landing page.
-3. Click **Get Started** / **Sign in** → log in with the seeded doctor
-   account above.
-4. You should land on `/dashboard` showing the doctor's name and live
-   (currently zero/seed-level) counts pulled from MySQL — not hardcoded
-   numbers.
 
 ## Tests
 
 ```bash
 cd backend
-python tests/test_flows.py     # every module, end to end, all seven roles
-python tests/test_shifts.py    # the shift module in depth
+python -m tests.test_practice_flow
 ```
 
-Both run against `<DB_NAME>_test`, which they drop and rebuild from the models
-on every run, and both refuse to start if the configured URL is not the test
-one — they cannot reach live patient records. Neither needs pytest; plain
-asserts and a pass/fail tally, so a fresh checkout can run them with nothing
-installed beyond the application's own requirements.
+Walks the whole workflow end to end against a real MySQL database
+(`doctor_test`, which TestingConfig derives by suffixing the configured name,
+so a run can never touch live records): registration → booking → the queue →
+the consultation → sign-off → the report, plus the authorization boundaries
+that make the two roles mean something. No mocks; every assertion goes through
+the HTTP layer.
 
-`test_flows.py` follows a hospital day in order — registration, the OP queue,
-the consultation and its prescription, the case, the surgical pathway, the
-nursing hand-off, the lab, the pharmacy, staff administration — and asserts
-the authorization boundary at each step, which is where the module's rules
-actually live.
+```bash
+cd frontend
+npm run lint
+npm run build
+```
 
-## Nursing module
+## How a visit flows
 
-After a consultation, surgery or procedure the doctor hands the patient to a
-nurse for the observation period. That hand-off — a **nursing assignment** —
-is what scopes the whole module: a nurse sees exactly the patients assigned to
-them, and every medication log, observation, note and alert hangs off one.
+```
+PA registers the patient
+      ↓
+PA books them in  (a slot next week, or a walk-in at the desk)
+      ↓
+Patient arrives → checked in → joins today's queue, numbered
+      ↓
+Doctor sees them in the same queue, at the same position
+      ↓
+Doctor starts the consultation  →  PA's board shows "In Consultation"
+      ↓
+Doctor records, diagnoses, prescribes, signs
+      ↓
+Doctor ends it  →  patient leaves the queue, everyone behind moves up
+      ↓
+The visit joins the patient's history; the PA can read it back
+```
 
-Ownership is split, and enforced server-side rather than only hidden in the UI:
+Both screens stay in step over a WebSocket (`helpers/broadcast.py`): the doctor
+presses Start and the number on the desk's screen moves, without anybody
+pressing refresh.
 
-| | Doctor | Nurse |
-|---|---|---|
-| Assign / reassign / close the watch | ✅ | — |
-| Treatment plan & care instructions | ✅ | read-only |
-| Medication schedule (which drugs, how often) | ✅ | read-only |
-| Log each dose (completed / delayed / missed / skipped) | — | ✅ |
-| Vitals, symptoms, recovery, complications | — | ✅ |
-| Nursing notes & shift handover | — | ✅ |
-| Raise an alert | — | ✅ |
-| Acknowledge / resolve an alert | ✅ | — |
+## Notes on the architecture
 
-Neither side can do the other's job, which is what makes the record an audit
-trail rather than a shared scratchpad.
+**One doctor.** `helpers/practice.practice_doctor()` is the single place that
+answers "which doctor?", so registration and booking resolve it rather than
+offering a chooser with one option. It is written to survive a second doctor
+joining: every record stores the id it resolved, so the change would be a
+chooser on two forms, not a schema migration.
 
-**Escalation is partly automatic.** Marking a dose *missed*, or recording
-vitals outside the ward ranges in `models/patient_observation.py`, raises a
-clinical alert and notifies the treating doctor without the nurse having to
-remember to escalate. Anything else the nurse flags by hand.
+**No departments, no stock.** Prescribing reads the practice's whole catalogue.
+A practice dispenses nothing — the patient takes the prescription to whichever
+chemist they use — so gating the picker on inventory would have shown the
+doctor an empty formulary.
 
-**Where things live**
-
-- Nurse portal: `/nurse/login` → `/nurse` (its own layout; doctors and admins
-  are redirected out, and nurses are redirected out of `/dashboard`)
-- Doctor's remote monitor: `/dashboard/nursing` — compliance, open alerts and
-  the full nursing log for every patient they've handed over
-- API: `/api/nursing/*` (`routes/nursing_routes.py`), scoped by
-  `helpers/nursing_access.py`
-- Live updates ride a `nursing_changed` socket event, so a doctor watching a
-  record sees the nurse's entries as they land
-
-The timeline at `GET /api/nursing/assignments/<id>/timeline` is assembled from
-the four record tables on read — there is no separate timeline table, so there
-is no second copy of the truth to disagree with the first.
+**Queue positions are numbers.** 0 is whoever is with the doctor, 1..n are
+waiting, in arrival order, computed server-side
+(`helpers/queue_helper.number_queue`) so the desk and the consulting room can
+never disagree. The PA reads a position out loud; a decorative dot cannot be
+read out.

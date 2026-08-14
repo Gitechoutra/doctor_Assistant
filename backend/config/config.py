@@ -142,19 +142,21 @@ SETTINGS = (
         "ALLOWED_EMAIL_DOMAINS",
         "server",
         "allowed_email_domains",
-        "gmail.com,yasodhahospitals.com",
+        "gmail.com,outlook.com",
     ),
     ("CORS_ORIGINS", "server", "cors_origins", "http://localhost:5173"),
     ("PORTAL_BASE_URL", "server", "portal_base_url", "http://localhost:5173"),
     # -- [upload_folder] ---------------------------------------------------
     ("UPLOAD_FOLDER", "upload_folder", "upload_folder", "uploads"),
-    # -- [hospital] --------------------------------------------------------
-    ("HOSPITAL_NAME", "hospital", "name", "Yasodha Hospitals"),
-    ("HOSPITAL_TAGLINE", "hospital", "tagline", "Compassionate care, every day"),
-    ("HOSPITAL_ADDRESS", "hospital", "address", ""),
-    ("HOSPITAL_PHONE", "hospital", "phone", ""),
-    ("HOSPITAL_EMAIL", "hospital", "email", ""),
-    ("HOSPITAL_WEBSITE", "hospital", "website", ""),
+    # -- [practice] --------------------------------------------------------
+    # What goes on the letterhead of a prescription, a report and every email
+    # the practice sends.
+    ("PRACTICE_NAME", "practice", "name", "MediAssist AI"),
+    ("PRACTICE_TAGLINE", "practice", "tagline", "Smart Practice Management for Doctors"),
+    ("PRACTICE_ADDRESS", "practice", "address", ""),
+    ("PRACTICE_PHONE", "practice", "phone", ""),
+    ("PRACTICE_EMAIL", "practice", "email", ""),
+    ("PRACTICE_WEBSITE", "practice", "website", ""),
 )
 
 # Config a running app must not start without. Host, name and user are listed
@@ -577,15 +579,15 @@ class BaseConfig:
     SMTP_PASSWORD = _VALUES["SMTP_PASSWORD"]
     SMTP_SECURITY = _VALUES["SMTP_SECURITY"].strip().lower()
     SMTP_TIMEOUT = _as_int("SMTP_TIMEOUT")
-    # Falls back to the authenticating account, then to the hospital's own
+    # Falls back to the authenticating account, then to the practice's own
     # published address. A From: header that doesn't match the sending account
     # is the fastest way to a spam folder, so the authenticated user is the
-    # better default than the hospital address here.
+    # better default than the practice address here.
     MAIL_FROM = (
-        _VALUES["MAIL_FROM"] or _VALUES["SMTP_USER"] or _VALUES["HOSPITAL_EMAIL"]
+        _VALUES["MAIL_FROM"] or _VALUES["SMTP_USER"] or _VALUES["PRACTICE_EMAIL"]
     )
-    MAIL_FROM_NAME = _VALUES["MAIL_FROM_NAME"] or _VALUES["HOSPITAL_NAME"]
-    MAIL_REPLY_TO = _VALUES["MAIL_REPLY_TO"] or _VALUES["HOSPITAL_EMAIL"]
+    MAIL_FROM_NAME = _VALUES["MAIL_FROM_NAME"] or _VALUES["PRACTICE_NAME"]
+    MAIL_REPLY_TO = _VALUES["MAIL_REPLY_TO"] or _VALUES["PRACTICE_EMAIL"]
     MAIL_ENABLED = _as_bool("MAIL_ENABLED")
 
     # -- Credential links --------------------------------------------------
@@ -594,13 +596,13 @@ class BaseConfig:
 
     # -- Report letterhead -------------------------------------------------
     PORTAL_BASE_URL = _VALUES["PORTAL_BASE_URL"].rstrip("/")
-    HOSPITAL = {
-        "name": _VALUES["HOSPITAL_NAME"],
-        "tagline": _VALUES["HOSPITAL_TAGLINE"],
-        "address": _VALUES["HOSPITAL_ADDRESS"],
-        "phone": _VALUES["HOSPITAL_PHONE"],
-        "email": _VALUES["HOSPITAL_EMAIL"],
-        "website": _VALUES["HOSPITAL_WEBSITE"],
+    PRACTICE = {
+        "name": _VALUES["PRACTICE_NAME"],
+        "tagline": _VALUES["PRACTICE_TAGLINE"],
+        "address": _VALUES["PRACTICE_ADDRESS"],
+        "phone": _VALUES["PRACTICE_PHONE"],
+        "email": _VALUES["PRACTICE_EMAIL"],
+        "website": _VALUES["PRACTICE_WEBSITE"],
     }
 
 

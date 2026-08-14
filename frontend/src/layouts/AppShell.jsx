@@ -5,9 +5,9 @@ import { HiOutlineBars3, HiOutlineXMark } from "react-icons/hi2";
 /**
  * The sidebar-and-content frame every module sits in.
  *
- * Shared by the doctor, nurse and pharmacy layouts, which previously each
- * rendered a fixed 16rem sidebar with no small-screen handling — on a phone
- * that consumed two thirds of the width and left the content unusable.
+ * The sidebar used to be a fixed 16rem column with no small-screen handling,
+ * which on a phone consumed two thirds of the width and left the content
+ * unusable.
  *
  * Below `lg` the sidebar becomes a drawer over the content, opened from a
  * button in the header. From `lg` up it is a normal column again, and the

@@ -2,26 +2,23 @@
 
 One rule, defined once, applied by every route that returns patient data:
 
-  * admin / reception (no doctor profile) — the whole hospital
-  * a doctor — only the patients assigned to them
+  * **the PA** (no doctor profile) — every patient on the practice's books.
+    They run the desk; a patient they cannot see is a patient they cannot
+    book, call or find.
+  * **the doctor** — the patients assigned to them.
 
-Assignment happens at registration: the front desk picks the treating doctor
-based on the patient's condition. A patient with no assigned doctor is
-deliberately invisible to every doctor — nobody has been made responsible for
-them yet, so routing them is front-desk work via
-`PATCH /patients/<id>/assignment`.
+In a single-doctor practice those two sets are the same set, because
+registration assigns every new patient to the practice's doctor automatically
+(see `helpers/practice`). The scoping is kept rather than deleted for the one
+case where it stops being the same set: a practice that takes on a second
+doctor, where "my patients" has to keep meaning mine.
 
-The one exception is an Emergency Case: an on-duty doctor has to be able to
-claim and treat a patient who is unassigned, or assigned to someone else,
-without either waiting on the front desk or bumping that patient's regular
-doctor off the record. `has_active_emergency_claim` is that carve-out — see
-`can_access_patient` below — and is deliberately narrow: it grants access for
-exactly as long as the claimed case stays open, and never touches
-`assigned_doctor_id` itself.
+Note what is *not* here any more: the emergency carve-out. The hospital
+version let an on-duty doctor reach a stranger's record for as long as they
+held an open emergency case. A practice has no emergency board and no other
+doctor to borrow a patient from, so the exception had nothing left to except.
 """
 
-from portal.extensions import db
-from portal.models.emergency_case import EmergencyCase
 from portal.models.patient import Patient
 
 
@@ -39,26 +36,14 @@ def scope_patients(query, doctor):
     return query if condition is None else query.filter(condition)
 
 
-def has_active_emergency_claim(patient_id, doctor_id):
-    """Whether `doctor_id` currently holds an open, claimed Emergency Case for
-    this patient — the scoped, temporary alternative to `assigned_doctor_id`.
-    """
-    return (
-        db.session.query(EmergencyCase.id)
-        .filter(
-            EmergencyCase.patient_id == patient_id,
-            EmergencyCase.doctor_id == doctor_id,
-            EmergencyCase.status == "in_progress",
-        )
-        .first()
-        is not None
-    )
-
-
 def can_access_patient(patient, doctor):
     """Whether this caller may see one specific patient."""
     if not doctor:
         return True
-    if patient.assigned_doctor_id == doctor.id:
+    # A patient nobody has been assigned yet is visible to the practice's
+    # doctor rather than to nobody: registration assigns automatically, so an
+    # unassigned row is a gap in the data, not a deliberate restriction, and
+    # hiding it would make the patient unreachable from either side.
+    if patient.assigned_doctor_id is None:
         return True
-    return has_active_emergency_claim(patient.id, doctor.id)
+    return patient.assigned_doctor_id == doctor.id

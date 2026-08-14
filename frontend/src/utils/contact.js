@@ -7,8 +7,8 @@
  * two in step: the digit count and the domain list appear in both.
  */
 
-/** Exactly ten digits — an Indian mobile, which is every number in this
- *  hospital's records. Mirrors PHONE_DIGITS in helpers/contact.py. */
+/** Exactly ten digits — an Indian mobile. Mirrors PHONE_DIGITS in
+ *  helpers/contact.py. */
 export const PHONE_DIGITS = 10;
 
 /** Everything that is not a digit, dropped, capped at the full length.
@@ -33,7 +33,7 @@ export const PHONE_ERROR = `Mobile number must be exactly ${PHONE_DIGITS} digits
  *  helpers/contact.py, where it is configurable per deployment
  *  (ALLOWED_EMAIL_DOMAINS) — if that is changed, change this too or the form
  *  will refuse an address the server would have taken. */
-export const EMAIL_DOMAINS = ["gmail.com", "yasodhahospitals.com"];
+export const EMAIL_DOMAINS = ["gmail.com", "outlook.com"];
 
 /** Shape only. The domain check below is what actually decides. */
 const EMAIL_SHAPE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;

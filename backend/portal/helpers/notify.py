@@ -6,7 +6,6 @@ event that triggered it (a failed commit rolls both back together).
 """
 
 from portal.extensions import db
-from portal.models.doctor import Doctor
 from portal.models.notification import Notification
 from portal.models.role import Role
 from portal.models.user import User
@@ -37,18 +36,6 @@ def notify(user_ids, title, body=None, category="system", link=None, exclude_use
             )
         )
     return len(targets)
-
-
-def department_doctor_user_ids(department_id):
-    """User ids of every doctor attached to a department."""
-    if not department_id:
-        return []
-    rows = (
-        db.session.query(Doctor.user_id)
-        .filter(Doctor.department_id == department_id)
-        .all()
-    )
-    return [r[0] for r in rows]
 
 
 def role_user_ids(*role_names):

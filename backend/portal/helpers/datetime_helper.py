@@ -10,7 +10,7 @@ def to_utc_iso(dt):
 
 
 def local_utc_offset():
-    """How far the hospital's clock runs ahead of UTC (+5:30 on an IST server).
+    """How far the practice's clock runs ahead of UTC (+5:30 on an IST server).
 
     Read from the machine rather than hard-coded: the same code has to be
     right on a UTC server, where this is zero and every helper below becomes
@@ -20,7 +20,7 @@ def local_utc_offset():
 
 
 def local_day_bounds(offset_days=0):
-    """First and last instant of the hospital's day, as the naive UTC that
+    """First and last instant of the practice's day, as the naive UTC that
     every timestamp column stores. Returns (start, end), both inclusive.
 
     Use this for any "today" count instead of `datetime.utcnow().date()`.
@@ -28,7 +28,7 @@ def local_day_bounds(offset_days=0):
     still yesterday's date until the offset passes (05:30 in IST), so a
     window built from it drops the first five and a half hours of every
     working day — a patient registered at 6am does not count as registered
-    today. The hospital's day is wall-clock local, matching how shifts and
+    today. The practice's day is wall-clock local, matching how the queue and
     every other date the staff read are built, so the bounds are taken from
     the local date and shifted back into UTC for the comparison.
     """

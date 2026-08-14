@@ -1,48 +1,37 @@
-"""Seeds medicine master data beyond the starting formulary: the pharmacy
-brand catalogue (`medicine_brands`), including which departments each brand
-serves.
+"""Seeds the practice's prescribing catalogue (`medicine_brands`).
 
-The clinical formulary itself (`medicines`) is reconciled from
-`models/medicine.DEFAULT_FORMULARY` on every application start (see
-`helpers/bootstrap.ensure_medicines`); it is seeded again here, from the same
-list, only so this command alone brings a fresh database fully up to date
-without needing the app to have started first.
+The clinical formulary itself (`medicines`) is the short generic vocabulary
+the AI is given, reconciled from `models/medicine.DEFAULT_FORMULARY` on every
+application start (see `helpers/bootstrap.ensure_medicines`). This module
+seeds the far longer list of actual products a doctor writes on a
+prescription — a brand, a strength, a form — and links each back to its
+generic where one matches.
 
-`MEDICINE_BRANDS` has no natural home beside a model the way the formulary and
-departments do — it isn't a hospital-wide invariant the way an empty
-`medicines` table would be (a blank prescription picker), it's the pharmacy's
-starting catalogue — so it lives here, seeded once explicitly rather than
-reconciled at every boot. This is the data developers used to insert into
-their own database by hand; every checkout now gets the same rows after
-`git pull`.
+Reconciled at boot as well as by `python -m portal.seeds`, because an empty
+`medicine_brands` table is not a cosmetic gap: it is a prescription picker
+with nothing in it, and a doctor hand-typing every line of every
+prescription. A practice that has never run a seed command still gets a
+working formulary.
 
 Brands are matched by (brand_name, strength) — the same pair the table's
 unique constraint uses — and only ever inserted, never updated: re-running
-this is a no-op for anything already present, and it never touches a brand a
-developer added or edited by hand afterward, seeded or not.
+this is a no-op for anything already present, and it never touches a brand
+that was added or edited by hand afterwards, seeded or not.
 
-Requires departments to already exist — `seed_departments`/`ensure_departments`
-runs first, both in `portal/seeds.py` and at application boot — for the
-department links to attach. A brand whose department is somehow still missing
-is created anyway, just without that link; nothing here fails because of it.
-
-Deliberately scoped to master data only — no branches, no stock batches.
-Where a medicine ends up in inventory is operational, not master data, and
-belongs to whoever runs the pharmacy at each site, not to a seed every
-developer runs.
+The eighth field of each row is a leftover from the hospital version, where a
+brand was tagged to the departments that stocked it. A practice has one
+catalogue and one doctor, so it is read and discarded rather than deleted from
+several hundred literal rows — see `seed_medicine_brands`.
 """
 
 from portal.extensions import db
-from portal.models.department import Department
 from portal.models.medicine import DEFAULT_FORMULARY, Medicine
 from portal.models.medicine_brand import MedicineBrand
 
 # (brand_name, generic_name, used_for, category, manufacturer, form, strength,
-#  departments)
+#  _departments)
 #
-# `departments` is either "ALL" — the brand ships to every department via
-# `for_all_departments` — or a list of department names linked individually
-# through `medicine_departments`.
+# `_departments` is ignored — see the module docstring.
 MEDICINE_BRANDS = [
     ("Dolo 650", "Paracetamol", "Fever, mild to moderate pain, headache, body ache",
      "Analgesic/Antipyretic", "Micro Labs", "tablet", "650mg", "ALL"),
@@ -208,14 +197,14 @@ def seed_formulary():
 
 
 def seed_medicine_brands():
-    """Creates any missing brand, linking it to its formulary generic (if one
-    matches) and to the departments it serves. Returns the brand names it
-    created — a brand that already exists is left exactly as it is, including
-    any department links a developer has since changed by hand."""
-    departments = {d.name: d for d in Department.query.all()}
+    """Creates any missing brand, linking it to its formulary generic when one
+    matches. Returns the brand names it created — a brand that already exists
+    is left exactly as it is."""
     created = []
 
-    for brand_name, generic, used_for, category, maker, form, strength, dept_spec in MEDICINE_BRANDS:
+    for brand_name, generic, used_for, category, maker, form, strength, _departments in (
+        MEDICINE_BRANDS
+    ):
         if MedicineBrand.query.filter_by(brand_name=brand_name, strength=strength).first():
             continue
 
@@ -224,23 +213,18 @@ def seed_medicine_brands():
             if generic
             else None
         )
-        brand = MedicineBrand(
-            brand_name=brand_name,
-            generic_name=generic,
-            used_for=used_for,
-            category=category,
-            manufacturer=maker,
-            form=form,
-            strength=strength,
-            medicine_id=medicine.id if medicine else None,
-            for_all_departments=dept_spec == "ALL",
+        db.session.add(
+            MedicineBrand(
+                brand_name=brand_name,
+                generic_name=generic,
+                used_for=used_for,
+                category=category,
+                manufacturer=maker,
+                form=form,
+                strength=strength,
+                medicine_id=medicine.id if medicine else None,
+            )
         )
-        if dept_spec != "ALL":
-            for dept_name in dept_spec:
-                dept = departments.get(dept_name)
-                if dept:
-                    brand.departments.append(dept)
-        db.session.add(brand)
         created.append(brand_name)
 
     db.session.commit()

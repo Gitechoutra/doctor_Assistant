@@ -1,79 +1,43 @@
-"""What a doctor may prescribe, and how a suggested name resolves back to it.
-
-Prescribing draws on the pharmacy's own inventory rather than a separate list:
-a doctor's department's medicines, active, and actually in stock somewhere in
-the hospital. That is what makes a prescription fillable — a suggestion for
-something the pharmacy does not carry wastes the patient's trip to the counter.
-
-"In stock" is hospital-wide, not per branch. A doctor writes for the hospital;
-which counter holds the units is the pharmacist's problem to solve, and they
-can already see and transfer across branches.
+"""What the doctor may prescribe, and how a suggested name resolves back to it.
 
 Two things live here so every prescribing path agrees:
 
-  prescribable_for  the list offered to the AI and to the doctor
+  prescribable      the list offered to the AI and to the doctor
   resolve_medicine  a name coming back from the AI or typed by the doctor,
                     matched to the catalogue item it refers to
 
-Departments matter because the same catalogue serves all of them: a
-gynaecologist should be offered obstetric drugs and general analgesics, not
-the oncology shelf.
+The catalogue is the practice's own, and it is offered whole. The hospital
+version narrowed it two ways that a private practice cannot support: by
+department, which no longer exists, and by "is it in stock", which asked
+whether the hospital pharmacy held units. A practice dispenses nothing -- the
+patient takes the prescription to whichever chemist they use -- so gating the
+picker on stock would have shown the doctor an empty formulary and left them
+hand-typing every line.
 """
 
-from portal.extensions import db
 from portal.models.medicine import Medicine
-from portal.models.medicine_brand import MedicineBrand, medicine_departments
+from portal.models.medicine_brand import MedicineBrand
 
 # Sent with each medicine so the AI can dose it sensibly without inventing.
 MAX_FORMULARY_ITEMS = 400
 
 
-def department_brands(department_id, include_out_of_stock=False, active_only=True):
-    """Catalogue items this department prescribes from.
-
-    A brand qualifies by being tagged to the department, or by being marked
-    for all departments — which is how shared stock (analgesics, IV fluids)
-    reaches every department without being tagged to each one by hand.
-
-    With no department (an admin, or a doctor with none set) the whole active
-    catalogue is returned rather than nothing: showing an empty formulary
-    would look like the pharmacy is bare.
-    """
+def prescribable(active_only=True):
+    """The practice's prescribable catalogue, alphabetically."""
     query = MedicineBrand.query
     if active_only:
         query = query.filter(MedicineBrand.is_active.is_(True))
-
-    if department_id:
-        query = query.filter(
-            db.or_(
-                MedicineBrand.for_all_departments.is_(True),
-                MedicineBrand.id.in_(
-                    db.session.query(medicine_departments.c.brand_id).filter(
-                        medicine_departments.c.department_id == department_id
-                    )
-                ),
-            )
-        )
-
-    brands = query.order_by(MedicineBrand.brand_name).all()
-    if include_out_of_stock:
-        return brands
-    # Filtered in Python rather than SQL: stock is the sum of a brand's
-    # unexpired batches, and expressing "unexpired" as a join here would
-    # duplicate the rule that already lives on the model.
-    #
-    # Doctor-added medicines are kept regardless. The pharmacy never bought
-    # them — a doctor entered one because the hospital does not carry it, and
-    # the patient sources it outside. Applying the stock rule would drop the
-    # medicine straight back out of reach the moment it was added, which is
-    # precisely the gap manual entry exists to close.
-    return [b for b in brands if b.total_quantity > 0 or b.added_by_doctor]
+    return query.order_by(MedicineBrand.brand_name).all()
 
 
-def prescribable_for(doctor, include_out_of_stock=False):
-    """The prescribable list for a doctor's department."""
-    department_id = doctor.department_id if doctor else None
-    return department_brands(department_id, include_out_of_stock=include_out_of_stock)
+def prescribable_for(doctor=None, active_only=True):
+    """The prescribable list for a doctor.
+
+    `doctor` is accepted and ignored: one practice, one catalogue. Kept in the
+    signature because every caller has a doctor in hand and because a practice
+    with two doctors and two formularies is the change this would grow into.
+    """
+    return prescribable(active_only=active_only)
 
 
 def formulary_payload(brands):
@@ -81,7 +45,7 @@ def formulary_payload(brands):
 
     `name` is the display name (brand plus strength), because that is what a
     prescription has to say to be dispensable — "Paracetamol" alone leaves the
-    counter guessing between 500mg and 650mg.
+    chemist guessing between 500mg and 650mg.
     """
     payload = []
     for brand in brands[:MAX_FORMULARY_ITEMS]:
@@ -93,7 +57,6 @@ def formulary_payload(brands):
                 "form": brand.form_label,
                 "used_for": brand.used_for,
                 "default_dose": brand.usage_instructions,
-                "in_stock": brand.total_quantity,
             }
         )
     return payload
@@ -109,15 +72,15 @@ def _index(brands):
 
 
 def resolve_medicine(name, brands, formulary_by_name=None):
-    """Matches a prescribed name to what the hospital holds.
+    """Matches a prescribed name to the catalogue item it refers to.
 
     Returns `(brand, medicine_id)`. Tried in order of how specific the match
     is: the exact display name, then the brand or generic on its own, then a
     containment match for a name written with extra words around it.
 
-    Falls back to the older clinical formulary so a prescription written
-    before the pharmacy inventory existed — or copied from a stored precedent —
-    still resolves to something rather than being flagged off-formulary.
+    Falls back to the short clinical formulary so a prescription copied from a
+    stored precedent still resolves to something rather than being flagged
+    off-formulary.
     """
     cleaned = (name or "").strip().lower()
     if not cleaned:

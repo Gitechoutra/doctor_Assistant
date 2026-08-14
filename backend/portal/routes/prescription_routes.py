@@ -1,21 +1,20 @@
-"""Prescribing: what a doctor can reach for, and everything ever written.
+"""Prescribing: what the doctor can reach for, and everything ever written.
 
 Two things live here.
 
-**Medicine search** backs the picker in the prescription editor. It reads the
-pharmacy's own catalogue, filtered to the prescribing doctor's department and
-to what is actually in stock, so a doctor can only choose medicines the
-hospital can dispense — which is what stops prescriptions being typed by hand
-and drifting from what the pharmacy carries.
+**Medicine search** backs the picker in the prescription editor, reading the
+practice's own catalogue (see `helpers/formulary`). A doctor picking from it
+rather than typing by hand is what keeps prescription lines resolvable — to a
+generic, to a stored precedent, and to the same medicine next time.
 
-Deliberately not `/api/pharmacy/search`: that endpoint is the counter's view,
-scoped to a branch's shelf and closed to doctors. This is the clinical view of
-the same catalogue, and the two answer different questions.
+**Prescription history** is every prescription the practice has written, with
+the symptoms and diagnosis that produced it. Read-only here: a prescription is
+created by ending a consultation and changed only by the doctor in the
+consultation room.
 
-**Prescription history** is every prescription the hospital has written, with
-the symptoms and diagnosis that produced it. It is a read-only record — a
-prescription is created by ending a consultation and changed only by the
-treating doctor in the consultation room, never from here.
+Both are readable by the PA as well as the doctor. Pulling up what somebody
+was prescribed last visit is desk work — a patient rings and asks — and it is
+reading, not writing. Nothing in this module writes anything.
 """
 
 from datetime import datetime, time, timedelta
@@ -24,8 +23,8 @@ from flask import Blueprint, request
 
 from portal.extensions import db
 from portal.helpers.auth_helper import get_current_doctor
-from portal.helpers.decorators import clinical_only
-from portal.helpers.formulary import department_brands
+from portal.helpers.decorators import clinical_read
+from portal.helpers.formulary import prescribable
 from portal.helpers.patient_search import patient_search_filter
 from portal.helpers.response import error, success
 from portal.models.consultation import Consultation
@@ -43,7 +42,7 @@ MAX_PAGE_SIZE = 100
 
 
 @prescription_bp.get("/medicines")
-@clinical_only
+@clinical_read
 def search_medicines():
     """Autocomplete for the prescription editor.
 
@@ -52,13 +51,10 @@ def search_medicines():
     generic name or indication. A plain alphabetical list would bury "Dolo
     650" under everything else containing "do".
 
-    With no query it returns the first page of the department's inventory, so
-    opening the picker shows something to choose from rather than a blank box.
+    With no query it returns the first page of the catalogue, so opening the
+    picker shows something to choose from rather than a blank box.
     """
-    doctor = get_current_doctor()
-    # Out-of-stock is excluded, not just flagged: the point of prescribing
-    # from the pharmacy's inventory is that the patient can fill it today.
-    brands = department_brands(doctor.department_id if doctor else None)
+    brands = prescribable()
 
     term = (request.args.get("q") or "").strip().lower()
     if not term:
@@ -140,10 +136,7 @@ def _medicine_option(brand):
         "used_for": brand.used_for,
         "usage_instructions": brand.usage_instructions,
         "unit_price": float(brand.unit_price) if brand.unit_price is not None else None,
-        "in_stock": brand.total_quantity,
         "availability": brand.availability(),
-        "departments": [d.name for d in brand.departments],
-        "for_all_departments": brand.for_all_departments,
     }
 
 
@@ -156,7 +149,7 @@ PERIOD_DAYS = {"today": 0, "week": 7, "month": 30, "year": 365}
 
 
 @prescription_bp.get("")
-@clinical_only
+@clinical_read
 def list_prescriptions():
     """Every prescription written, newest first, with its clinical context.
 
@@ -204,7 +197,7 @@ def list_prescriptions():
         )
 
     # Patient, doctor or medicine — what the box on this page promises. The
-    # medicine is the reason a pharmacist opens it at all ("who else did we
+    # medicine is the reason this page is opened at all ("who else did we
     # give this to"); the doctor was named in the placeholder but never
     # actually searched until now.
     search = patient_search_filter(
@@ -260,7 +253,7 @@ def list_prescriptions():
 
 
 @prescription_bp.get("/<int:consultation_id>")
-@clinical_only
+@clinical_read
 def get_prescription(consultation_id):
     """One prescription in full."""
     consultation = Consultation.query.get(consultation_id)
@@ -298,9 +291,6 @@ def _prescription_record(consultation):
         },
         "doctor": consultation.doctor.user.name
         if consultation.doctor and consultation.doctor.user
-        else None,
-        "department": consultation.doctor.department.name
-        if consultation.doctor and consultation.doctor.department
         else None,
         "consulted_at": when.isoformat() + "Z" if when else None,
         "symptoms": summary.symptoms if summary else None,

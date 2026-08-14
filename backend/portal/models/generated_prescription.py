@@ -1,9 +1,21 @@
 from datetime import datetime
 
 from portal.extensions import db
-# Reused rather than redefined: a prescription and the nursing medication
-# order it becomes must describe the same route with the same word.
-from portal.models.medication_order import ROUTE_LABELS, ROUTES  # noqa: F401
+
+# How a medicine is taken. Defined here because a prescription line is now the
+# only thing in the system that carries a route -- this used to be shared with
+# the nursing medication order, which a practice with no ward does not have.
+ROUTES = ("oral", "injection", "iv", "topical", "inhalation", "other")
+
+# Route labels the UI shows; kept beside the enum so the two can't drift.
+ROUTE_LABELS = {
+    "oral": "Tablet / Oral",
+    "injection": "Injection",
+    "iv": "IV / Saline",
+    "topical": "Topical",
+    "inhalation": "Inhalation",
+    "other": "Other",
+}
 
 
 class GeneratedPrescription(db.Model):
@@ -12,11 +24,10 @@ class GeneratedPrescription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     consultation_id = db.Column(db.Integer, db.ForeignKey("consultations.id"), nullable=False)
     medicine_id = db.Column(db.Integer, db.ForeignKey("medicines.id"), nullable=True)
-    # The pharmacy catalogue item this line was written against. Doctors now
-    # prescribe from their department's stocked inventory, so this is what
-    # links a prescription to something the hospital can actually dispense —
-    # `medicine_id` remains the older clinical-formulary link, kept because
-    # nursing medication orders still resolve against it.
+    # The catalogue item this line was written against. Doctors prescribe from
+    # the practice's own catalogue, so this is what links a line to a real
+    # product — `medicine_id` remains the older clinical-formulary link, kept
+    # because a precedent copied from an older prescription resolves against it.
     brand_id = db.Column(db.Integer, db.ForeignKey("medicine_brands.id"), nullable=True)
     medicine_name = db.Column(db.String(150), nullable=False)
     # Gemini writes these as free text (e.g. "Twice daily after meals for the
@@ -27,13 +38,13 @@ class GeneratedPrescription(db.Model):
     duration = db.Column(db.String(255), nullable=True)
     # How much to dispense — "20 tablets", "1 bottle". Distinct from dose:
     # dose is how much the patient takes at a time, quantity is what the
-    # pharmacy hands over, and a counter cannot infer one from the other.
+    # chemist hands over, and neither can be inferred from the other.
     quantity = db.Column(db.String(80), nullable=True)
     # How it is given. Only worth recording when the medicine is entered by
     # hand — a catalogue item already carries its dosage form.
     route = db.Column(db.String(20), nullable=True)
     # True when the doctor typed this medicine in rather than picking it from
-    # the pharmacy's catalogue. Explicit rather than inferred from a missing
+    # the catalogue. Explicit rather than inferred from a missing
     # brand link: a line can lose its link when a medicine is archived, and
     # that is not the same as a doctor deliberately going off-catalogue.
     is_custom = db.Column(db.Boolean, nullable=False, default=False)
@@ -71,13 +82,13 @@ class GeneratedPrescription(db.Model):
             "is_custom": self.is_custom,
             # Falls back to the catalogue item's standing instructions when
             # the doctor did not write their own, so the label is never blank
-            # for a medicine the pharmacy has instructions for.
+            # for a medicine the catalogue has instructions for.
             "instructions": self.instructions
             or (self.brand.usage_instructions if self.brand else None),
             "notes": self.notes,
-            # True when this line names something in the hospital's own
-            # catalogue. Either link counts: a brand from the department's
-            # inventory, or a clinical formulary entry.
+            # True when this line names something in the practice's own
+            # catalogue. Either link counts: a catalogue brand, or a clinical
+            # formulary entry.
             "matched_formulary": self.medicine_id is not None or self.brand_id is not None,
             "brand_id": self.brand_id,
             "usage_instructions": self.brand.usage_instructions if self.brand else None,

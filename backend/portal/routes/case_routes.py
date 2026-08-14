@@ -24,7 +24,7 @@ from portal.helpers.audit import (
 from portal.helpers.auth_helper import get_current_doctor
 from portal.helpers.broadcast import dashboard_changed
 from portal.helpers.case_helper import session_context
-from portal.helpers.decorators import clinical_only
+from portal.helpers.decorators import clinical_read, doctor_only
 from portal.helpers.formulary import prescribable_for, resolve_medicine
 from portal.helpers.notify import notify, role_user_ids
 from portal.helpers.patient_search import code_clauses, patient_search_filter
@@ -45,14 +45,14 @@ def _is_owning_doctor(case):
 
 
 def _can_view(case):
-    """Viewing follows the same rule as everywhere else in patient care: a
-    doctor sees their own cases, admin/nursing see across the hospital."""
+    """Viewing follows the same rule as everywhere else in patient care: the
+    doctor sees their own cases, the PA sees the practice's."""
     doctor = get_current_doctor()
     return doctor is None or doctor.id == case.doctor_id
 
 
 @case_bp.get("")
-@clinical_only
+@clinical_read
 def list_cases():
     query = PatientCase.query
 
@@ -98,7 +98,7 @@ def list_cases():
 
 
 @case_bp.get("/<int:case_id>")
-@clinical_only
+@clinical_read
 def get_case(case_id):
     case = PatientCase.query.get(case_id)
     if not case:
@@ -141,7 +141,7 @@ def _replace_final_prescriptions(case, items):
 
 
 @case_bp.post("/<int:case_id>/close")
-@clinical_only
+@doctor_only
 def close_case(case_id):
     """Ends the course of treatment and produces the consolidated record.
 
@@ -270,7 +270,7 @@ def close_case(case_id):
 
 
 @case_bp.post("/<int:case_id>/reopen")
-@clinical_only
+@doctor_only
 def reopen_case(case_id):
     """Puts a closed case back in treatment so another session can be added.
 
@@ -319,7 +319,7 @@ def reopen_case(case_id):
 
 
 @case_bp.put("/<int:case_id>/prescriptions")
-@clinical_only
+@doctor_only
 def replace_final_prescriptions(case_id):
     """Replaces the consolidated prescription with the doctor's edited version.
 
@@ -403,7 +403,7 @@ def replace_final_prescriptions(case_id):
 
 
 @case_bp.post("/<int:case_id>/prescriptions/verify")
-@clinical_only
+@doctor_only
 def verify_final_prescription(case_id):
     case = PatientCase.query.get(case_id)
     if not case:
@@ -433,7 +433,7 @@ def verify_final_prescription(case_id):
 
 
 @case_bp.delete("/<int:case_id>/prescriptions/verify")
-@clinical_only
+@doctor_only
 def unverify_final_prescription(case_id):
     case = PatientCase.query.get(case_id)
     if not case:

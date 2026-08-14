@@ -2,74 +2,42 @@ from datetime import datetime
 
 from portal.extensions import db
 
-# The five roles the application is built around. Every login belongs to
-# exactly one of them (`users.role_id` is NOT NULL), and every access rule in
-# the codebase is written against these names.
+# The two roles this application has, and the only two it may ever have
+# without a deliberate change here.
 #
-# Guaranteed to exist by a data migration rather than by the seeder: a fresh
-# `flask db upgrade` has to leave a working database behind, and several
-# routes (registration approval, nurse creation) look a role up by name and
-# would fail against an empty table.
+# A private practice is two people: the doctor, and the assistant who runs the
+# desk for them. Every access rule in the codebase is written against these
+# names -- see `helpers/decorators`, which is the single place that decides
+# what each one can reach.
 #
-# Adding one here is not enough on its own -- it needs a migration to insert
-# it, and helpers/decorators.py decides what it can actually reach.
+# `users.role_id` is NOT NULL and several routes look a role up by name, so
+# both rows are reconciled at every start by `helpers/bootstrap.ensure_roles`:
+# a fresh database, or one restored from a dump, comes up usable.
+PA = "pa"
+DOCTOR = "doctor"
+
 DEFAULT_ROLES = (
     (
-        "admin",
-        "Full access. Manages staff accounts, departments and branches, "
-        "approves registrations, and reads the audit trail.",
+        PA,
+        "Personal Assistant. Registers patients, books and reschedules "
+        "appointments, runs the day's queue, and reads the practice's records. "
+        "No clinical authority.",
     ),
     (
-        "doctor",
-        "Runs consultations, verifies prescriptions, assigns nursing care and "
-        "reviews the patients assigned to them.",
-    ),
-    (
-        "nurse",
-        "Records medication, vitals, observations and handovers for the "
-        "patients a doctor has assigned to them.",
-    ),
-    (
-        "receptionist",
-        "Registers patients, keeps their details current, routes them to a "
-        "doctor and manages the OP queue. No access to clinical records.",
-    ),
-    (
-        "pharmacist",
-        "Manages the medicine catalogue and their branch's stock, and looks "
-        "up availability across other branches.",
-    ),
-    (
-        "lab_technician",
-        "Runs diagnostic tests for a lab department. No access to "
-        "consultations, prescriptions or the nursing record.",
-    ),
-    (
-        "accountant",
-        "Handles billing and financial records. No access to clinical data.",
-    ),
-    (
-        "other_staff",
-        "General hospital staff with an account but no clinical or financial "
-        "access — a placeholder for roles the hospital adds later.",
+        DOCTOR,
+        "The practice's doctor. Runs consultations, records diagnoses and "
+        "clinical notes, prescribes, and issues reports.",
     ),
 )
 
 ROLE_NAMES = tuple(name for name, _description in DEFAULT_ROLES)
 
 # How a role is written when a person reads it -- in the credentials email, in
-# an audit line. Mirrors ROLE_LABELS in the frontend's StaffFormModal; keep the
-# two in step. `role_label` falls back to title-casing the name, so a role
-# added without a label here still reads sensibly.
+# an audit line. "PA" stays upper-case: it is an abbreviation, and the
+# title-casing fallback below would render it "Pa".
 ROLE_LABELS = {
-    "admin": "Administrator",
-    "doctor": "Doctor",
-    "nurse": "Nurse",
-    "receptionist": "Receptionist",
-    "pharmacist": "Pharmacist",
-    "lab_technician": "Lab Technician",
-    "accountant": "Accountant",
-    "other_staff": "Other Staff",
+    PA: "PA",
+    DOCTOR: "Doctor",
 }
 
 
@@ -77,19 +45,12 @@ def role_label(name):
     """The human-readable name of a role."""
     return ROLE_LABELS.get(name) or (name or "").replace("_", " ").title() or "Staff"
 
-# Roles an administrator may create through Staff Management. `admin` is
-# absent: granting administrator is how every other grant is made, so it stays
-# a deliberate database-level action rather than a form field.
-STAFF_ROLES = tuple(name for name in ROLE_NAMES if name != "admin")
 
-# Roles that own a dedicated profile table because clinical or pharmacy code
-# joins against it — creating one of these must create that row too, or the
-# account is half-formed. That costs more than it sounds: several scoping rules
-# read "role X with no X profile" as unrestricted, so a doctor account with no
-# doctor row can see every patient rather than none (see
-# `helpers/patient_access.patient_scope`). `staff_routes` creates the account
-# and its profile in one transaction for exactly this reason.
-ROLES_WITH_PROFILE = ("doctor", "nurse", "pharmacist")
+# Roles that own a dedicated profile table because clinical code joins against
+# it -- creating one of these must create that row too, or the account is
+# half-formed. `doctor` is the only one left: the PA has no clinical record of
+# their own, so their user row is the whole account.
+ROLES_WITH_PROFILE = (DOCTOR,)
 
 
 class Role(db.Model):
@@ -106,6 +67,7 @@ class Role(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "label": role_label(self.name),
             "description": self.description,
             "user_count": len(self.users),
         }

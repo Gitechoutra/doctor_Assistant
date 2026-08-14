@@ -80,10 +80,10 @@ class InitApp:
 
             register_routes(app)
 
-            # Registers Socket.IO event handlers (join_consultation,
-            # join_assignment, etc.) on the shared `socketio` instance.
+            # Registers Socket.IO event handlers (join_consultation, and the
+            # dashboard/queue channel both roles watch) on the shared
+            # `socketio` instance.
             from portal.websocket import consultation_socket  # noqa: F401
-            from portal.websocket import nursing_socket  # noqa: F401
 
         except Exception as exc:
             app.logger.exception("Failed to initialize app components: %s", exc)
@@ -93,17 +93,17 @@ class InitApp:
         self._register_health(app)
 
         # -- Reference data ------------------------------------------------
-        # What a database needs before anyone can use it: the roles the
-        # authorization model is written against, an administrator to sign in
-        # as, and the departments and formulary the clinical workflows assume.
+        # What a database needs before anyone can use it: the two roles the
+        # authorization model is written against, the PA and doctor accounts
+        # to sign in as, and the formulary the prescribing workflow assumes.
         # Checked on every start rather than left to a migration or a seed
         # command, so a fresh clone or a restored dump comes up usable.
         #
         # All additive and non-fatal -- see helpers/bootstrap. Roles run first
-        # because the admin account needs its role to exist.
+        # because the accounts need their roles to exist.
         from portal.helpers.bootstrap import (
-            ensure_admin,
-            ensure_departments,
+            ensure_accounts,
+            ensure_medicine_brands,
             ensure_medicines,
             ensure_roles,
             ensure_schema,
@@ -117,12 +117,14 @@ class InitApp:
         # ensure_schema.
         ensure_schema(app)
         ensure_roles(app)
-        ensure_admin(app)
-        # After the admin exists, so the account this check just created gets
+        ensure_accounts(app)
+        # After the accounts exist, so anything this startup just created gets
         # a username in the same startup rather than the next one.
         ensure_usernames(app)
-        ensure_departments(app)
         ensure_medicines(app)
+        # After ensure_medicines: a brand links to its formulary generic, and
+        # that generic has to be on file for the link to attach.
+        ensure_medicine_brands(app)
 
         app.logger.info("Portal initialization completed successfully")
 

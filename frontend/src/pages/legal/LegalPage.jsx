@@ -2,13 +2,12 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { HiArrowLeft, HiOutlineExclamationTriangle } from "react-icons/hi2";
 import Logo from "../../components/Logo";
-import Footer from "../../components/landing/Footer";
 
 /**
  * Shared shell for the Privacy Policy and Terms pages.
  *
  * Both carry a visible notice that the text is a starting template, not
- * reviewed legal advice. A hospital's privacy policy has to reflect what this
+ * reviewed legal advice. A practice's privacy policy has to reflect what this
  * deployment actually does with patient data and which regulations apply to
  * it -- neither of which can be inferred from the code.
  */
@@ -48,7 +47,7 @@ export default function LegalPage({ title, updated, intro, sections }) {
             <span className="font-semibold">Template — needs legal review. </span>
             This document describes how the software is built, not a policy any
             lawyer has approved. Have it reviewed against the regulations that
-            apply to your hospital before publishing it.
+            apply to your practice before publishing it.
           </p>
         </div>
 
@@ -79,7 +78,14 @@ export default function LegalPage({ title, updated, intro, sections }) {
         </div>
       </main>
 
-      <Footer />
+      <footer className="border-t border-slate-100 bg-white">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-6 py-8 sm:flex-row lg:px-10">
+          <Logo subtitle={null} />
+          <p className="text-xs text-slate-400">
+            &copy; {new Date().getFullYear()} MediAssist AI
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -9,7 +9,7 @@ individual visit.
 
 Layout primitives (letterhead, styles, the medicine table, the verification
 line) are shared with the single-session report so both documents read as the
-same hospital's paperwork.
+same practice's paperwork.
 """
 
 from datetime import datetime
@@ -39,13 +39,13 @@ from portal.pdf.report_generator import (
     STYLE_DISCLAIMER,
     STYLE_DOC_META,
     STYLE_DOC_TITLE,
-    STYLE_HOSPITAL_META,
-    STYLE_HOSPITAL_NAME,
+    STYLE_PRACTICE_META,
+    STYLE_PRACTICE_NAME,
     STYLE_LABEL,
     STYLE_QR_CAPTION,
     STYLE_SECTION,
     _age_from_dob,
-    _hospital_lines,
+    _practice_lines,
     _info_row,
     _logo,
     _qr_code,
@@ -136,13 +136,13 @@ def _session_block(session):
 
 
 def generate_case_pdf(case, output_path):
-    """Renders a whole course of treatment into one hospital-letterhead PDF."""
+    """Renders a whole course of treatment into one practice-letterhead PDF."""
     patient = case.patient
     doctor = case.doctor
     sessions = [s for s in case.sessions if s.status == "completed"]
 
     config = get_config()
-    hospital = config.HOSPITAL
+    practice = config.PRACTICE
     generated_at = datetime.now()
 
     doc = SimpleDocTemplate(
@@ -153,16 +153,16 @@ def generate_case_pdf(case, output_path):
         leftMargin=20 * mm,
         rightMargin=20 * mm,
         title=f"Consolidated Medical Report — {patient.name if patient else 'Patient'}",
-        author=hospital.get("name") or "Hospital",
+        author=practice.get("name") or "MediAssist AI",
     )
     story = []
 
     # --- Letterhead ---------------------------------------------------------
-    hospital_block = [Paragraph(hospital.get("name") or "Hospital", STYLE_HOSPITAL_NAME)]
-    if hospital.get("tagline"):
-        hospital_block.append(Paragraph(hospital["tagline"], STYLE_HOSPITAL_META))
-    for line in _hospital_lines(hospital):
-        hospital_block.append(Paragraph(line, STYLE_HOSPITAL_META))
+    practice_block = [Paragraph(practice.get("name") or "MediAssist AI", STYLE_PRACTICE_NAME)]
+    if practice.get("tagline"):
+        practice_block.append(Paragraph(practice["tagline"], STYLE_PRACTICE_META))
+    for line in _practice_lines(practice):
+        practice_block.append(Paragraph(line, STYLE_PRACTICE_META))
 
     right_block = [
         Paragraph("Consolidated Medical Report", STYLE_DOC_TITLE),
@@ -174,7 +174,7 @@ def generate_case_pdf(case, output_path):
         Paragraph(f"Generated {generated_at.strftime('%d %b %Y, %I:%M %p')}", STYLE_DOC_META),
     ]
 
-    header = Table([[_logo(), hospital_block, right_block]], colWidths=[20 * mm, 90 * mm, 60 * mm])
+    header = Table([[_logo(), practice_block, right_block]], colWidths=[20 * mm, 90 * mm, 60 * mm])
     header.setStyle(
         TableStyle(
             [
@@ -230,7 +230,7 @@ def generate_case_pdf(case, output_path):
             _info_row("Patient Name", patient.name if patient else "—")
             + _info_row("Doctor", doctor_name),
             _info_row("Patient ID", f"PAT{patient.id:04d}" if patient else "—")
-            + _info_row("Department", doctor.department.name if doctor and doctor.department else "—"),
+            + _info_row("Qualification", (doctor.qualification if doctor else None) or "—"),
             _info_row("Age / Gender", age_gender or "—")
             + _info_row("Credentials", doctor_credentials or "—"),
             _info_row("Contact", (patient.phone if patient else None) or "—")
@@ -278,7 +278,7 @@ def generate_case_pdf(case, output_path):
         story.append(Paragraph("No completed sessions on this case.", STYLE_BODY))
 
     # --- The consolidated prescription --------------------------------------
-    # On its own page: this is the sheet that gets handed to a pharmacist, and
+    # On its own page: this is the sheet that gets handed to a chemist, and
     # it must not arrive split across a page break in the middle of the
     # medicine list or trailing a session's older prescription.
     story.append(PageBreak())
@@ -348,8 +348,8 @@ def generate_case_pdf(case, output_path):
         sig_lines.append(doctor.specialization)
     if doctor and doctor.registration_no:
         sig_lines.append(f"Reg. No. {doctor.registration_no}")
-    if doctor and doctor.department:
-        sig_lines.append(doctor.department.name)
+    if doctor and doctor.qualification:
+        sig_lines.append(doctor.qualification)
 
     signature_block = [
         Paragraph("_______________________", ParagraphStyle("SigLine", parent=STYLE_BODY, alignment=2)),
@@ -372,7 +372,7 @@ def generate_case_pdf(case, output_path):
     story.append(footer_table)
 
     def draw_footer(canvas, document):
-        """Hospital footer on every page — this document runs to several, and
+        """Practice footer on every page — this document runs to several, and
         a detached one still has to be identifiable."""
         canvas.saveState()
         width, _ = A4
@@ -383,7 +383,7 @@ def generate_case_pdf(case, output_path):
 
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(SLATE_400)
-        left = " · ".join(filter(None, [hospital.get("name"), hospital.get("phone")]))
+        left = " · ".join(filter(None, [practice.get("name"), practice.get("phone")]))
         canvas.drawString(20 * mm, y, left)
         canvas.drawRightString(width - 20 * mm, y, f"{case.code} · Page {document.page}")
         canvas.setFont("Helvetica-Oblique", 6.5)

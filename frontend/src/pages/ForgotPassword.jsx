@@ -9,7 +9,7 @@ import { requestPasswordReset } from "../services/authService";
  *
  * The confirmation screen is deliberately the same whether or not the account
  * exists — the server answers identically for both, so that an unauthenticated
- * visitor cannot use this page to find out who works at the hospital. There is
+ * visitor cannot use this page to find out who works at the practice. There is
  * nothing to add here that the server is not willing to say.
  */
 export default function ForgotPassword() {
@@ -60,7 +60,7 @@ export default function ForgotPassword() {
               so use it as soon as it arrives.
             </p>
             <p className="mt-4 text-center text-xs text-slate-400">
-              Nothing arrived? Check your spam folder, then ask your hospital
+              Nothing arrived? Check your spam folder, then ask whoever set up
               administrator to resend your sign-in details.
             </p>
           </>

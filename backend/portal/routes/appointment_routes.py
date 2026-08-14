@@ -1,3 +1,25 @@
+"""The appointment book and the day's queue.
+
+Two views of the same rows, and the split is what makes the two roles work
+together without stepping on each other:
+
+  GET  /appointments/queue      who is here, in order. Both roles.
+  GET  /appointments/upcoming   what is booked ahead. Both roles.
+  GET  /appointments/history    what has been seen or cancelled. Both roles.
+
+  POST /appointments            book one                     PA
+  POST /appointments/<id>/check-in    they have arrived      PA
+  PATCH /appointments/<id>      reschedule / edit            PA
+  POST /appointments/<id>/cancel                             PA
+  POST /appointments/<id>/start call them in                 doctor
+
+The doctor's only write here is `start` -- calling the patient in is the one
+queue action that is clinical rather than administrative. Everything else is
+the desk's, and the doctor is deliberately outside it: a doctor who could book
+their own appointments would make the PA's book stop being a true record of
+who is coming.
+"""
+
 import os
 from datetime import datetime, timedelta
 
@@ -6,124 +28,46 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from portal.extensions import db
 from portal.helpers.auth_helper import get_current_doctor
+from portal.helpers.broadcast import dashboard_changed
 from portal.helpers.case_helper import (
     attach_to_case,
     case_for_new_session,
     open_case_for,
     todays_session,
 )
-from portal.helpers.broadcast import dashboard_changed
-from portal.helpers.decorators import role_required
+from portal.helpers.datetime_helper import local_day_bounds
+from portal.helpers.decorators import front_desk_only
 from portal.helpers.patient_access import can_access_patient
 from portal.helpers.patient_search import code_clauses, patient_search_filter
-# The duplicate window and the OP-raising rules live in queue_helper, shared
-# with patient registration. Re-exported here because this module is where
-# they were first defined and other code imports them from it.
-from portal.helpers.queue_helper import (  # noqa: F401
-    DUPLICATE_WINDOW_MINUTES,
-    op_department_for,
-    raise_op,
-    recent_duplicate_for,
+from portal.helpers.practice import practice_doctor
+from portal.helpers.queue_helper import (
+    book_appointment,
+    check_in,
+    collapse_duplicates,
+    number_queue,
+    queue_query,
     scope_appointments,
+    upcoming_query,
 )
 from portal.helpers.response import error, success
-from portal.models.appointment import Appointment
+from portal.models.appointment import CLOSED_STATUSES, Appointment
 from portal.models.consultation import Consultation
-from portal.models.department import Department
-from portal.models.emergency_case import EmergencyCase
 from portal.models.patient import Patient
-from portal.pdf.op_document_generator import generate_op_document_pdf
+from portal.pdf.appointment_slip_generator import generate_appointment_slip_pdf
 
 appointment_bp = Blueprint("appointments", __name__)
 
 # Regenerated in place on every request rather than tracked in a table — an
-# OP slip is a 1:1, always-reproducible view of its appointment, so there is
-# nothing here worth a database row the way a signed-off prescription is.
-OP_DOCUMENTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "op_documents")
-
-
-def _op_document_path(appointment_id):
-    return os.path.join(OP_DOCUMENTS_DIR, f"op_{appointment_id}.pdf")
-
-# In the queue, and so what the dashboard's queue card counts: still on the
-# board, i.e. not yet completed or cancelled.
-OPEN_STATUSES = ("waiting", "in_progress")
-
-# Off the board for good — nothing can be started from one of these. These are
-# exactly the statuses the history below lists: the queue and the history are
-# defined against the same constant, so an OP is always in one of the two and
-# never in both.
-CLOSED_STATUSES = ("completed", "cancelled")
+# appointment slip is a 1:1, always-reproducible view of its appointment, so
+# there is nothing here worth a database row the way a signed prescription is.
+SLIPS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "appointment_slips")
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
 
 
-def collapse_duplicates(appointments):
-    """Drops same-patient rows raised within `DUPLICATE_WINDOW_MINUTES` of the
-    one being kept, preserving the caller's ordering.
-
-    The refusal in `create_appointment` stops new ones being written; this is
-    what keeps the pairs already in the database out of the queue, and it is
-    applied on read so no migration has to guess which of two historic rows was
-    the real registration.
-
-    Which row survives: the one in consultation if there is one — that is the
-    visit actually happening — otherwise the earliest, which is the patient's
-    real place in the queue and the position the desk gave them. Deciding that
-    here rather than trusting the incoming order means the dashboard's count and
-    the page's rows collapse identically.
-    """
-    window = DUPLICATE_WINDOW_MINUTES * 60
-    ranked = sorted(
-        appointments,
-        key=lambda a: (a.status != "in_progress", a.created_at or datetime.min),
-    )
-
-    kept_ids = set()
-    last_kept = {}  # patient_id -> created_at of the row kept for them
-    for appointment in ranked:
-        created = appointment.created_at or datetime.min
-        previous = last_kept.get(appointment.patient_id)
-        if previous is not None and abs((created - previous).total_seconds()) < window:
-            continue
-        kept_ids.add(appointment.id)
-        last_kept[appointment.patient_id] = created
-
-    return [a for a in appointments if a.id in kept_ids]
-
-
-def open_appointments_query():
-    """Appointments still on the board — the one definition of "the queue",
-    shared by the Appointments page and by the dashboard's queue card, so the
-    number on the card always matches the rows behind it.
-
-    The status check is the primary rule; the consultation check is a safety
-    net. A row whose consultation is already completed must never appear in
-    the queue even if its own status was somehow left open — that's the
-    "completed patients never remain in Appointments" guarantee, enforced on
-    read so no stale row can slip through.
-
-    Deliberately *not* narrowed to appointments raised today. The queue is a
-    work list, not a diary: a patient queued yesterday evening and never
-    called in is still waiting this morning, and a consultation left running
-    overnight is still running. Counting only rows with today's `created_at`
-    hid exactly those patients from the dashboard card while the page it
-    links to still listed them — the card read "0" over a queue that had
-    people in it. An appointment can only ever be raised now or earlier, so
-    "still open" already implies "still today's work"; there is no date
-    window that could include a waiting patient without also including the
-    ones who have been waiting longest.
-    """
-    return (
-        Appointment.query.outerjoin(
-            Consultation, Appointment.consultation_id == Consultation.id
-        )
-        .filter(
-            Appointment.status.in_(OPEN_STATUSES),
-            db.or_(Consultation.id.is_(None), Consultation.status != "completed"),
-        )
-    )
+def _slip_path(appointment_id):
+    return os.path.join(SLIPS_DIR, f"appointment_{appointment_id}.pdf")
 
 
 def _parse_range_date(raw, field):
@@ -137,20 +81,83 @@ def _parse_range_date(raw, field):
         return None, f"{field} must be in YYYY-MM-DD format"
 
 
+def _parse_datetime(raw, field):
+    """Returns (datetime, error_message) for an ISO timestamp off the form.
+
+    A trailing 'Z' is accepted and dropped: the browser sends UTC that way and
+    `fromisoformat` refuses it on Python versions before 3.11, which would make
+    booking fail on exactly the input the frontend produces.
+    """
+    if not raw:
+        return None, None
+    text = str(raw).strip()
+    if text.endswith("Z"):
+        text = text[:-1]
+    try:
+        return datetime.fromisoformat(text), None
+    except ValueError:
+        return None, f"{field} must be an ISO date-time, e.g. 2026-08-20T10:30"
+
+
+# --------------------------------------------------------------------------
+# reading
+# --------------------------------------------------------------------------
+
+
+@appointment_bp.get("/queue")
+@jwt_required()
+def list_queue():
+    """Today's queue, numbered.
+
+    The one endpoint both roles read for "who is here". The PA's queue board
+    and the doctor's queue are the same list — that is the point, and it is why
+    the numbering is computed here rather than by either client. A patient told
+    "you are third" at the desk has to be third on the doctor's screen too.
+    """
+    doctor = get_current_doctor()
+    appointments = collapse_duplicates(queue_query(doctor).all())
+    numbered = number_queue(appointments)
+    return success([a.to_dict(queue_number=n) for a, n in numbered])
+
+
+@appointment_bp.get("/upcoming")
+@jwt_required()
+def list_upcoming():
+    """Booked, not yet arrived. The appointment book looking forwards.
+
+    `?days=` bounds it (default 30). Bookings with no time at all are always
+    included: they are the ones most likely to be forgotten, and a window can
+    never contain a null.
+    """
+    doctor = get_current_doctor()
+    try:
+        days = max(1, min(int(request.args.get("days", 30)), 365))
+    except (TypeError, ValueError):
+        days = 30
+
+    horizon = datetime.utcnow() + timedelta(days=days)
+    query = upcoming_query(doctor).filter(
+        db.or_(Appointment.scheduled_at.is_(None), Appointment.scheduled_at <= horizon)
+    )
+    return success([a.to_dict() for a in query.all()])
+
+
 @appointment_bp.get("")
 @jwt_required()
 def list_appointments():
-    """The live queue: who is being seen, who is next, who is still waiting.
+    """The appointment book, filterable.
 
-    Completed and cancelled appointments are left out by default — this is a
-    work list, not a history. Pass ?status=completed (or cancelled) to look
-    one of those up explicitly, or ?date_from=/?date_to= for a period lookup
-    (any status) — used for a per-doctor patient count, never to narrow the
-    live queue itself. The queue is deliberately never date-filtered (see
-    open_appointments_query) — a patient still waiting from yesterday must
-    never disappear because "today" was selected somewhere.
+    `?status=` narrows to one status, `?date_from=`/`?date_to=` to a period
+    (against the booked time, falling back to when the row was made). With no
+    filter at all this is every appointment that has not been closed — which
+    is the book, not the queue. `/queue` is the queue.
     """
     status = request.args.get("status")
+    if status and status not in dict.fromkeys(
+        ("scheduled", "waiting", "in_progress", "completed", "cancelled")
+    ):
+        return error("Unknown status", status=422)
+
     date_from, date_from_error = _parse_range_date(request.args.get("date_from"), "date_from")
     if date_from_error:
         return error(date_from_error, status=422)
@@ -158,96 +165,55 @@ def list_appointments():
     if date_to_error:
         return error(date_to_error, status=422)
 
-    # ?filter=today was the dashboard card's link and is still accepted so
-    # old links and bookmarks keep working. It no longer narrows anything:
-    # the queue is every open appointment whatever day it was raised on (see
-    # open_appointments_query), so this resolves to the same live queue.
-    queue_requested = request.args.get("filter") == "today"
-
-    is_lookup = (bool(status) or date_from or date_to) and not queue_requested
-    if is_lookup:
-        # An explicit status, or a date range, is a lookup rather than the
-        # queue — it may return completed/cancelled rows, which the queue
-        # never does.
-        query = Appointment.query
-        if status:
-            query = query.filter(Appointment.status == status)
+    query = Appointment.query
+    if status:
+        query = query.filter(Appointment.status == status)
     else:
-        query = open_appointments_query()
-        if status:
-            query = query.filter(Appointment.status == status)
+        query = query.filter(Appointment.status.notin_(CLOSED_STATUSES))
 
+    # Booked time where there is one, creation time otherwise — so a walk-in
+    # and a booking both land in the day they actually belong to.
+    when = db.func.coalesce(Appointment.scheduled_at, Appointment.created_at)
     if date_from:
-        query = query.filter(Appointment.created_at >= date_from)
+        query = query.filter(when >= date_from)
     if date_to:
-        query = query.filter(Appointment.created_at < date_to + timedelta(days=1))
+        query = query.filter(when < date_to + timedelta(days=1))
 
-    # A doctor's queue is strictly the OPs raised against them — see
-    # _scope_to_caller, shared with the history route and the dashboard.
-    doctor = get_current_doctor()
-    query = _scope_to_caller(query)
-    if not doctor:
-        department_id = request.args.get("department_id", type=int)
-        if department_id:
-            query = query.filter(Appointment.department_id == department_id)
+    query = scope_appointments(query, get_current_doctor())
 
-    appointments = query.order_by(
-        # Whoever is in the room comes first, then the queue in the order
-        # people actually joined it — oldest first, so the row under the
-        # ongoing one is genuinely the next patient.
-        db.case((Appointment.status == "in_progress", 0), else_=1),
-        Appointment.created_at.asc(),
-    ).all()
+    search = patient_search_filter(
+        request.args.get("search"),
+        columns=(Appointment.reason,),
+        extra=lambda term: code_clauses(term, "apt", Appointment.id),
+        relationship=Appointment.patient,
+    )
+    if search is not None:
+        query = query.filter(search)
 
-    # The queue shows one card per patient; a lookup is left whole, because
-    # asking for every completed appointment and being handed a filtered
-    # history would be a different thing than what was asked for.
-    if not is_lookup:
-        appointments = collapse_duplicates(appointments)
-
-    # Queue numbers count the waiting only, so "Queue #1" always means next up.
-    queue_position = 0
-    payload = []
-    for appointment in appointments:
-        queue_number = None
-        if appointment.status == "waiting":
-            queue_position += 1
-            queue_number = queue_position
-        payload.append(appointment.to_dict(queue_number=queue_number))
-
-    return success(payload)
-
-
-def _scope_to_caller(query):
-    """Narrows an appointment query the way the caller is allowed to see it.
-
-    Thin wrapper over `scope_appointments`, which is shared with the dashboard
-    so the queue, the OP history and the count that links to them can never
-    disagree about whose OP is whose.
-    """
-    return scope_appointments(query, get_current_doctor())
+    appointments = query.order_by(when.asc(), Appointment.id.asc()).all()
+    return success([a.to_dict() for a in appointments])
 
 
 @appointment_bp.get("/history")
 @jwt_required()
 def appointment_history():
-    """Closed OPs — the ones that have left the queue — newest first.
+    """Appointments that have left the queue — seen or cancelled — newest first.
 
-    The counterpart to `list_appointments`: that route is the work list of
-    patients still in the building, this one is the record of the ones who have
-    been seen and cleared. Nothing is deleted when a consultation ends; the OP
+    The counterpart to `/queue`: that route is the work list of patients still
+    in the building, this one is the record of the ones who have been seen and
+    cleared. Nothing is deleted when a consultation ends; the appointment
     simply moves from one to the other, because `complete_appointment_for`
     flips its status and the two routes select on opposite halves of that same
     field.
 
-    Each row carries the visit it produced -- summary, prescription, report --
-    so a closed OP can be read here without hunting for its consultation.
+    Each row carries the visit it produced — summary, prescription, report — so
+    a closed appointment can be read here without hunting for its consultation.
 
-    Duplicate registrations are deliberately *not* collapsed the way the queue
-    collapses them. The queue hides a double-registration because it must draw
-    one card per patient waiting; the history is the record of what was
-    actually raised, and quietly dropping a row from it would make the desk's
-    own audit trail disagree with the database.
+    Duplicate bookings are deliberately *not* collapsed the way the queue
+    collapses them. The queue hides a double-booking because it must draw one
+    card per patient waiting; the history is the record of what was actually
+    raised, and quietly dropping a row from it would make the desk's own audit
+    trail disagree with the database.
     """
     query = Appointment.query.outerjoin(
         Consultation, Appointment.consultation_id == Consultation.id
@@ -271,17 +237,19 @@ def appointment_history():
     if date_to:
         query = query.filter(Appointment.created_at < date_to + timedelta(days=1))
 
-    query = _scope_to_caller(query)
+    query = scope_appointments(query, get_current_doctor())
 
-    # The patient join is already there for a doctor (see _scope_to_caller) but
-    # not for reception, and joining twice would alias the table into a
-    # cartesian product — so the patient half goes through the relationship,
-    # which expresses the same filter as a subquery either way. Half a name is
-    # enough, in any case, and "OP0123" finds the OP itself.
+    patient_id = request.args.get("patient_id", type=int)
+    if patient_id:
+        query = query.filter(Appointment.patient_id == patient_id)
+
+    # The patient half goes through the relationship rather than a second
+    # join, which would alias the table into a cartesian product. Half a name
+    # is enough, and "APT0123" finds the appointment itself.
     search = patient_search_filter(
         request.args.get("search"),
         columns=(Appointment.reason,),
-        extra=lambda term: code_clauses(term, "op", Appointment.id),
+        extra=lambda term: code_clauses(term, "apt", Appointment.id),
         relationship=Appointment.patient,
     )
     if search is not None:
@@ -318,85 +286,174 @@ def appointment_history():
     )
 
 
+# --------------------------------------------------------------------------
+# the desk's actions
+# --------------------------------------------------------------------------
+
+
 @appointment_bp.post("")
-@role_required("receptionist")
+@front_desk_only
 def create_appointment():
-    # The front desk, and only the front desk.
-    #
-    # Not doctors: registering a patient for an OP visit is intake work, not
-    # something a doctor should self-serve — that keeps the department queues
-    # an honest reflection of who actually walked in.
-    #
-    # Not admins either, which is narrower than the FRONT_DESK_ROLES used by
-    # the patient-routing endpoints. Admin is a monitoring and administration
-    # role: it reads the queue and the appointment book, but calling a patient
-    # in is an operational act belonging to the desk. Raising an OP from an
-    # admin account would put a visit into a department queue that no
-    # receptionist knows about.
-    #
-    # FRONT_DESK_ROLES deliberately still includes admin for reassigning and
-    # removing a registration (patient_routes) — those are corrections to bad
-    # data, which is administration.
+    """Books a patient in.
+
+    `walk_in: true` means they are standing at the desk now — the appointment
+    is created already checked in and joins today's queue. Otherwise
+    `scheduled_at` is when they are expected, and they join the queue when the
+    PA checks them in on the day.
+
+    The doctor is not a parameter: there is one, and `book_appointment`
+    resolves it. Everything else — the duplicate window, who gets notified, the
+    audit line — is `book_appointment` too, shared with registration so the two
+    ways of booking cannot drift apart.
+    """
     payload = request.get_json(silent=True) or {}
     patient_id = payload.get("patient_id")
-    department_id = payload.get("department_id")
-
-    if not patient_id or not department_id:
-        return error("patient_id and department_id are required", status=422)
+    if not patient_id:
+        return error("patient_id is required", status=422)
 
     patient = Patient.query.get(patient_id)
     if not patient:
         return error("Patient not found", status=404)
 
-    department = Department.query.get(department_id)
-    if not department:
-        return error("Department not found", status=404)
-
-    # This route takes the department explicitly, so the one thing it has to
-    # check for itself is that the caller named the right one. Everything after
-    # that -- which department an OP actually belongs in, the duplicate window,
-    # the billing rule, who gets notified -- is `raise_op`, shared with
-    # registration so the two ways of raising an OP cannot drift apart.
-    assigned_department, failure = op_department_for(patient)
-    if failure:
-        return failure
-    if assigned_department.id != department.id:
-        doctor = patient.assigned_doctor
+    walk_in = bool(payload.get("walk_in"))
+    scheduled_at, when_error = _parse_datetime(payload.get("scheduled_at"), "scheduled_at")
+    if when_error:
+        return error(when_error, status=422)
+    if not walk_in and not scheduled_at:
         return error(
-            f"This patient is assigned to Dr. {doctor.user.name if doctor.user else 'their doctor'} "
-            f"in {assigned_department.name} — the OP must be created in that department",
+            "Give a date and time for the appointment, or mark it as a walk-in.",
             status=422,
         )
 
-    appointment, failure = raise_op(
+    appointment, failure = book_appointment(
         patient,
-        reason=payload.get("reason"),
+        reason=(payload.get("reason") or "").strip() or None,
+        notes=(payload.get("notes") or "").strip() or None,
+        scheduled_at=scheduled_at,
+        walk_in=walk_in,
         actor_user_id=get_jwt_identity(),
     )
     if failure:
         return failure
 
-    # An emergency case for this patient with no OP linked yet gets this one
-    # automatically — the "OP raised later" step of the emergency workflow,
-    # so the full history stays connected without reception having to
-    # remember a separate linking step. Most recent unlinked case, in case
-    # more than one somehow exists.
-    open_emergency = (
-        EmergencyCase.query.filter(
-            EmergencyCase.patient_id == patient_id,
-            EmergencyCase.linked_appointment_id.is_(None),
-            EmergencyCase.status != "cancelled",
-        )
-        .order_by(EmergencyCase.id.desc())
-        .first()
-    )
-    if open_emergency:
-        open_emergency.linked_appointment_id = appointment.id
-
     db.session.commit()
     dashboard_changed("appointment_created")
 
-    return success(appointment.to_dict(), message="OP created", status=201)
+    return success(
+        appointment.to_dict(),
+        message="Patient added to today's queue" if walk_in else "Appointment booked",
+        status=201,
+    )
+
+
+@appointment_bp.post("/<int:appointment_id>/check-in")
+@front_desk_only
+def check_in_appointment(appointment_id):
+    """The booked patient has arrived. This is what puts them in the queue."""
+    appointment = Appointment.query.get(appointment_id)
+    if not appointment:
+        return error("Appointment not found", status=404)
+    if appointment.status in CLOSED_STATUSES:
+        return error("This appointment is already closed", status=409)
+    if appointment.status != "scheduled":
+        # Already in the queue. Idempotent rather than an error: a second press
+        # at the desk must not move the patient's place in the line.
+        return success(appointment.to_dict(), message="Already checked in")
+
+    check_in(appointment, actor_user_id=get_jwt_identity())
+    db.session.commit()
+    dashboard_changed("appointment_checked_in")
+
+    return success(appointment.to_dict(), message="Checked in")
+
+
+@appointment_bp.patch("/<int:appointment_id>")
+@front_desk_only
+def update_appointment(appointment_id):
+    """Reschedules an appointment, or corrects its reason and notes.
+
+    Only a booking that has not started can be moved. Once the patient has
+    arrived, "reschedule" is not a correction to a booking any more — it is
+    cancelling this visit and making another, and the desk should say so
+    explicitly rather than have a time quietly rewritten under a patient who is
+    sitting in the waiting room.
+    """
+    appointment = Appointment.query.get(appointment_id)
+    if not appointment:
+        return error("Appointment not found", status=404)
+
+    payload = request.get_json(silent=True) or {}
+    rescheduling = "scheduled_at" in payload
+
+    if rescheduling and appointment.status != "scheduled":
+        return error(
+            "This patient has already arrived, so the booking cannot be moved. "
+            "Cancel this appointment and book a new one instead.",
+            status=409,
+        )
+    if appointment.status in CLOSED_STATUSES:
+        return error("This appointment is already closed", status=409)
+
+    if rescheduling:
+        scheduled_at, when_error = _parse_datetime(payload.get("scheduled_at"), "scheduled_at")
+        if when_error:
+            return error(when_error, status=422)
+        if not scheduled_at:
+            return error("Give a date and time to move the appointment to", status=422)
+        appointment.scheduled_at = scheduled_at
+
+    if "reason" in payload:
+        appointment.reason = (payload.get("reason") or "").strip() or None
+    if "notes" in payload:
+        appointment.notes = (payload.get("notes") or "").strip() or None
+
+    db.session.commit()
+    dashboard_changed("appointment_updated")
+
+    return success(
+        appointment.to_dict(),
+        message="Appointment rescheduled" if rescheduling else "Appointment updated",
+    )
+
+
+@appointment_bp.post("/<int:appointment_id>/cancel")
+@front_desk_only
+def cancel_appointment(appointment_id):
+    """Calls an appointment off.
+
+    A cancelled row stays on file rather than being deleted: it is the record
+    that the patient was expected and did not come, which is exactly what the
+    desk needs when they ring to rebook.
+
+    Refused once the doctor has started: there is a consultation attached by
+    then, and cancelling around it would leave a session recorded against a
+    visit the book says never happened.
+    """
+    appointment = Appointment.query.get(appointment_id)
+    if not appointment:
+        return error("Appointment not found", status=404)
+    if appointment.status == "cancelled":
+        return success(appointment.to_dict(), message="Already cancelled")
+    if appointment.status == "completed":
+        return error("This appointment has already been completed", status=409)
+    if appointment.status == "in_progress":
+        return error(
+            "This consultation is already under way and cannot be cancelled.",
+            status=409,
+        )
+
+    payload = request.get_json(silent=True) or {}
+    appointment.status = "cancelled"
+    appointment.cancelled_reason = (payload.get("reason") or "").strip() or None
+    db.session.commit()
+    dashboard_changed("appointment_cancelled")
+
+    return success(appointment.to_dict(), message="Appointment cancelled")
+
+
+# --------------------------------------------------------------------------
+# the doctor's action
+# --------------------------------------------------------------------------
 
 
 def _link_to_consultation(appointment, consultation, doctor, status):
@@ -409,18 +466,23 @@ def _link_to_consultation(appointment, consultation, doctor, status):
     appointment.doctor_id = doctor.id
     appointment.consultation_id = consultation.id
     appointment.status = status
+    if appointment.arrived_at is None:
+        # Called straight in from a booking without passing the desk. The queue
+        # filters on arrival, so without this the patient would vanish from the
+        # very board they are at the head of.
+        appointment.arrived_at = datetime.utcnow()
     return appointment
 
 
 @appointment_bp.post("/<int:appointment_id>/start")
 @jwt_required()
 def start_appointment(appointment_id):
-    """Calls the patient in: opens their consultation room and moves the
-    appointment to `in_progress`.
+    """Calls the patient in: opens their consultation and moves the appointment
+    to `in_progress`.
 
-    Deliberately idempotent. Every reason a session might already exist —
-    the doctor picked this patient up on another tab, the front desk raised a
-    second OP for a visit already under way, the patient was seen earlier the
+    Deliberately idempotent. Every reason a session might already exist — the
+    doctor picked this patient up in another tab, the desk booked a second
+    appointment for a visit already under way, the patient was seen earlier the
     same day — resolves to *that* session rather than to an error, because a
     refusal here used to leave the appointment sitting in the queue on
     "waiting" with no action left that could ever clear it.
@@ -433,25 +495,22 @@ def start_appointment(appointment_id):
 
     doctor = get_current_doctor()
     if not doctor:
-        return error("Only doctors can start appointments", status=403)
-    if doctor.department_id != appointment.department_id:
-        return error("This appointment belongs to a different department", status=403)
+        return error("Only the doctor can start a consultation", status=403)
     if not can_access_patient(appointment.patient, doctor):
-        return error("This patient is assigned to another doctor", status=403)
+        return error("This patient is not on your list", status=403)
 
-    # Already picked up, by this doctor, with a room to go back to: pressing
-    # start again is the same action as resuming, so it opens that room.
+    # Already picked up, with a room to go back to: pressing start again is the
+    # same action as resuming, so it opens that room.
     if appointment.consultation_id and appointment.consultation:
         return success(
             appointment.consultation.to_dict(include_detail=True),
             message="Consultation resumed",
         )
 
-    # A patient coming back for more of the same treatment continues their
-    # open case, so this becomes session 2 (3, …) rather than a fresh visit
-    # that loses sight of the earlier ones. Nothing already recorded is
-    # touched — the previous session keeps its own transcript, summary and
-    # prescription.
+    # A patient coming back for more of the same treatment continues their open
+    # case, so this becomes session 2 (3, …) rather than a fresh visit that
+    # loses sight of the earlier ones. Nothing already recorded is touched —
+    # the previous session keeps its own transcript, summary and prescription.
     #
     # Checked before anything is created: a patient queued twice while already
     # in the room would otherwise leave the case with two open sessions, and
@@ -471,15 +530,11 @@ def start_appointment(appointment_id):
         )
 
     # A session is one visit, so a patient seen earlier today continues that
-    # session rather than getting a second one. Same rule as starting a
-    # session directly — enforced here too, or the front desk raising another
-    # OP would quietly split one visit into two half-records.
+    # session rather than getting a second one. Enforced here too, or the desk
+    # booking another appointment would quietly split one visit into two
+    # half-records.
     todays = todays_session(existing)
     if todays:
-        # The visit already happened today, so this OP is closed off against
-        # that session rather than left waiting for a consultation that must
-        # never be created. The doctor is taken to it, where "Continue
-        # consultation" reopens recording on the same record.
         _link_to_consultation(appointment, todays, doctor, "completed")
         db.session.commit()
         dashboard_changed("consultation_started")
@@ -510,43 +565,73 @@ def start_appointment(appointment_id):
     db.session.commit()
     dashboard_changed("consultation_started")
 
-    return success(consultation.to_dict(include_detail=True), message="Appointment started")
+    return success(consultation.to_dict(include_detail=True), message="Consultation started")
 
 
-@appointment_bp.post("/<int:appointment_id>/op-document")
-@role_required("receptionist")
-def generate_op_document(appointment_id):
-    """Renders this OP's registration slip — reception's own document, so
-    reception is who generates it, same gate as raising the OP itself."""
+# --------------------------------------------------------------------------
+# the slip
+# --------------------------------------------------------------------------
+
+
+@appointment_bp.post("/<int:appointment_id>/slip")
+@front_desk_only
+def generate_slip(appointment_id):
+    """Renders this appointment's slip for the patient to take away — the
+    desk's own document, so the desk is who generates it."""
     appointment = Appointment.query.get(appointment_id)
     if not appointment:
         return error("Appointment not found", status=404)
 
-    os.makedirs(OP_DOCUMENTS_DIR, exist_ok=True)
+    os.makedirs(SLIPS_DIR, exist_ok=True)
     try:
-        generate_op_document_pdf(appointment, _op_document_path(appointment.id))
+        generate_appointment_slip_pdf(appointment, _slip_path(appointment.id))
     except Exception as exc:  # noqa: BLE001 - surface PDF generation failure
-        return error(f"Could not generate OP document: {exc}", status=500)
+        return error(f"Could not generate the appointment slip: {exc}", status=500)
 
-    return success(appointment.to_dict(), message="OP document generated", status=201)
+    return success(appointment.to_dict(), message="Appointment slip generated", status=201)
 
 
-@appointment_bp.get("/<int:appointment_id>/op-document/download")
+@appointment_bp.get("/<int:appointment_id>/slip/download")
 @jwt_required()
-def download_op_document(appointment_id):
+def download_slip(appointment_id):
     appointment = Appointment.query.get(appointment_id)
     if not appointment:
         return error("Appointment not found", status=404)
     if not can_access_patient(appointment.patient, get_current_doctor()):
-        # Deliberately 404, not 403 — same convention as the patient routes,
-        # so this never confirms another doctor's patient exists.
+        # Deliberately 404, not 403 — same convention as the patient routes, so
+        # this never confirms that a record it will not show actually exists.
         return error("Appointment not found", status=404)
 
-    path = _op_document_path(appointment.id)
+    path = _slip_path(appointment.id)
     if not os.path.exists(path):
-        return error("OP document has not been generated yet", status=404)
+        return error("This appointment slip has not been generated yet", status=404)
 
-    patient_name = (appointment.patient.name if appointment.patient else "patient").replace(" ", "_")
+    patient_name = (
+        appointment.patient.name if appointment.patient else "patient"
+    ).replace(" ", "_")
     return send_file(
-        path, as_attachment=True, download_name=f"{patient_name}_OP_{appointment.code}.pdf"
+        path, as_attachment=True, download_name=f"{patient_name}_{appointment.code}.pdf"
     )
+
+
+# --------------------------------------------------------------------------
+# counts, for the dashboards
+# --------------------------------------------------------------------------
+
+
+def todays_completed_count(doctor=None):
+    """Consultations finished today. Both dashboards read it, so it is defined
+    once here rather than twice with a chance of disagreeing."""
+    day_start, day_end = local_day_bounds()
+    query = Appointment.query.filter(
+        Appointment.status == "completed",
+        Appointment.arrived_at >= day_start,
+        Appointment.arrived_at <= day_end,
+    )
+    return scope_appointments(query, doctor).count()
+
+
+def practice_doctor_summary():
+    """Who the practice's doctor is, for a client that wants to name them."""
+    doctor = practice_doctor()
+    return doctor.to_dict() if doctor else None

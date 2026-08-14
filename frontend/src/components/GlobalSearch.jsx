@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlineMagnifyingGlass, HiOutlineXMark } from "react-icons/hi2";
 import Avatar from "./Avatar";
-import { useAuth } from "../context/AuthContext";
-import { fetchDoctors } from "../services/doctorService";
 import { fetchPatients } from "../services/patientService";
 import { MIN_SEARCH_LENGTH } from "../utils/search";
 
@@ -14,33 +12,27 @@ import { MIN_SEARCH_LENGTH } from "../utils/search";
 // Long enough that typing a name is one request rather than eight.
 const DEBOUNCE_MS = 250;
 
-// Per section. The dropdown is a way to jump straight to a person, not a
-// results page — anything longer than this belongs on Patients or Doctors,
-// which is what the last row offers.
-const MAX_PER_GROUP = 5;
+// The dropdown is a way to jump straight to a person, not a results page —
+// anything longer belongs on the Patients page, which Enter falls back to.
+const MAX_RESULTS = 6;
 
 /**
  * The search box in the dashboard header.
  *
- * Searches the two things somebody looks up by name from anywhere in the
- * hospital — a patient and a doctor — and jumps straight to them.
+ * Patients only. The hospital version also searched a doctor directory, which
+ * a one-doctor practice does not have — there is nobody to look up, and the
+ * page it jumped to is gone.
  *
  * Every result comes from the API rather than from a list already in the
- * browser, so what it can find is exactly what the caller is allowed to see:
- * a doctor searching finds their own patients, because `/patients` scopes to
- * them. Doctors are only searched for the roles that have a doctor directory
- * to land on; for a doctor the section is not requested at all rather than
- * offered and then 403'd.
+ * browser, so what it finds is exactly what the caller is allowed to see.
+ * Choosing one opens that patient's record by id rather than a filtered list:
+ * one person, one page.
  */
 export default function GlobalSearch() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  // Mirrors ADMIN_ONLY_DENY in the router: a doctor has no /dashboard/doctors
-  // to be sent to, so offering them a doctor result would be a dead end.
-  const canSearchDoctors = user?.role !== "doctor";
 
   const [term, setTerm] = useState("");
-  const [results, setResults] = useState({ patients: [], doctors: [] });
+  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -58,7 +50,7 @@ export default function GlobalSearch() {
 
   useEffect(() => {
     if (!ready) {
-      setResults({ patients: [], doctors: [] });
+      setPatients([]);
       setLoading(false);
       setFailed(false);
       return;
@@ -67,52 +59,40 @@ export default function GlobalSearch() {
     const mine = ++ticket.current;
     setLoading(true);
     const timer = setTimeout(() => {
-      Promise.all([
-        // `all`, not the Patients page's default: somebody looked up by name
-        // is just as likely to be waiting in Appointments as to have been
-        // seen, and a search that quietly excludes half the hospital is the
-        // bug this box is here to fix.
-        fetchPatients("all", query).catch(() => null),
-        canSearchDoctors ? fetchDoctors(undefined, query).catch(() => null) : null,
-      ]).then(([patients, doctors]) => {
-        if (mine !== ticket.current) return;
-        setFailed(patients === null && doctors === null);
-        setResults({
-          patients: (patients || []).slice(0, MAX_PER_GROUP),
-          doctors: (doctors || []).slice(0, MAX_PER_GROUP),
+      // `all`, not the Patients page's default scope: somebody looked up by
+      // name is just as likely to be booked in as to have been seen, and a
+      // search that quietly excludes half of them is the bug this box exists
+      // to avoid.
+      fetchPatients("all", query, MAX_RESULTS)
+        .catch(() => null)
+        .then((rows) => {
+          if (mine !== ticket.current) return;
+          setFailed(rows === null);
+          setPatients((rows || []).slice(0, MAX_RESULTS));
+          setActive(0);
+          setLoading(false);
         });
-        setActive(0);
-        setLoading(false);
-      });
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [query, ready, canSearchDoctors]);
+  }, [query, ready]);
 
-  // One flat list behind the two rendered sections, so the arrow keys can walk
-  // the dropdown without caring where a section ends.
-  const rows = useMemo(() => {
-    const patients = results.patients.map((p) => ({
-      key: `patient-${p.id}`,
-      kind: "patient",
-      title: p.name,
-      subtitle: [p.code, p.phone, p.assigned_doctor?.name && `Dr. ${p.assigned_doctor.name}`]
-        .filter(Boolean)
-        .join(" · "),
-      imageUrl: p.photo_url,
-      // The code rather than the typed words: it matches one patient and only
-      // that patient, so the page it lands on cannot show anybody else.
-      to: `/dashboard/patients?search=${encodeURIComponent(p.code || p.name)}`,
-    }));
-    const doctors = results.doctors.map((d) => ({
-      key: `doctor-${d.id}`,
-      kind: "doctor",
-      title: `Dr. ${d.name}`,
-      subtitle: [d.department, d.specialization].filter(Boolean).join(" · "),
-      to: `/dashboard/doctors?search=${encodeURIComponent(d.name)}`,
-    }));
-    return [...patients, ...doctors];
-  }, [results]);
+  const rows = useMemo(
+    () =>
+      patients.map((p) => ({
+        key: `patient-${p.id}`,
+        title: p.name,
+        subtitle: [p.code, p.phone, p.age != null ? `${p.age} yrs` : null]
+          .filter(Boolean)
+          .join(" · "),
+        imageUrl: p.photo_url,
+        // Straight to the record, by id. Landing on a filtered list instead
+        // would show the person searched for alongside everybody else who
+        // happened to match the same few letters.
+        to: `/dashboard/patients/${p.id}`,
+      })),
+    [patients]
+  );
 
   const close = useCallback(() => {
     setOpen(false);
@@ -177,9 +157,9 @@ export default function GlobalSearch() {
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls="global-search-results"
-          aria-label={canSearchDoctors ? "Search patients and doctors" : "Search patients"}
+          aria-label="Search patients"
           autoComplete="off"
-          placeholder={canSearchDoctors ? "Search patients, doctors…" : "Search patients…"}
+          placeholder="Search patients by name, ID or phone…"
           value={term}
           onChange={(e) => {
             setTerm(e.target.value);
@@ -226,45 +206,31 @@ export default function GlobalSearch() {
               Nothing matches “{query}”.
             </p>
           ) : (
-            ["patient", "doctor"].map((kind) => {
-              const group = rows.filter((r) => r.kind === kind);
-              if (!group.length) return null;
-              return (
-                <div key={kind}>
-                  <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                    {kind === "patient" ? "Patients" : "Doctors"}
-                  </p>
-                  {group.map((row) => {
-                    const index = rows.indexOf(row);
-                    return (
-                      <button
-                        key={row.key}
-                        type="button"
-                        role="option"
-                        aria-selected={index === active}
-                        onMouseEnter={() => setActive(index)}
-                        onClick={() => choose(row)}
-                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
-                          index === active ? "bg-brand-50" : "hover:bg-slate-50"
-                        }`}
-                      >
-                        <Avatar name={row.title} imageUrl={row.imageUrl} size="sm" />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-slate-800">
-                            {row.title}
-                          </span>
-                          {row.subtitle && (
-                            <span className="block truncate text-xs text-slate-400">
-                              {row.subtitle}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })
+            rows.map((row, index) => (
+              <button
+                key={row.key}
+                type="button"
+                role="option"
+                aria-selected={index === active}
+                onMouseEnter={() => setActive(index)}
+                onClick={() => choose(row)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition ${
+                  index === active ? "bg-brand-50" : "hover:bg-slate-50"
+                }`}
+              >
+                <Avatar name={row.title} imageUrl={row.imageUrl} size="sm" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-slate-800">
+                    {row.title}
+                  </span>
+                  {row.subtitle && (
+                    <span className="block truncate text-xs text-slate-400">
+                      {row.subtitle}
+                    </span>
+                  )}
+                </span>
+              </button>
+            ))
           )}
         </div>
       )}

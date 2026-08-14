@@ -1,10 +1,10 @@
 """Issuing a staff account's sign-in credentials.
 
-Everything an administrator used to type by hand and no longer does: the
+Everything somebody used to type by hand and no longer does: the
 username, the first password, and the single-use link that replaces it.
 
 The rule the whole module exists to hold: **nobody but the staff member ever
-knows their password.** An administrator picks a role and a name; the account's
+knows their password.** A role and a name are chosen; the account's
 username is derived from that name, its first password is random and short-lived
 in practice, and the only way to set a lasting one is the link emailed to the
 staff member's own address. That is why `generate_temp_password` returns a value
@@ -32,7 +32,7 @@ from portal.models.password_reset_token import PasswordResetToken
 from portal.models.user import User
 
 # The shortest password the portal accepts, wherever one is set: the staff
-# form used to own this number, but an administrator no longer types a
+# form used to own this number, but nobody types a
 # password at all, so it now belongs with everything else about credentials.
 # Both places a password can now be chosen -- the reset link and the
 # signed-in change-password form -- check against this one value.
@@ -40,7 +40,7 @@ MIN_PASSWORD = 8
 
 # -- Usernames ---------------------------------------------------------------
 
-# Titles an administrator types as part of the name and nobody means as part of
+# Titles typed as part of a name and never meant as part of
 # the login. "Dr. Sandeep Viswanadh" is how the staff list reads and
 # `sandeep.viswanadh` is who signs in -- `dr.sandeep.viswanadh` would be neither.
 #
@@ -59,7 +59,7 @@ MAX_USERNAME_BASE = 60
 
 # What survives into a username. Everything else becomes a separator, so
 # "Anita  O'Brien-Sharma" is anita.o.brien.sharma rather than a string with an
-# apostrophe in it that half the hospital's systems will quote wrongly.
+# apostrophe in it that half the systems downstream will quote wrongly.
 _ALLOWED = re.compile(r"[^a-z0-9]+")
 
 # Used to hand a name back to the pool of candidates when the person's name
@@ -131,7 +131,7 @@ def unique_username(name, email=None, *, exclude_user_id=None):
         sandeep.viswanadh, sandeep.viswanadh1, sandeep.viswanadh2, ...
 
     Every candidate is checked against the database in one query rather than
-    one per attempt: a hospital with eleven Sunil Kumars would otherwise cost
+    one per attempt: eleven people called Sunil Kumar would otherwise cost
     eleven round trips to find that out.
 
     Compared case-insensitively even though MySQL's default collation already
@@ -170,7 +170,7 @@ def assign_username(user, *, force=False):
     """Gives `user` a username if it hasn't got one. Returns it.
 
     Called wherever an account is created -- Staff Management, the older
-    doctor and nurse routes, and the startup backfill in helpers/bootstrap --
+    the account seeder, and the startup backfill in helpers/bootstrap --
     so that "every account has a username" is true regardless of which door
     the account came through.
     """
@@ -232,7 +232,7 @@ def issue_link(user, *, purpose="reset", issued_by_id=None):
     a link can never outlive the account creation that triggered it.
 
     The account's earlier unused links are deleted first, so reissuing
-    genuinely supersedes -- an administrator who resends credentials because
+    genuinely supersedes -- somebody resending credentials because
     the first email went astray must not leave two live ways in. Spent links
     are left alone: "you have already used this link" stays answerable.
     """

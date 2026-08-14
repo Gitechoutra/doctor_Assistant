@@ -11,7 +11,7 @@ from flask import Blueprint, request
 
 from portal.extensions import db
 from portal.helpers.auth_helper import get_current_doctor
-from portal.helpers.decorators import clinical_only, current_role
+from portal.helpers.decorators import doctor_only
 from portal.helpers.response import error, success
 from portal.models.clinical_precedent import ClinicalPrecedent
 
@@ -21,7 +21,7 @@ LIST_LIMIT = 100
 
 
 @knowledge_bp.get("")
-@clinical_only
+@doctor_only
 def list_precedents():
     """The approved cases the AI can draw on.
 
@@ -70,12 +70,12 @@ def list_precedents():
 
     # The source consultation is the audit trail, so it goes to the roles that
     # audit — not to every reader of the knowledge base.
-    include_source = current_role() == "admin" or get_current_doctor() is not None
+    include_source = get_current_doctor() is not None
     return success([p.to_dict(include_source=include_source) for p in precedents])
 
 
 @knowledge_bp.get("/stats")
-@clinical_only
+@doctor_only
 def knowledge_stats():
     """How much the system has actually learned, for the dashboard."""
     active = ClinicalPrecedent.query.filter(ClinicalPrecedent.retired_at.is_(None))
