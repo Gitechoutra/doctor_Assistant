@@ -22,11 +22,14 @@ exist, so anything added or edited by hand is left alone.
 """
 
 from portal import create_app
-from portal.seeders import seed_accounts, seed_medicines, seed_roles
+from portal.seeders import seed_accounts, seed_medicines, seed_PA, seed_roles
 
 
 def run():
     seed_roles.run()
+    # The two staff accounts, one module each: the PA's own seed data lives in
+    # `seeders/seed_PA`, the doctor's in `seeders/seed_accounts`.
+    seed_PA.run()
     seed_accounts.run()
     seed_medicines.run()
 

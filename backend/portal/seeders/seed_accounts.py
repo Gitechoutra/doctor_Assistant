@@ -1,10 +1,17 @@
-"""The two accounts a practice cannot start without: the PA and the doctor.
+"""The doctor's account, and the machinery both staff accounts are made with.
 
 A practice is two people, and neither can be created from inside the
 application -- there is no Staff Management screen to make them from, because
 a two-person practice does not need one. So they are reconciled here, and
 again on every start (see `helpers/bootstrap.ensure_accounts`), which means a
 fresh database or a restored dump comes up with something to sign in as.
+
+**The PA's own defaults live in `seeders/seed_PA`**, which owns that account
+end to end; this module declares the doctor's and keeps the parts both share --
+`ensure_account`, `_apply_configured_credentials`, `account_credentials` and
+`report_account`. Splitting the data without splitting the machinery is
+deliberate: two copies of the "move, don't duplicate" rule below would be two
+things to keep in step, and the rule is the whole point of the module.
 
 Both accounts are configured from the environment, and both fall back to a
 documented default so a fresh checkout works with no setup at all:
@@ -37,17 +44,28 @@ from portal.models.role import DOCTOR, PA, Role
 from portal.models.user import User
 
 DEFAULTS = {
-    PA: {
-        "name": "Practice Assistant",
-        "email": "pa@mediassist.local",
-        "password": "PA@12345",
-    },
     DOCTOR: {
         "name": "Dr. Ramana Muddada",
         "email": "doctor@mediassist.local",
         "password": "Doctor@12345",
     },
 }
+
+
+def _defaults_for(role):
+    """The configured defaults for one role.
+
+    The PA's live in `seeders/seed_PA`, which owns that account end to end;
+    only the doctor's are declared here. Imported inside the function rather
+    than at module scope because `seed_PA` imports this module for the shared
+    machinery below — at module scope the two would form a cycle.
+    """
+    if role == PA:
+        from portal.seeders.seed_PA import PA_DEFAULTS
+
+        return PA_DEFAULTS
+    return DEFAULTS[role]
+
 
 DEFAULT_SPECIALIZATION = "General Medicine"
 DEFAULT_QUALIFICATION = "MBBS, MD"
@@ -65,7 +83,7 @@ def _env(role, field, fallback):
 
 def account_credentials(role):
     """Returns (name, email, password, is_default_password) for one role."""
-    defaults = DEFAULTS[role]
+    defaults = _defaults_for(role)
     name = _env(role, "name", defaults["name"])
     email = _env(role, "email", defaults["email"]).lower()
     password = os.environ.get(
@@ -179,28 +197,38 @@ def _ensure_doctor_profile(user, role_name):
     return profile
 
 
-def run():
-    """The `python -m portal.seeds` entry point. Reports to stdout."""
-    results = []
-    for role_name in (PA, DOCTOR):
-        _n, _e, _p, is_default_password = account_credentials(role_name)
-        user, created, changes = ensure_account(role_name)
-        label = "PA" if role_name == PA else "Doctor"
-        if created:
-            print(f"  {label:<11} -> created {user.email}")
-            if is_default_password:
-                print(
-                    "                 WARNING: using the default password. Set "
-                    f"SEED_{label.upper()}_PASSWORD, or change it after first sign-in."
-                )
-        elif changes:
-            print(f"  {label:<11} -> updated {user.email} ({', '.join(changes)})")
-        else:
-            print(f"  {label:<11} -> already exists ({user.email}), left untouched")
-        if not user.is_active:
+def report_account(role_name):
+    """Seeds one role's account and prints what happened. Returns the user.
+
+    Shared with `seeders/seed_PA`, so the PA and the doctor report themselves
+    identically rather than through two copies of this that drift apart.
+    """
+    _n, _e, _p, is_default_password = account_credentials(role_name)
+    user, created, changes = ensure_account(role_name)
+    label = "PA" if role_name == PA else "Doctor"
+    if created:
+        print(f"  {label:<11} -> created {user.email}")
+        if is_default_password:
             print(
-                "                 NOTE: that account is disabled. Re-enable it in "
-                "the database if you are locked out."
+                "                 WARNING: using the default password. Set "
+                f"SEED_{label.upper()}_PASSWORD, or change it after first sign-in."
             )
-        results.append(user)
-    return results
+    elif changes:
+        print(f"  {label:<11} -> updated {user.email} ({', '.join(changes)})")
+    else:
+        print(f"  {label:<11} -> already exists ({user.email}), left untouched")
+    if not user.is_active:
+        print(
+            "                 NOTE: that account is disabled. Re-enable it in "
+            "the database if you are locked out."
+        )
+    return user
+
+
+def run():
+    """The `python -m portal.seeds` entry point. Reports to stdout.
+
+    The doctor only — the PA is seeded by `seeders/seed_PA`, which
+    `portal/seeds.py` runs alongside this.
+    """
+    return [report_account(DOCTOR)]
