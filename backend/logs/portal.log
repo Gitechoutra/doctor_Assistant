@@ -1,0 +1,1180 @@
+2026-08-04 13:04:05,191 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 13:04:05,454 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 13:04:06,050 ERROR [portal] Failed to initialize app components: cannot import name 'genai' from 'google' (unknown location)
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 7, in <module>
+    from portal.routes.consultation_routes import consultation_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\consultation_routes.py", line 7, in <module>
+    from portal.ai import gemini_client
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\gemini_client.py", line 6, in <module>
+    from google import genai
+ImportError: cannot import name 'genai' from 'google' (unknown location)
+2026-08-04 15:56:28,647 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 15:56:28,759 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 15:56:33,443 INFO [portal] Portal initialization completed successfully
+2026-08-04 15:56:35,414 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 15:56:35,462 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 15:56:40,553 INFO [portal] Portal initialization completed successfully
+2026-08-04 15:57:07,925 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 15:57:07,970 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 15:57:10,243 INFO [portal] Portal initialization completed successfully
+2026-08-04 15:57:11,603 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 15:57:11,648 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 15:57:14,106 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:25:44,178 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:26:00,745 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:26:00,871 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:26:01,123 ERROR [portal] Failed to initialize app components: No module named 'google'
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 7, in <module>
+    from portal.routes.consultation_routes import consultation_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\consultation_routes.py", line 7, in <module>
+    from portal.ai import gemini_client
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\gemini_client.py", line 6, in <module>
+    from google import genai
+ModuleNotFoundError: No module named 'google'
+2026-08-04 16:26:19,187 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:26:19,235 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:26:19,484 ERROR [portal] Failed to initialize app components: No module named 'google'
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 7, in <module>
+    from portal.routes.consultation_routes import consultation_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\consultation_routes.py", line 7, in <module>
+    from portal.ai import gemini_client
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\gemini_client.py", line 6, in <module>
+    from google import genai
+ModuleNotFoundError: No module named 'google'
+2026-08-04 16:26:36,926 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:26:36,981 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:26:37,175 ERROR [portal] Failed to initialize app components: No module named 'google'
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 7, in <module>
+    from portal.routes.consultation_routes import consultation_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\consultation_routes.py", line 7, in <module>
+    from portal.ai import gemini_client
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\gemini_client.py", line 6, in <module>
+    from google import genai
+ModuleNotFoundError: No module named 'google'
+2026-08-04 16:27:14,858 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:27:14,909 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:27:15,110 ERROR [portal] Failed to initialize app components: No module named 'google'
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 7, in <module>
+    from portal.routes.consultation_routes import consultation_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\consultation_routes.py", line 7, in <module>
+    from portal.ai import gemini_client
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\gemini_client.py", line 6, in <module>
+    from google import genai
+ModuleNotFoundError: No module named 'google'
+2026-08-04 16:28:52,539 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:28:52,585 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:28:55,407 ERROR [portal] Failed to initialize app components: No module named 'imageio_ffmpeg'
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 7, in <module>
+    from portal.routes.consultation_routes import consultation_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\consultation_routes.py", line 7, in <module>
+    from portal.ai import gemini_client
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\gemini_client.py", line 9, in <module>
+    from portal.ai import ffmpeg_setup  # noqa: F401  (puts ffmpeg on PATH)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\ai\ffmpeg_setup.py", line 4, in <module>
+    import imageio_ffmpeg
+ModuleNotFoundError: No module named 'imageio_ffmpeg'
+2026-08-04 16:29:59,546 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:29:59,611 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:30:02,569 ERROR [portal] Failed to initialize app components: No module named 'reportlab'
+Traceback (most recent call last):
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\__init__.py", line 79, in app
+    from portal.routes import register_routes
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\__init__.py", line 11, in <module>
+    from portal.routes.report_routes import report_bp
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\routes\report_routes.py", line 14, in <module>
+    from portal.pdf.report_generator import generate_consultation_pdf
+  File "C:\Users\ADMIN\Downloads\AI_yasodha\Yasodhamedical\backend\portal\pdf\report_generator.py", line 3, in <module>
+    from reportlab.graphics.barcode import qr
+ModuleNotFoundError: No module named 'reportlab'
+2026-08-04 16:30:30,670 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:30:30,727 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:30:34,090 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:30:35,666 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:30:35,716 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:30:38,446 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:33:11,654 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:33:11,723 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:33:14,719 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:33:16,573 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:33:16,751 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:33:20,311 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:53:33,448 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:53:33,578 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:53:40,731 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:54:07,273 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:54:07,305 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:54:13,855 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:56:05,338 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:56:05,387 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:56:11,051 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:56:35,823 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:56:36,009 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:56:43,574 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:56:58,051 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:56:58,074 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:57:01,074 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:59:51,499 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:59:51,539 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:59:53,721 INFO [portal] Portal initialization completed successfully
+2026-08-04 16:59:55,100 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 16:59:55,221 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 16:59:57,760 INFO [portal] Portal initialization completed successfully
+2026-08-04 17:21:09,653 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 17:21:09,702 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 17:21:11,904 INFO [portal] Portal initialization completed successfully
+2026-08-04 17:21:13,400 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-04 17:21:13,456 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-04 17:21:15,821 INFO [portal] Portal initialization completed successfully
+2026-08-05 15:58:18,589 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 15:58:18,833 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 15:58:25,018 INFO [portal] Portal initialization completed successfully
+2026-08-05 15:58:27,562 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 15:58:27,610 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 15:58:30,097 INFO [portal] Portal initialization completed successfully
+2026-08-05 16:05:08,345 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 16:05:08,395 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 16:05:11,240 INFO [portal] Portal initialization completed successfully
+2026-08-05 16:05:27,651 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 16:05:27,697 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 16:05:30,074 INFO [portal] Portal initialization completed successfully
+2026-08-05 16:05:42,113 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 16:05:42,160 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 16:05:44,491 INFO [portal] Portal initialization completed successfully
+2026-08-05 16:05:46,766 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 16:05:46,811 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 16:05:49,338 INFO [portal] Portal initialization completed successfully
+2026-08-05 16:13:28,662 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 16:13:28,707 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 16:13:31,089 INFO [portal] Portal initialization completed successfully
+2026-08-05 16:13:33,394 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-05 16:13:33,443 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-05 16:13:35,830 INFO [portal] Portal initialization completed successfully
+2026-08-06 15:45:39,098 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-06 15:45:39,290 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-06 15:45:46,918 INFO [portal] Portal initialization completed successfully
+2026-08-06 15:45:48,798 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-06 15:45:48,850 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-06 15:45:52,714 INFO [portal] Portal initialization completed successfully
+2026-08-06 15:53:49,776 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-06 15:53:49,826 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-06 15:53:52,167 INFO [portal] Portal initialization completed successfully
+2026-08-06 15:54:10,653 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-06 15:54:10,699 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-06 15:54:13,039 INFO [portal] Portal initialization completed successfully
+2026-08-06 15:55:14,559 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-06 15:55:14,607 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-06 15:55:17,086 INFO [portal] Portal initialization completed successfully
+2026-08-06 15:55:18,452 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-06 15:55:18,495 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-06 15:55:20,902 INFO [portal] Portal initialization completed successfully
+2026-08-10 12:29:00,122 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 12:29:00,318 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 12:29:07,093 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 12:29:07,136 INFO [portal] Admin check: an administrator already exists (admin@yasodhahospitals.com) -- left untouched
+2026-08-10 12:29:07,137 INFO [portal] Portal initialization completed successfully
+2026-08-10 12:29:09,193 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 12:29:09,255 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 12:29:12,670 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 12:29:12,724 INFO [portal] Admin check: an administrator already exists (admin@yasodhahospitals.com) -- left untouched
+2026-08-10 12:29:12,728 INFO [portal] Portal initialization completed successfully
+2026-08-10 12:29:53,722 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 12:29:53,768 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 12:29:56,369 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 12:29:56,384 INFO [portal] Admin check: an administrator already exists (admin@yasodhahospitals.com) -- left untouched
+2026-08-10 12:29:56,385 INFO [portal] Portal initialization completed successfully
+2026-08-10 12:30:20,017 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 12:30:20,069 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 12:30:23,222 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 12:30:23,241 INFO [portal] Admin check: an administrator already exists (admin@yasodhahospitals.com) -- left untouched
+2026-08-10 12:30:23,243 INFO [portal] Portal initialization completed successfully
+2026-08-10 12:31:48,121 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 12:31:48,211 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 12:31:51,084 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 12:31:51,101 INFO [portal] Admin check: an administrator already exists (admin@yasodhahospitals.com) -- left untouched
+2026-08-10 12:31:51,103 INFO [portal] Portal initialization completed successfully
+2026-08-10 12:31:52,496 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 12:31:52,547 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 12:31:55,431 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 12:31:55,449 INFO [portal] Admin check: an administrator already exists (admin@yasodhahospitals.com) -- left untouched
+2026-08-10 12:31:55,450 INFO [portal] Portal initialization completed successfully
+2026-08-10 15:20:42,055 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:20:42,266 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:20:47,990 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 15:20:48,192 INFO [portal] Admin check: updated the administrator (ramanamuddada123@gmail.com) from the configured credentials -- email
+2026-08-10 15:20:48,194 INFO [portal] Portal initialization completed successfully
+2026-08-10 15:33:27,452 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:33:27,517 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:33:30,518 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 15:33:30,696 INFO [portal] Admin check: updated the administrator (deepthireddy053@gmail.com) from the configured credentials -- email
+2026-08-10 15:33:30,697 INFO [portal] Portal initialization completed successfully
+2026-08-10 15:33:32,362 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:33:32,417 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:33:56,962 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:33:57,014 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:33:59,656 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 15:33:59,817 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 15:33:59,818 INFO [portal] Portal initialization completed successfully
+2026-08-10 15:34:07,918 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:34:07,965 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:34:10,595 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 15:34:10,760 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 15:34:10,761 INFO [portal] Portal initialization completed successfully
+2026-08-10 15:34:17,323 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:34:17,372 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:34:20,010 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 15:34:20,179 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 15:34:20,181 INFO [portal] Portal initialization completed successfully
+2026-08-10 15:34:21,652 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 15:34:21,710 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 15:34:24,578 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 15:34:24,736 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 15:34:24,737 INFO [portal] Portal initialization completed successfully
+2026-08-10 16:36:17,488 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 16:36:17,537 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 16:36:20,309 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 16:36:20,500 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 16:36:20,501 INFO [portal] Portal initialization completed successfully
+2026-08-10 16:36:23,298 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 16:36:23,351 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 16:36:26,041 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 16:36:26,206 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 16:36:26,207 INFO [portal] Portal initialization completed successfully
+2026-08-10 16:37:44,340 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 16:37:44,394 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 16:37:47,745 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 16:37:47,972 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 16:37:47,973 INFO [portal] Portal initialization completed successfully
+2026-08-10 16:37:54,734 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 16:37:54,795 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 16:37:57,777 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 16:37:57,931 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 16:37:57,932 INFO [portal] Portal initialization completed successfully
+2026-08-10 16:38:03,205 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 16:38:03,254 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 16:38:06,368 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 16:38:06,538 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 16:38:06,539 INFO [portal] Portal initialization completed successfully
+2026-08-10 16:38:09,180 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 16:38:09,230 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 16:38:12,345 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 16:38:12,508 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 16:38:12,509 INFO [portal] Portal initialization completed successfully
+2026-08-10 18:03:41,218 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 18:03:41,275 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 18:03:43,971 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 18:03:44,115 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 18:03:44,117 INFO [portal] Portal initialization completed successfully
+2026-08-10 18:03:45,386 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-10 18:03:45,430 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-10 18:03:48,091 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-10 18:03:48,236 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-10 18:03:48,237 INFO [portal] Portal initialization completed successfully
+2026-08-11 11:06:51,086 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 11:06:51,429 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 11:07:01,210 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 11:07:01,532 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 11:07:01,534 INFO [portal] Portal initialization completed successfully
+2026-08-11 11:07:03,103 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 11:07:03,160 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 11:07:05,912 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 11:07:06,065 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 11:07:06,066 INFO [portal] Portal initialization completed successfully
+2026-08-11 11:07:43,009 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 11:07:43,061 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 11:07:45,665 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 11:07:45,820 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 11:07:45,821 INFO [portal] Portal initialization completed successfully
+2026-08-11 11:07:56,155 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 11:07:56,201 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 11:07:58,762 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 11:07:58,905 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 11:07:58,906 INFO [portal] Portal initialization completed successfully
+2026-08-11 11:08:08,024 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 11:08:08,073 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 11:08:10,613 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 11:08:10,793 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 11:08:10,795 INFO [portal] Portal initialization completed successfully
+2026-08-11 11:08:12,166 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 11:08:12,213 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 11:08:14,992 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 11:08:15,148 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 11:08:15,149 INFO [portal] Portal initialization completed successfully
+2026-08-11 13:13:16,164 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 13:13:16,210 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 13:13:18,764 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 13:13:18,906 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 13:13:18,907 INFO [portal] Portal initialization completed successfully
+2026-08-11 13:13:20,139 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 13:13:20,181 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 13:13:22,631 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 13:13:22,772 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 13:13:22,773 INFO [portal] Portal initialization completed successfully
+2026-08-11 13:13:32,547 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 13:13:32,589 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 13:13:35,073 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 13:13:35,217 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 13:13:35,218 INFO [portal] Portal initialization completed successfully
+2026-08-11 13:13:42,206 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 13:13:42,248 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 13:13:44,663 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 13:13:44,804 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 13:13:44,805 INFO [portal] Portal initialization completed successfully
+2026-08-11 13:13:53,298 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 13:13:53,340 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 13:13:55,820 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 13:13:55,967 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 13:13:55,968 INFO [portal] Portal initialization completed successfully
+2026-08-11 13:13:57,212 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 13:13:57,257 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 13:14:00,296 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 13:14:00,450 INFO [portal] Admin check: an administrator already exists (deepthireddy053@gmail.com) -- left untouched
+2026-08-11 13:14:00,451 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:26:25,837 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:26:25,886 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:26:28,954 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:26:29,136 INFO [portal] Admin check: updated the administrator (ramanamuddada123@gmail.com) from the configured credentials -- email
+2026-08-11 14:26:29,137 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:26:36,286 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:26:36,329 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:26:39,338 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:26:39,378 WARNING [portal] Could not verify the administrator account at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.role_id = %(role_id_1)s ORDER BY users.id 
+ LIMIT %(param_1)s]
+[parameters: {'role_id_1': 1, 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:26:39,386 WARNING [portal] Could not verify username at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.username IS NULL OR users.username = %(username_1)s]
+[parameters: {'username_1': ''}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:26:39,392 INFO [portal] Department check: all 16 present
+2026-08-11 14:26:39,397 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:26:39,398 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:26:50,027 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:26:50,079 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:26:53,030 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:26:53,063 WARNING [portal] Could not verify the administrator account at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.role_id = %(role_id_1)s ORDER BY users.id 
+ LIMIT %(param_1)s]
+[parameters: {'role_id_1': 1, 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:26:53,073 WARNING [portal] Could not verify username at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.username IS NULL OR users.username = %(username_1)s]
+[parameters: {'username_1': ''}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:26:53,080 INFO [portal] Department check: all 16 present
+2026-08-11 14:26:53,087 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:26:53,088 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:26:54,539 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:26:54,595 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:27:04,950 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:27:05,000 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:27:07,840 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:27:07,857 WARNING [portal] Could not verify the administrator account at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.role_id = %(role_id_1)s ORDER BY users.id 
+ LIMIT %(param_1)s]
+[parameters: {'role_id_1': 1, 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:27:07,866 WARNING [portal] Could not verify username at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.username IS NULL OR users.username = %(username_1)s]
+[parameters: {'username_1': ''}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:27:07,872 INFO [portal] Department check: all 16 present
+2026-08-11 14:27:07,880 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:27:07,883 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:27:15,666 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:27:15,710 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:27:18,431 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:27:18,447 WARNING [portal] Could not verify the administrator account at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.role_id = %(role_id_1)s ORDER BY users.id 
+ LIMIT %(param_1)s]
+[parameters: {'role_id_1': 1, 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:27:18,455 WARNING [portal] Could not verify username at startup: (pymysql.err.OperationalError) (1054, "Unknown column 'users.username' in 'field list'")
+[SQL: SELECT users.id AS users_id, users.name AS users_name, users.username AS users_username, users.email AS users_email, users.password_hash AS users_password_hash, users.role_id AS users_role_id, users.avatar_path AS users_avatar_path, users.is_active AS users_is_active, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.username IS NULL OR users.username = %(username_1)s]
+[parameters: {'username_1': ''}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:27:18,460 INFO [portal] Department check: all 16 present
+2026-08-11 14:27:18,465 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:27:18,466 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:27:24,687 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:27:24,748 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:27:27,745 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:27:28,080 INFO [portal] Admin check: updated the administrator (ramanamuddada@gmail.com) from the configured credentials -- email, password
+2026-08-11 14:27:28,080 WARNING [portal] That admin now uses the default password from the repository. Set SEED_ADMIN_PASSWORD.
+2026-08-11 14:27:28,098 INFO [portal] Username check: all 16 present
+2026-08-11 14:27:28,105 INFO [portal] Department check: all 16 present
+2026-08-11 14:27:28,111 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:27:28,112 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:27:29,508 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:27:29,557 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:27:32,513 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:27:32,893 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-11 14:27:32,949 INFO [portal] Username check: all 16 present
+2026-08-11 14:27:32,957 INFO [portal] Department check: all 16 present
+2026-08-11 14:27:32,967 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:27:32,969 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:31:35,244 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:31:35,251 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:31:35,301 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:31:35,306 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:31:38,964 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:31:39,014 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:31:39,263 INFO [portal] Admin check: updated the administrator (deepthireddy) from the configured credentials -- email
+2026-08-11 14:31:39,282 INFO [portal] Username check: all 16 present
+2026-08-11 14:31:39,290 INFO [portal] Department check: all 16 present
+2026-08-11 14:31:39,297 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:31:39,298 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:31:39,309 INFO [portal] Admin check: updated the administrator (deepthireddy) from the configured credentials -- email
+2026-08-11 14:31:39,334 INFO [portal] Username check: all 16 present
+2026-08-11 14:31:39,342 INFO [portal] Department check: all 16 present
+2026-08-11 14:31:39,349 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:31:39,350 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:31:43,292 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:31:43,317 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:31:43,350 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:31:43,371 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:31:47,170 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:31:47,172 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:31:47,445 INFO [portal] Admin check: updated the administrator (deepthireddy053@gmail) from the configured credentials -- email
+2026-08-11 14:31:47,446 INFO [portal] Admin check: updated the administrator (deepthireddy053@gmail) from the configured credentials -- email
+2026-08-11 14:31:47,463 INFO [portal] Username check: all 16 present
+2026-08-11 14:31:47,463 INFO [portal] Username check: all 16 present
+2026-08-11 14:31:47,469 INFO [portal] Department check: all 16 present
+2026-08-11 14:31:47,469 INFO [portal] Department check: all 16 present
+2026-08-11 14:31:47,475 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:31:47,476 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:31:47,477 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:31:52,933 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:31:52,933 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:31:52,988 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:31:56,568 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:31:56,575 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:31:56,979 INFO [portal] Admin check: updated the administrator (deepthireddy053@gmail.com) from the configured credentials -- email, password
+2026-08-11 14:31:56,980 WARNING [portal] That admin now uses the default password from the repository. Set SEED_ADMIN_PASSWORD.
+2026-08-11 14:31:56,982 INFO [portal] Admin check: updated the administrator (deepthireddy053@gmail.com) from the configured credentials -- email, password
+2026-08-11 14:31:56,982 WARNING [portal] That admin now uses the default password from the repository. Set SEED_ADMIN_PASSWORD.
+2026-08-11 14:31:57,005 INFO [portal] Username check: all 16 present
+2026-08-11 14:31:57,007 INFO [portal] Username check: all 16 present
+2026-08-11 14:31:57,015 INFO [portal] Department check: all 16 present
+2026-08-11 14:31:57,017 INFO [portal] Department check: all 16 present
+2026-08-11 14:31:57,024 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:31:57,026 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:31:57,026 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:31:57,027 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:32:01,267 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:32:01,310 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:32:01,326 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:32:01,358 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 14:32:05,289 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:32:05,321 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:32:05,522 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 14:32:05,538 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 14:32:05,542 INFO [portal] Username check: all 16 present
+2026-08-11 14:32:05,548 INFO [portal] Department check: all 16 present
+2026-08-11 14:32:05,554 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:32:05,555 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:32:05,560 INFO [portal] Username check: all 16 present
+2026-08-11 14:32:05,566 INFO [portal] Department check: all 16 present
+2026-08-11 14:32:05,573 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:32:05,574 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:35:45,092 WARNING [portal] Email not sent (no SMTP configured) -- to: reddydeepthi856@gmail.com | subject: Your updated Yasodha Hospitals sign-in details
+Hello jungkook,
+
+Your sign-in details have been reissued. Anything sent to you before this message no longer works.
+
+  Name:                jungkook
+  Role:                Lab Technician
+  Username:            jungkook
+  Email:               reddydeepthi856@gmail.com
+  Temporary password:  Z2wtcggA8w7U
+
+Sign in at: http://localhost:5173/login
+You can use either your username or your email address.
+
+Please set your own password now. This link works once and expires in 72 hours:
+
+http://localhost:5173/reset-password?token=SgyByXGZ_c-IERaThX0la-ZiuJqy5F-SiXwoTJMP2pw
+
+Keep this message private, and delete it once you have set your own password.
+Nobody at the hospital, including your administrator, can see the password you
+choose.
+
+-- Yasodha Hospitals
+This is an automated message; please do not reply to it.
+
+2026-08-11 14:39:55,227 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:39:55,451 INFO [portal] Initialized CORS for ['http://192.168.29.148:5173', 'http://localhost:5173']
+2026-08-11 14:40:00,798 WARNING [portal] Could not verify the roles table at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:00,957 WARNING [portal] Could not verify the administrator account at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:01,100 WARNING [portal] Could not verify username at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:01,264 WARNING [portal] Could not verify department at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:01,359 WARNING [portal] Could not verify medicine at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:01,359 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:40:03,445 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:40:03,498 INFO [portal] Initialized CORS for ['http://192.168.29.148:5173', 'http://localhost:5173']
+2026-08-11 14:40:06,735 WARNING [portal] Could not verify the roles table at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:06,812 WARNING [portal] Could not verify the administrator account at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:06,908 WARNING [portal] Could not verify username at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:06,982 WARNING [portal] Could not verify department at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:07,062 WARNING [portal] Could not verify medicine at startup: (pymysql.err.OperationalError) (1049, "Unknown database 'hospital'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 14:40:07,063 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:40:29,323 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:40:29,414 INFO [portal] Initialized CORS for ['http://192.168.29.148:5173', 'http://localhost:5173']
+2026-08-11 14:40:32,324 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:40:32,498 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 14:40:32,515 INFO [portal] Username check: all 16 present
+2026-08-11 14:40:32,521 INFO [portal] Department check: all 16 present
+2026-08-11 14:40:32,527 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:40:32,528 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:40:33,952 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 14:40:34,012 INFO [portal] Initialized CORS for ['http://192.168.29.148:5173', 'http://localhost:5173']
+2026-08-11 14:40:37,417 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 14:40:37,602 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 14:40:37,626 INFO [portal] Username check: all 16 present
+2026-08-11 14:40:37,635 INFO [portal] Department check: all 16 present
+2026-08-11 14:40:37,642 INFO [portal] Medicine check: all 9 present
+2026-08-11 14:40:37,643 INFO [portal] Portal initialization completed successfully
+2026-08-11 14:40:51,503 INFO [portal] Emailed reddydeepthi856@gmail.com -- Your updated Yasodha Hospitals sign-in details
+2026-08-11 14:49:40,140 INFO [portal] Emailed reddydeepthi856@gmail.com -- Your updated Yasodha Hospitals sign-in details
+2026-08-11 16:25:36,574 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:25:36,618 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:25:39,282 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:25:39,429 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:25:39,446 INFO [portal] Username check: all 16 present
+2026-08-11 16:25:39,451 INFO [portal] Department check: all 16 present
+2026-08-11 16:25:39,456 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:25:39,458 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:25:40,682 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:25:40,723 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:25:43,196 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:25:43,347 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:25:43,362 INFO [portal] Username check: all 16 present
+2026-08-11 16:25:43,367 INFO [portal] Department check: all 16 present
+2026-08-11 16:25:43,373 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:25:43,374 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:26:00,218 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:26:00,259 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:26:02,718 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:26:02,861 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:26:02,877 INFO [portal] Username check: all 16 present
+2026-08-11 16:26:02,883 INFO [portal] Department check: all 16 present
+2026-08-11 16:26:02,888 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:26:02,889 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:26:10,956 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:26:10,997 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:26:13,397 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:26:13,546 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:26:13,562 INFO [portal] Username check: all 16 present
+2026-08-11 16:26:13,567 INFO [portal] Department check: all 16 present
+2026-08-11 16:26:13,572 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:26:13,572 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:28:48,051 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:28:48,091 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:28:50,646 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:28:50,792 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:28:50,808 INFO [portal] Username check: all 16 present
+2026-08-11 16:28:50,821 INFO [portal] Department check: all 16 present
+2026-08-11 16:28:50,827 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:28:50,827 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:29:08,051 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:29:08,092 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:29:10,681 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:29:10,825 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:29:10,841 INFO [portal] Username check: all 16 present
+2026-08-11 16:29:10,854 INFO [portal] Department check: all 16 present
+2026-08-11 16:29:10,858 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:29:10,859 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:30:03,555 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:30:03,598 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:30:06,018 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:30:06,164 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:30:06,180 INFO [portal] Username check: all 16 present
+2026-08-11 16:30:06,186 INFO [portal] Department check: all 16 present
+2026-08-11 16:30:06,192 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:30:06,193 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:30:11,812 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:30:11,855 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:30:14,303 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:30:14,446 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:30:14,465 INFO [portal] Username check: all 16 present
+2026-08-11 16:30:14,469 INFO [portal] Department check: all 16 present
+2026-08-11 16:30:14,473 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:30:14,474 INFO [portal] Portal initialization completed successfully
+2026-08-11 16:30:15,719 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 16:30:15,761 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 16:30:18,357 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 16:30:18,511 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 16:30:18,528 INFO [portal] Username check: all 16 present
+2026-08-11 16:30:18,533 INFO [portal] Department check: all 16 present
+2026-08-11 16:30:18,538 INFO [portal] Medicine check: all 9 present
+2026-08-11 16:30:18,539 INFO [portal] Portal initialization completed successfully
+2026-08-11 17:59:47,080 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 17:59:47,138 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 17:59:50,535 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 17:59:50,696 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 17:59:50,715 INFO [portal] Username check: all 16 present
+2026-08-11 17:59:50,720 INFO [portal] Department check: all 16 present
+2026-08-11 17:59:50,726 INFO [portal] Medicine check: all 9 present
+2026-08-11 17:59:50,727 INFO [portal] Portal initialization completed successfully
+2026-08-11 18:01:20,650 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 18:01:20,707 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 18:01:23,462 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 18:01:23,633 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 18:01:23,658 INFO [portal] Username check: all 16 present
+2026-08-11 18:01:23,665 INFO [portal] Department check: all 16 present
+2026-08-11 18:01:23,674 INFO [portal] Medicine check: all 9 present
+2026-08-11 18:01:23,675 INFO [portal] Portal initialization completed successfully
+2026-08-11 18:01:28,704 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 18:01:28,767 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 18:01:31,530 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 18:01:31,689 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 18:01:31,706 INFO [portal] Username check: all 16 present
+2026-08-11 18:01:31,713 INFO [portal] Department check: all 16 present
+2026-08-11 18:01:31,719 INFO [portal] Medicine check: all 9 present
+2026-08-11 18:01:31,720 INFO [portal] Portal initialization completed successfully
+2026-08-11 18:01:36,085 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 18:01:36,132 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 18:01:39,175 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 18:01:39,324 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 18:01:39,348 INFO [portal] Username check: all 16 present
+2026-08-11 18:01:39,354 INFO [portal] Department check: all 16 present
+2026-08-11 18:01:39,361 INFO [portal] Medicine check: all 9 present
+2026-08-11 18:01:39,362 INFO [portal] Portal initialization completed successfully
+2026-08-11 18:01:40,856 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-11 18:01:40,930 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-11 18:01:44,041 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-11 18:01:44,209 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-11 18:01:44,230 INFO [portal] Username check: all 16 present
+2026-08-11 18:01:44,236 INFO [portal] Department check: all 16 present
+2026-08-11 18:01:44,241 INFO [portal] Medicine check: all 9 present
+2026-08-11 18:01:44,243 INFO [portal] Portal initialization completed successfully
+2026-08-11 18:09:14,194 INFO [portal] Emailed reddydeepthi856@gmail.com -- Your updated Yasodha Hospitals sign-in details
+2026-08-11 18:10:11,544 INFO [portal] Emailed reddydeepthi856@gmail.com -- Your Yasodha Hospitals password was changed
+2026-08-11 18:31:44,772 INFO [portal.ai.gemini_client] Prepared 504.3 KB of audio for transcription (was 1019.2 KB, peak 0.0 dBFS)
+2026-08-11 18:36:56,022 INFO [portal.ai.gemini_client] Prepared 367.6 KB of audio for transcription (was 742.1 KB, peak 0.0 dBFS)
+2026-08-12 10:56:31,525 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 10:56:31,786 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 10:56:39,251 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 10:56:39,443 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-12 10:56:39,479 INFO [portal] Username check: all 16 present
+2026-08-12 10:56:39,486 INFO [portal] Department check: all 16 present
+2026-08-12 10:56:39,495 INFO [portal] Medicine check: all 9 present
+2026-08-12 10:56:39,496 INFO [portal] Portal initialization completed successfully
+2026-08-12 10:56:40,990 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 10:56:41,035 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 10:56:43,907 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 10:56:44,091 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-12 10:56:44,121 INFO [portal] Username check: all 16 present
+2026-08-12 10:56:44,126 INFO [portal] Department check: all 16 present
+2026-08-12 10:56:44,132 INFO [portal] Medicine check: all 9 present
+2026-08-12 10:56:44,133 INFO [portal] Portal initialization completed successfully
+2026-08-12 10:56:56,228 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 10:56:56,274 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 10:56:59,277 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 10:56:59,480 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-12 10:56:59,517 INFO [portal] Username check: all 16 present
+2026-08-12 10:56:59,523 INFO [portal] Department check: all 16 present
+2026-08-12 10:56:59,529 INFO [portal] Medicine check: all 9 present
+2026-08-12 10:56:59,530 INFO [portal] Portal initialization completed successfully
+2026-08-12 10:57:11,525 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 10:57:11,569 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 10:57:14,342 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 10:57:14,523 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-12 10:57:14,538 INFO [portal] Username check: all 16 present
+2026-08-12 10:57:14,544 INFO [portal] Department check: all 16 present
+2026-08-12 10:57:14,560 INFO [portal] Medicine check: all 9 present
+2026-08-12 10:57:14,561 INFO [portal] Portal initialization completed successfully
+2026-08-12 10:57:21,385 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 10:57:21,433 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 10:57:24,301 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 10:57:24,474 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-12 10:57:24,492 INFO [portal] Username check: all 16 present
+2026-08-12 10:57:24,499 INFO [portal] Department check: all 16 present
+2026-08-12 10:57:24,505 INFO [portal] Medicine check: all 9 present
+2026-08-12 10:57:24,507 INFO [portal] Portal initialization completed successfully
+2026-08-12 10:57:25,928 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 10:57:25,979 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 10:57:29,099 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 10:57:29,313 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or deepthireddy053@gmail.com
+2026-08-12 10:57:29,330 INFO [portal] Username check: all 16 present
+2026-08-12 10:57:29,336 INFO [portal] Department check: all 16 present
+2026-08-12 10:57:29,351 INFO [portal] Medicine check: all 9 present
+2026-08-12 10:57:29,352 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:26:12,715 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:26:12,855 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:26:17,250 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:26:17,611 INFO [portal] Admin check: updated the administrator (ramanamuddada@gmail.com) from the configured credentials -- email, password
+2026-08-12 18:26:17,612 WARNING [portal] That admin now uses the default password from the repository. Set SEED_ADMIN_PASSWORD.
+2026-08-12 18:26:17,626 INFO [portal] Username check: all 16 present
+2026-08-12 18:26:17,632 INFO [portal] Department check: all 16 present
+2026-08-12 18:26:17,636 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:26:17,637 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:26:18,901 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:26:18,945 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:26:21,624 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:26:21,782 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:26:21,803 INFO [portal] Username check: all 16 present
+2026-08-12 18:26:21,810 INFO [portal] Department check: all 16 present
+2026-08-12 18:26:21,816 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:26:21,817 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:29:59,594 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:29:59,645 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:30:02,737 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:30:02,908 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:30:02,930 INFO [portal] Username check: all 16 present
+2026-08-12 18:30:02,938 INFO [portal] Department check: all 16 present
+2026-08-12 18:30:02,943 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:30:02,944 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:32:02,143 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:32:02,187 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:32:04,903 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:32:05,052 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:32:05,070 INFO [portal] Username check: all 16 present
+2026-08-12 18:32:05,075 INFO [portal] Department check: all 16 present
+2026-08-12 18:32:05,080 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:32:05,081 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:32:19,128 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:32:19,174 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:32:21,924 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:32:22,082 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:32:22,104 INFO [portal] Username check: all 16 present
+2026-08-12 18:32:22,109 INFO [portal] Department check: all 16 present
+2026-08-12 18:32:22,114 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:32:22,114 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:32:29,279 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:32:29,326 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:32:32,076 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:32:32,233 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:32:32,253 INFO [portal] Username check: all 16 present
+2026-08-12 18:32:32,258 INFO [portal] Department check: all 16 present
+2026-08-12 18:32:32,262 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:32:32,263 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:33:03,068 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:33:03,121 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:33:06,316 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:33:06,473 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:33:06,494 INFO [portal] Username check: all 16 present
+2026-08-12 18:33:06,499 INFO [portal] Department check: all 16 present
+2026-08-12 18:33:06,504 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:33:06,506 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:33:24,677 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:33:24,724 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:33:27,518 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:33:27,683 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:33:27,703 INFO [portal] Username check: all 16 present
+2026-08-12 18:33:27,709 INFO [portal] Department check: all 16 present
+2026-08-12 18:33:27,714 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:33:27,715 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:33:37,479 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:33:37,530 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:33:40,876 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:33:41,036 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:33:41,056 INFO [portal] Username check: all 16 present
+2026-08-12 18:33:41,063 INFO [portal] Department check: all 16 present
+2026-08-12 18:33:41,068 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:33:41,069 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:36:24,925 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:36:24,970 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:36:27,486 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:36:27,631 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:36:27,647 INFO [portal] Username check: all 16 present
+2026-08-12 18:36:27,653 INFO [portal] Department check: all 16 present
+2026-08-12 18:36:27,659 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:36:27,660 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:36:28,982 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:36:29,067 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:36:31,504 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:36:31,652 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:36:31,667 INFO [portal] Username check: all 16 present
+2026-08-12 18:36:31,673 INFO [portal] Department check: all 16 present
+2026-08-12 18:36:31,680 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:36:31,681 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:36:45,109 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:36:45,152 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:36:47,573 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:36:47,721 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:36:47,738 INFO [portal] Username check: all 16 present
+2026-08-12 18:36:47,742 INFO [portal] Department check: all 16 present
+2026-08-12 18:36:47,748 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:36:47,748 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:36:58,248 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:36:58,292 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:37:00,721 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:37:00,868 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:37:00,883 INFO [portal] Username check: all 16 present
+2026-08-12 18:37:00,889 INFO [portal] Department check: all 16 present
+2026-08-12 18:37:00,895 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:37:00,896 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:37:23,705 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:37:23,750 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:37:26,283 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:37:26,430 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:37:26,447 INFO [portal] Username check: all 16 present
+2026-08-12 18:37:26,453 INFO [portal] Department check: all 16 present
+2026-08-12 18:37:26,459 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:37:26,460 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:37:27,688 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:37:27,733 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:37:30,201 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:37:30,348 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:37:30,367 INFO [portal] Username check: all 16 present
+2026-08-12 18:37:30,372 INFO [portal] Department check: all 16 present
+2026-08-12 18:37:30,379 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:37:30,380 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:44:40,542 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:44:40,587 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:44:43,309 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:44:43,506 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:44:43,522 INFO [portal] Username check: all 16 present
+2026-08-12 18:44:43,529 INFO [portal] Department check: all 16 present
+2026-08-12 18:44:43,533 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:44:43,534 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:44:45,006 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:44:45,070 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:44:56,073 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:44:56,113 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:44:58,694 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:44:58,853 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:44:58,878 INFO [portal] Username check: all 16 present
+2026-08-12 18:44:58,883 INFO [portal] Department check: all 16 present
+2026-08-12 18:44:58,891 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:44:58,892 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:45:07,077 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:45:07,134 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:45:09,873 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:45:10,037 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:45:10,059 INFO [portal] Username check: all 16 present
+2026-08-12 18:45:10,065 INFO [portal] Department check: all 16 present
+2026-08-12 18:45:10,072 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:45:10,073 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:45:16,520 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:45:16,575 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:45:19,222 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:45:19,385 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:45:19,404 INFO [portal] Username check: all 16 present
+2026-08-12 18:45:19,410 INFO [portal] Department check: all 16 present
+2026-08-12 18:45:19,420 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:45:19,422 INFO [portal] Portal initialization completed successfully
+2026-08-12 18:45:20,842 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 18:45:20,882 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 18:45:23,527 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 18:45:23,679 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 18:45:23,698 INFO [portal] Username check: all 16 present
+2026-08-12 18:45:23,703 INFO [portal] Department check: all 16 present
+2026-08-12 18:45:23,709 INFO [portal] Medicine check: all 9 present
+2026-08-12 18:45:23,710 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:33:27,836 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:33:27,965 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:33:32,377 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:33:32,535 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:33:32,551 INFO [portal] Username check: all 16 present
+2026-08-12 22:33:32,558 INFO [portal] Department check: all 16 present
+2026-08-12 22:33:32,593 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:33:32,599 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:34:12,515 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:34:12,558 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:34:15,025 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:34:15,169 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:34:15,186 INFO [portal] Username check: all 16 present
+2026-08-12 22:34:15,193 INFO [portal] Department check: all 16 present
+2026-08-12 22:34:15,200 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:34:15,201 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:34:16,450 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:34:16,493 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:34:19,058 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:34:19,205 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:34:19,222 INFO [portal] Username check: all 16 present
+2026-08-12 22:34:19,226 INFO [portal] Department check: all 16 present
+2026-08-12 22:34:19,230 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:34:19,231 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:34:44,835 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:34:44,877 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:34:47,316 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:34:47,465 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:34:47,483 INFO [portal] Username check: all 16 present
+2026-08-12 22:34:47,489 INFO [portal] Department check: all 16 present
+2026-08-12 22:34:47,494 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:34:47,494 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:35:01,019 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:35:01,061 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:35:03,579 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:35:03,730 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:35:03,748 INFO [portal] Username check: all 16 present
+2026-08-12 22:35:03,753 INFO [portal] Department check: all 16 present
+2026-08-12 22:35:03,759 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:35:03,760 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:35:09,457 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:35:09,499 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:35:12,011 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:35:12,159 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:35:12,181 INFO [portal] Username check: all 16 present
+2026-08-12 22:35:12,187 INFO [portal] Department check: all 16 present
+2026-08-12 22:35:12,192 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:35:12,193 INFO [portal] Portal initialization completed successfully
+2026-08-12 22:35:13,417 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-12 22:35:13,519 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-12 22:35:16,159 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-12 22:35:16,320 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-12 22:35:16,339 INFO [portal] Username check: all 16 present
+2026-08-12 22:35:16,345 INFO [portal] Department check: all 16 present
+2026-08-12 22:35:16,351 INFO [portal] Medicine check: all 9 present
+2026-08-12 22:35:16,352 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:27:30,104 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:27:30,173 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:27:33,644 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:27:33,795 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:27:33,812 INFO [portal] Username check: all 16 present
+2026-08-13 10:27:33,818 INFO [portal] Department check: all 16 present
+2026-08-13 10:27:33,824 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:27:33,825 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:27:35,433 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:27:35,482 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:27:38,153 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:27:38,309 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:27:38,329 INFO [portal] Username check: all 16 present
+2026-08-13 10:27:38,336 INFO [portal] Department check: all 16 present
+2026-08-13 10:27:38,343 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:27:38,344 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:28:17,898 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:28:17,944 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:28:20,893 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:28:21,038 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:28:21,055 INFO [portal] Username check: all 16 present
+2026-08-13 10:28:21,062 INFO [portal] Department check: all 16 present
+2026-08-13 10:28:21,067 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:28:21,069 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:28:27,941 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:28:27,988 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:28:30,510 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:28:30,678 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:28:30,711 INFO [portal] Username check: all 16 present
+2026-08-13 10:28:30,718 INFO [portal] Department check: all 16 present
+2026-08-13 10:28:30,724 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:28:30,726 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:28:38,416 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:28:38,460 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:28:41,070 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:28:41,212 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:28:41,229 INFO [portal] Username check: all 16 present
+2026-08-13 10:28:41,237 INFO [portal] Department check: all 16 present
+2026-08-13 10:28:41,242 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:28:41,244 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:28:42,613 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:28:42,657 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:28:45,308 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:28:45,452 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:28:45,470 INFO [portal] Username check: all 16 present
+2026-08-13 10:28:45,476 INFO [portal] Department check: all 16 present
+2026-08-13 10:28:45,482 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:28:45,483 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:58:55,886 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:58:55,904 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:58:58,651 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:58:58,794 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:58:58,812 INFO [portal] Username check: all 16 present
+2026-08-13 10:58:58,817 INFO [portal] Department check: all 16 present
+2026-08-13 10:58:58,823 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:58:58,825 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:59:12,378 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:59:12,425 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:59:15,410 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:59:15,609 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:59:15,627 INFO [portal] Username check: all 16 present
+2026-08-13 10:59:15,632 INFO [portal] Department check: all 16 present
+2026-08-13 10:59:15,637 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:59:15,638 INFO [portal] Portal initialization completed successfully
+2026-08-13 10:59:17,245 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 10:59:17,295 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 10:59:21,930 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 10:59:22,310 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 10:59:22,388 INFO [portal] Username check: all 16 present
+2026-08-13 10:59:22,416 INFO [portal] Department check: all 16 present
+2026-08-13 10:59:22,447 INFO [portal] Medicine check: all 9 present
+2026-08-13 10:59:22,452 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:39:07,883 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:39:07,954 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:39:10,686 WARNING [portal] Schema check: the database is behind the models -- nursing_assignments.emergency_case_id is missing. Apply the pending scripts in database/changes/ (see its README); until then any request touching these will fail.
+2026-08-13 12:39:10,843 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:39:11,190 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:39:11,245 INFO [portal] Username check: all 16 present
+2026-08-13 12:39:11,254 INFO [portal] Department check: all 16 present
+2026-08-13 12:39:11,262 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:39:11,265 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:39:12,650 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:39:12,693 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:39:15,213 WARNING [portal] Schema check: the database is behind the models -- nursing_assignments.emergency_case_id is missing. Apply the pending scripts in database/changes/ (see its README); until then any request touching these will fail.
+2026-08-13 12:39:15,370 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:39:15,552 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:39:15,573 INFO [portal] Username check: all 16 present
+2026-08-13 12:39:15,577 INFO [portal] Department check: all 16 present
+2026-08-13 12:39:15,585 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:39:15,586 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:39:26,914 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:39:26,957 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:39:29,398 WARNING [portal] Schema check: the database is behind the models -- nursing_assignments.emergency_case_id is missing. Apply the pending scripts in database/changes/ (see its README); until then any request touching these will fail.
+2026-08-13 12:39:29,572 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:39:29,798 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:39:29,822 INFO [portal] Username check: all 16 present
+2026-08-13 12:39:29,827 INFO [portal] Department check: all 16 present
+2026-08-13 12:39:29,834 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:39:29,838 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:39:37,457 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:39:37,503 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:39:40,088 WARNING [portal] Schema check: the database is behind the models -- nursing_assignments.emergency_case_id is missing. Apply the pending scripts in database/changes/ (see its README); until then any request touching these will fail.
+2026-08-13 12:39:40,251 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:39:40,436 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:39:40,456 INFO [portal] Username check: all 16 present
+2026-08-13 12:39:40,461 INFO [portal] Department check: all 16 present
+2026-08-13 12:39:40,465 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:39:40,466 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:39:46,208 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:39:46,249 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:39:48,785 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 12:39:48,948 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:39:49,129 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:39:49,152 INFO [portal] Username check: all 16 present
+2026-08-13 12:39:49,159 INFO [portal] Department check: all 16 present
+2026-08-13 12:39:49,165 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:39:49,166 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:39:50,660 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:39:50,728 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:39:53,530 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 12:39:53,722 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:39:53,927 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:39:53,994 INFO [portal] Username check: all 16 present
+2026-08-13 12:39:54,000 INFO [portal] Department check: all 16 present
+2026-08-13 12:39:54,008 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:39:54,009 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:41:03,458 INFO [portal.ai.gemini_client] Prepared 30.1 KB of audio for transcription (was 58.9 KB, peak -3.2 dBFS)
+2026-08-13 12:44:43,787 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:44:43,831 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:44:46,441 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 12:44:46,599 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:44:46,773 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:44:46,793 INFO [portal] Username check: all 16 present
+2026-08-13 12:44:46,797 INFO [portal] Department check: all 16 present
+2026-08-13 12:44:46,804 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:44:46,806 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:44:48,189 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 12:44:48,238 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 12:44:52,393 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 12:44:52,573 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 12:44:52,738 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 12:44:52,759 INFO [portal] Username check: all 16 present
+2026-08-13 12:44:52,764 INFO [portal] Department check: all 16 present
+2026-08-13 12:44:52,770 INFO [portal] Medicine check: all 9 present
+2026-08-13 12:44:52,772 INFO [portal] Portal initialization completed successfully
+2026-08-13 12:45:03,865 INFO [portal.ai.gemini_client] Prepared 42.8 KB of audio for transcription (was 84.6 KB, peak -7.9 dBFS)
+2026-08-13 14:52:43,381 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:52:43,447 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:52:46,483 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:52:46,636 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:52:46,789 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:52:46,805 INFO [portal] Username check: all 16 present
+2026-08-13 14:52:46,811 INFO [portal] Department check: all 16 present
+2026-08-13 14:52:46,818 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:52:46,820 INFO [portal] Portal initialization completed successfully
+2026-08-13 14:52:49,250 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:52:49,295 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:52:57,595 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:52:57,640 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:53:00,054 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:53:00,198 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:53:00,342 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:53:00,359 INFO [portal] Username check: all 16 present
+2026-08-13 14:53:00,365 INFO [portal] Department check: all 16 present
+2026-08-13 14:53:00,372 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:53:00,373 INFO [portal] Portal initialization completed successfully
+2026-08-13 14:53:06,767 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:53:06,824 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:53:09,273 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:53:09,433 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:53:09,580 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:53:09,597 INFO [portal] Username check: all 16 present
+2026-08-13 14:53:09,602 INFO [portal] Department check: all 16 present
+2026-08-13 14:53:09,607 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:53:09,609 INFO [portal] Portal initialization completed successfully
+2026-08-13 14:53:15,615 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:53:15,667 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:53:18,254 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:53:18,407 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:53:18,552 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:53:18,570 INFO [portal] Username check: all 16 present
+2026-08-13 14:53:18,575 INFO [portal] Department check: all 16 present
+2026-08-13 14:53:18,581 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:53:18,582 INFO [portal] Portal initialization completed successfully
+2026-08-13 14:53:20,976 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:53:21,025 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:53:23,556 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:53:23,732 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:53:23,902 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:53:23,920 INFO [portal] Username check: all 16 present
+2026-08-13 14:53:23,925 INFO [portal] Department check: all 16 present
+2026-08-13 14:53:23,931 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:53:23,932 INFO [portal] Portal initialization completed successfully
+2026-08-13 14:54:27,312 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:54:27,627 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:54:33,889 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:54:34,084 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:54:34,233 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:54:34,251 INFO [portal] Username check: all 16 present
+2026-08-13 14:54:34,256 INFO [portal] Department check: all 16 present
+2026-08-13 14:54:34,261 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:54:34,262 INFO [portal] Portal initialization completed successfully
+2026-08-13 14:54:36,642 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-13 14:54:36,688 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-13 14:54:39,136 INFO [portal] Schema check: all 37 tables match the models
+2026-08-13 14:54:39,298 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-13 14:54:39,444 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-13 14:54:39,461 INFO [portal] Username check: all 16 present
+2026-08-13 14:54:39,465 INFO [portal] Department check: all 16 present
+2026-08-13 14:54:39,471 INFO [portal] Medicine check: all 9 present
+2026-08-13 14:54:39,472 INFO [portal] Portal initialization completed successfully
+2026-08-13 15:08:48,623 INFO [portal.ai.gemini_client] Prepared 68.9 KB of audio for transcription (was 138.0 KB, peak -8.3 dBFS)
+2026-08-13 15:09:48,957 INFO [portal.ai.gemini_client] Prepared 284.1 KB of audio for transcription (was 573.7 KB, peak -0.7 dBFS)
+2026-08-13 15:11:25,855 WARNING [portal.ai.gemini_client] Transient failure while transcribing the recording (attempt 1/4): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}} — retrying in 1.8s
