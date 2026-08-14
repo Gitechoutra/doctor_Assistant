@@ -1178,3 +1178,21 @@ This is an automated message; please do not reply to it.
 2026-08-13 15:08:48,623 INFO [portal.ai.gemini_client] Prepared 68.9 KB of audio for transcription (was 138.0 KB, peak -8.3 dBFS)
 2026-08-13 15:09:48,957 INFO [portal.ai.gemini_client] Prepared 284.1 KB of audio for transcription (was 573.7 KB, peak -0.7 dBFS)
 2026-08-13 15:11:25,855 WARNING [portal.ai.gemini_client] Transient failure while transcribing the recording (attempt 1/4): 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}} — retrying in 1.8s
+2026-08-14 12:04:31,183 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-14 12:04:31,331 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-14 12:04:34,925 INFO [portal] Schema check: all 37 tables match the models
+2026-08-14 12:04:35,095 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-14 12:04:35,304 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-14 12:04:35,329 INFO [portal] Username check: all 16 present
+2026-08-14 12:04:35,335 INFO [portal] Department check: all 16 present
+2026-08-14 12:04:35,340 INFO [portal] Medicine check: all 9 present
+2026-08-14 12:04:35,341 INFO [portal] Portal initialization completed successfully
+2026-08-14 12:04:38,185 INFO [portal] Initializing portal -- environment: development, debug: True
+2026-08-14 12:04:38,226 INFO [portal] Initialized CORS for ['http://localhost:5173']
+2026-08-14 12:04:39,951 INFO [portal] Schema check: all 37 tables match the models
+2026-08-14 12:04:40,188 INFO [portal] Role check: all 8 roles present (admin, doctor, nurse, receptionist, pharmacist, lab_technician, accountant, other_staff)
+2026-08-14 12:04:40,366 INFO [portal] Admin check: an administrator already exists -- left untouched. Signs in as 'admin' or ramanamuddada@gmail.com
+2026-08-14 12:04:40,389 INFO [portal] Username check: all 16 present
+2026-08-14 12:04:40,396 INFO [portal] Department check: all 16 present
+2026-08-14 12:04:40,401 INFO [portal] Medicine check: all 9 present
+2026-08-14 12:04:40,402 INFO [portal] Portal initialization completed successfully
