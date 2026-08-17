@@ -199,7 +199,9 @@ def main():
     ramesh_id = (data_of(response) or {}).get("id")
 
     response = client.post(
-        "/api/patients", json={"name": "Sriram Nair", "age": 27}, headers=PA
+        "/api/patients",
+        json={"name": "Sriram Nair", "age": 27, "phone": "9845098450"},
+        headers=PA,
     )
     sriram_id = (data_of(response) or {}).get("id")
     check("a third patient registers", response.status_code == 201, body(response))
@@ -208,7 +210,21 @@ def main():
     check("a nameless patient is refused", response.status_code == 422, body(response))
 
     response = client.post(
-        "/api/patients", json={"name": "Bad Blood", "blood_group": "P+"}, headers=PA
+        "/api/patients", json={"name": "No Phone", "age": 40}, headers=PA
+    )
+    check("a patient with no phone number is refused", response.status_code == 422, body(response))
+
+    response = client.post(
+        "/api/patients", json={"name": "No Age", "phone": "9812300001"}, headers=PA
+    )
+    check(
+        "a patient with neither a date of birth nor an age is refused",
+        response.status_code == 422,
+        body(response),
+    )
+
+    response = client.post(
+        "/api/patients", json={"name": "Bad Blood", "phone": "9812300002", "age": 30, "blood_group": "P+"}, headers=PA
     )
     check("an invented blood group is refused", response.status_code == 422, message(response))
 

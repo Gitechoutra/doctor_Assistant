@@ -31,6 +31,20 @@ function when(iso, fallback = "—") {
   });
 }
 
+/** A `YYYY-MM-DD` date of birth, formatted without going through `Date` —
+ *  a date-only string parses as UTC midnight, which `toLocaleString` can push
+ *  back a day in any timezone west of it. */
+function formatDob(iso) {
+  if (!iso) return "—";
+  const [year, month, day] = iso.split("-");
+  const MONTHS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const label = MONTHS[Number(month) - 1];
+  return label ? `${Number(day)} ${label} ${year}` : iso;
+}
+
 function Section({ title, icon: Icon, count, action, children }) {
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -233,6 +247,10 @@ export default function PatientDetails() {
               {[
                 patient.code,
                 patient.age != null ? `${patient.age} years` : null,
+                // Beside the age rather than in a row of its own: they are the
+                // same fact stated two ways, and the exact one is what settles
+                // which of two patients with the same name you have open.
+                patient.dob ? `born ${formatDob(patient.dob)}` : null,
                 patient.gender,
                 patient.blood_group,
               ]
