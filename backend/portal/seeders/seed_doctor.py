@@ -9,18 +9,6 @@ from portal.seeders.seed_accounts import (
     report_account,
 )
 
-# The practice's default doctor -- the account this checkout comes up with and
-# the one somebody signs in to for the first time.
-#
-# Edit these and run the seed (or just restart the server: `helpers/bootstrap`
-# reconciles them at every start) and the existing doctor account is *moved* to
-# match, not duplicated. That is the whole contract of this file: it is the
-# single place the default login is defined, and the database is brought back
-# in step with it rather than the other way round.
-#
-# The PA is deliberately not here. There is no default assistant: the doctor
-# signs in with these and creates the desk's accounts through "Assistants"
-# (POST /api/pas), which issues each PA their own credentials.
 DOCTOR_DEFAULTS = {
     "name": "Practice Doctor",
     "email": "goddumahesh2@gmail.com",

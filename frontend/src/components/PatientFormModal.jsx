@@ -155,7 +155,7 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 onChange={(e) => set("gender", e.target.value)}
                 className={INPUT}
               >
-                <option value="">Not recorded</option>
+                <option value="">Select</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
                 <option value="other">Other</option>
@@ -168,7 +168,7 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 onChange={(e) => set("blood_group", e.target.value)}
                 className={INPUT}
               >
-                <option value="">Not recorded</option>
+                <option value="">Select</option>
                 {BLOOD_GROUPS.map((group) => (
                   <option key={group} value={group}>
                     {group}
