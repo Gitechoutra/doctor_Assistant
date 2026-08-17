@@ -1,14 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import { BLOOD_GROUPS } from "../constants/patient";
-import {
-  EMAIL_ERROR,
-  PHONE_ERROR,
-  digitsOnly,
-  isPhoneIncomplete,
-  isValidEmail,
-} from "../utils/contact";
-import { calculateAge } from "../utils/dob";
 
 /**
  * Registering a patient, and correcting one afterwards.
@@ -18,12 +10,25 @@ import { calculateAge } from "../utils/dob";
  * be two places for a field to go missing from. `patient` decides which:
  * absent means a new registration, present means an edit.
  *
- * Age *or* date of birth, not both. Most patients at a private practice know
- * their age and not their birth date, and forcing a date produced records full
- * of invented 1st-of-January birthdays. The server stores whichever was given
- * and derives `age` from the date when there is one — so a form that asks for
- * the exact value when it is known and accepts the approximate one otherwise
- * is honest about which it holds.
+ * Who the patient is, and nothing else. Two groups of fields used to sit under
+ * this one — what the doctor should know (allergies, conditions, history,
+ * notes) and how to reach them (phone, email, address, next of kin) — and both
+ * are gone from the form. The desk was being asked to take a clinical history
+ * and a full set of contact details across a counter, and a registration
+ * nobody can finish in a queue is one that gets finished badly.
+ *
+ * Every one of those columns still exists, still holds what was recorded
+ * before, and is still shown on the patient's record and in the consulting
+ * room. `blank()` below is the whole of what this form touches, and it has to
+ * keep the rest out of the *payload* and not merely off the screen — an edit
+ * writes an explicit null for anything it sends empty, so a field left in by
+ * accident would erase a phone number rather than ignore it.
+ *
+ * Age, not date of birth. Most patients at a private practice know their age
+ * and not their birth date; asking for the date produced records full of
+ * invented 1st-of-January birthdays. `patients.dob` is still read wherever it
+ * was already set — `Patient.age` prefers it and counts the years — so a
+ * record that has one keeps it, and this form simply never sets one.
  */
 
 function Field({ label, children, hint, error, className = "" }) {
@@ -43,37 +48,41 @@ function Field({ label, children, hint, error, className = "" }) {
 const INPUT =
   "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
 
+/** Every field this form owns, and the only ones it will ever send.
+ *
+ *  `fromPatient` copies these keys and no others out of a record, so what the
+ *  form does not draw it cannot overwrite: the phone number, the address, the
+ *  next of kin, the allergies and the medical history all stay as they were
+ *  recorded, and so do `id`, `code` and the rest of the read-only half. */
 function blank() {
   return {
     name: "",
     gender: "",
-    dob: "",
     age: "",
-    phone: "",
-    email: "",
-    address: "",
     blood_group: "",
-    emergency_contact_name: "",
-    emergency_contact_phone: "",
-    allergies: "",
-    existing_conditions: "",
-    medical_history: "",
-    notes: "",
     reason: "",
     book_now: false,
   };
 }
 
 function fromPatient(patient) {
+  const form = blank();
+  // Field by field, coalescing null to "". A record only ever holds the parts
+  // that were filled in, so every other column comes back as JSON null, and
+  // null where a string belongs turns a controlled input into an uncontrolled
+  // one — the same spread is what used to crash this form on a patient with
+  // no phone number on file.
+  for (const key of Object.keys(form)) {
+    if (patient[key] != null) form[key] = patient[key];
+  }
   return {
-    ...blank(),
-    ...patient,
-    // Never send both back: the server prefers the date, and a stale age
-    // sitting beside a corrected birth date is the contradiction this avoids.
-    age: patient.dob ? "" : (patient.age ?? ""),
+    ...form,
+    // `age` is a property on the server, derived from `dob` when the record
+    // has one — see `Patient.age`. Showing what it computed is right either
+    // way, and an edit that sends it back unchanged says nothing new.
+    age: patient.age ?? "",
     gender: patient.gender || "",
     blood_group: patient.blood_group || "",
-    dob: patient.dob || "",
   };
 }
 
@@ -87,15 +96,14 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  const phoneError = isPhoneIncomplete(form.phone) ? PHONE_ERROR : "";
-  const emergencyPhoneError = isPhoneIncomplete(form.emergency_contact_phone)
-    ? PHONE_ERROR
-    : "";
-  const emailError = form.email && !isValidEmail(form.email) ? EMAIL_ERROR : "";
   const nameError = !form.name.trim() ? "A name is required." : "";
-  const blocked = Boolean(phoneError || emergencyPhoneError || emailError || nameError);
+  const blocked = Boolean(nameError);
 
-  const derivedAge = form.dob ? calculateAge(form.dob) : null;
+  // A record registered before this form stopped asking for a birth date has
+  // one, and `Patient.age` counts from it — so its age is not this form's to
+  // set. Shown, and left alone: typing over a derived age would either be
+  // ignored or quietly contradict the date it was derived from.
+  const ageFromDob = isEdit && Boolean(patient.dob);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -112,7 +120,7 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
       if (cleaned !== "" && cleaned != null) payload[key] = cleaned;
       else if (isEdit) payload[key] = null;
     }
-    if (form.dob) delete payload.age;
+    if (ageFromDob) delete payload.age;
     if (!isEdit) {
       payload.book_now = form.book_now;
       if (form.book_now && form.reason.trim()) payload.reason = form.reason.trim();
@@ -178,132 +186,17 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
             </Field>
 
             <Field
-              label="Date of birth"
-              hint={derivedAge != null ? `${derivedAge} years old` : "If they know it"}
-            >
-              <input
-                type="date"
-                value={form.dob}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => set("dob", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field
               label="Age"
-              hint={form.dob ? "Taken from the date of birth" : "If the birth date is unknown"}
+              hint={ageFromDob ? "Taken from the date of birth on file" : undefined}
             >
               <input
                 type="number"
                 min="0"
                 max="130"
-                value={form.dob ? (derivedAge ?? "") : form.age}
-                disabled={Boolean(form.dob)}
+                value={form.age}
+                disabled={ageFromDob}
                 onChange={(e) => set("age", e.target.value)}
                 className={`${INPUT} disabled:bg-slate-50 disabled:text-slate-400`}
-              />
-            </Field>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-            How to reach them
-          </h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Phone" error={phoneError}>
-              <input
-                inputMode="numeric"
-                value={form.phone}
-                onChange={(e) => set("phone", digitsOnly(e.target.value))}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field label="Email" error={emailError}>
-              <input
-                type="text"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field label="Address" className="sm:col-span-2">
-              <textarea
-                rows={2}
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field label="Emergency contact">
-              <input
-                value={form.emergency_contact_name}
-                onChange={(e) => set("emergency_contact_name", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field label="Emergency contact number" error={emergencyPhoneError}>
-              <input
-                inputMode="numeric"
-                value={form.emergency_contact_phone}
-                onChange={(e) => set("emergency_contact_phone", digitsOnly(e.target.value))}
-                className={INPUT}
-              />
-            </Field>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-            What the doctor should know
-          </h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field
-              label="Allergies"
-              hint="Read before anything is prescribed"
-              className="sm:col-span-2"
-            >
-              <textarea
-                rows={2}
-                value={form.allergies}
-                onChange={(e) => set("allergies", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field label="Existing conditions" hint="Ongoing — diabetes, hypertension">
-              <textarea
-                rows={3}
-                value={form.existing_conditions}
-                onChange={(e) => set("existing_conditions", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field label="Medical history" hint="Past — surgeries, admissions, illnesses">
-              <textarea
-                rows={3}
-                value={form.medical_history}
-                onChange={(e) => set("medical_history", e.target.value)}
-                className={INPUT}
-              />
-            </Field>
-
-            <Field
-              label="Notes"
-              hint="The desk's own — preferences, who accompanies them"
-              className="sm:col-span-2"
-            >
-              <textarea
-                rows={2}
-                value={form.notes}
-                onChange={(e) => set("notes", e.target.value)}
-                className={INPUT}
               />
             </Field>
           </div>

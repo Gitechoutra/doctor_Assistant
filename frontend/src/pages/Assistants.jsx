@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   HiOutlineCheckCircle,
-  HiOutlineClipboard,
+  HiOutlineEnvelope,
   HiOutlineExclamationTriangle,
   HiOutlinePlus,
   HiOutlineTrash,
@@ -9,8 +9,6 @@ import {
 } from "react-icons/hi2";
 import Avatar from "../components/Avatar";
 import ConfirmDialog from "../components/ConfirmDialog";
-import PasswordInput from "../components/PasswordInput";
-import { MIN_PASSWORD } from "../services/authService";
 import { createPA, deletePA, fetchPAs } from "../services/paService";
 
 /**
@@ -18,16 +16,16 @@ import { createPA, deletePA, fetchPAs } from "../services/paService";
  *
  * A fresh practice comes up with the seeded doctor account and nobody else —
  * see `portal/seeders/seed_doctor.py`. This is where that is fixed: the doctor
- * enters the assistant's details, and the account exists and works when the
- * form returns.
+ * enters a name and an email, and the account exists when the form returns.
  *
- * The one thing this screen has to get right is the handover. The raw password
- * comes back exactly once, is stored nowhere, and no route reads it back — so
- * the panel that shows it is deliberately hard to miss and says plainly that
- * it will not be shown again.
+ * **There is no handover.** The doctor does not choose the first password and
+ * is never shown it: the server generates one, hashes it, and emails it to the
+ * assistant with a single-use link to replace it. So the only thing this screen
+ * can report afterwards is that the invitation went — and it can report that
+ * honestly, because the API refuses to create an account it could not email.
  */
 
-const EMPTY = { name: "", email: "", password: "" };
+const EMPTY = { name: "", email: "" };
 
 const inputClass =
   "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
@@ -42,104 +40,48 @@ function Labelled({ label, hint, children }) {
   );
 }
 
-/** The credentials, shown once. Copyable, because the alternative is the
- *  doctor transcribing a generated password by eye.
+/** What the doctor sees when an assistant has been created.
  *
- *  `emailSent` is the server's account of what actually happened, not an
- *  assumption. The account is created either way — that part is committed
- *  before the mail is attempted — so this stays the "it worked" panel, and the
- *  delivery failure is called out inside it rather than replacing it. Saying
- *  "we emailed them" when we did not is the one thing this must never do: the
- *  doctor would stop handing the credentials over, and the assistant would
- *  wait for a message that is not coming. */
-function CredentialsPanel({ credentials, name, emailSent, emailError, onDismiss }) {
-  const [copied, setCopied] = useState(false);
-
-  const block = [
-    `Sign-in for ${name}`,
-    `Username: ${credentials.username}`,
-    `Email:    ${credentials.email}`,
-    `Password: ${credentials.password}`,
-  ].join("\n");
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(block);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard is blocked on insecure origins and in some browsers. The
-      // values are on screen regardless, which is the part that matters.
-      setCopied(false);
-    }
-  }
-
+ *  Their username and the address the invitation went to, and no password —
+ *  there is nothing to hand over, and nothing for the doctor to write down.
+ *  This panel only ever appears when the mail actually went: the API rolls the
+ *  account back if it could not send, so "we have emailed them" is never a
+ *  guess made on this screen. */
+function InvitedPanel({ account, onDismiss }) {
   return (
     <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
       <div className="flex items-start gap-3">
         <HiOutlineCheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-emerald-900">
-            {name} can sign in now
+            {account.name}&rsquo;s account is ready
           </h2>
           <p className="mt-1 text-xs text-emerald-800">
-            {credentials.password_was_generated
-              ? "We generated this password. "
-              : "This is the password you set. "}
-            Give these to your assistant — they are shown once and are not
-            stored anywhere, so they cannot be looked up again.
-            {emailSent
-              ? " A copy has also been emailed to them, with a link to set a password only they know."
-              : ""}
+            We have emailed their sign-in details and a link to set their own
+            password. The link can be used once and expires, so ask them to open
+            it soon — if it lapses, &ldquo;Forgot password&rdquo; on the sign-in
+            page sends a fresh one.
           </p>
-
-          {!emailSent && (
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3">
-              <HiOutlineExclamationTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              <div>
-                <p className="text-xs font-semibold text-amber-900">
-                  We could not email these to {name}
-                </p>
-                <p className="mt-1 text-xs text-amber-800">
-                  {emailError ||
-                    "The account was created, but the email could not be sent."}{" "}
-                  They can still sign in with the password above, and set their
-                  own from Profile once they are in.
-                </p>
-              </div>
-            </div>
-          )}
 
           <dl className="mt-3 space-y-1.5 rounded-xl bg-white/70 p-3 font-mono text-xs text-slate-800">
             <div className="flex gap-2">
               <dt className="w-20 shrink-0 text-slate-500">Username</dt>
-              <dd className="break-all">{credentials.username}</dd>
+              <dd className="break-all">{account.username}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="w-20 shrink-0 text-slate-500">Email</dt>
-              <dd className="break-all">{credentials.email}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="w-20 shrink-0 text-slate-500">Password</dt>
-              <dd className="break-all font-semibold">{credentials.password}</dd>
+              <dt className="w-20 shrink-0 text-slate-500">Sent to</dt>
+              <dd className="break-all">{account.email}</dd>
             </div>
           </dl>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={copy}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
-            >
-              <HiOutlineClipboard className="h-4 w-4" />
-              {copied ? "Copied" : "Copy details"}
-            </button>
+          <div className="mt-3">
             <button
               type="button"
               onClick={onDismiss}
-              className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
             >
-              I've saved these
+              <HiOutlineEnvelope className="h-4 w-4" />
+              Done
             </button>
           </div>
         </div>
@@ -155,7 +97,7 @@ export default function Assistants() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [issued, setIssued] = useState(null); // { credentials, name }
+  const [issued, setIssued] = useState(null); // the created account, or null
   const [confirmDelete, setConfirmDelete] = useState(null); // the assistant, or null
   const [deleting, setDeleting] = useState(false);
 
@@ -199,18 +141,11 @@ export default function Assistants() {
     setErrorMsg("");
     setSaving(true);
     try {
-      // Only send what was filled in — a blank password means "generate one",
-      // which is not the same as sending an empty string.
-      const payload = Object.fromEntries(
-        Object.entries(form).filter(([, v]) => String(v).trim() !== "")
-      );
-      const created = await createPA(payload);
-      setIssued({
-        credentials: created.credentials,
-        name: created.name,
-        emailSent: created.email_sent,
-        emailError: created.email_error,
+      const created = await createPA({
+        name: form.name.trim(),
+        email: form.email.trim(),
       });
+      setIssued(created);
       setForm(EMPTY);
       setShowForm(false);
       await load();
@@ -251,13 +186,7 @@ export default function Assistants() {
 
       {issued && (
         <div className="mt-6">
-          <CredentialsPanel
-            credentials={issued.credentials}
-            name={issued.name}
-            emailSent={issued.emailSent}
-            emailError={issued.emailError}
-            onDismiss={() => setIssued(null)}
-          />
+          <InvitedPanel account={issued} onDismiss={() => setIssued(null)} />
         </div>
       )}
 
@@ -275,8 +204,8 @@ export default function Assistants() {
               </h2>
               <p className="mt-1 text-sm text-amber-800">
                 Registering patients, booking appointments and running the day's
-                queue are the desk's work. Add your assistant and hand them the
-                credentials this screen gives you.
+                queue are the desk's work. Add your assistant — their sign-in
+                details are emailed to them straight away.
               </p>
             </div>
           </div>
@@ -315,22 +244,13 @@ export default function Assistants() {
                 onChange={(e) => set("email", e.target.value)}
               />
             </Labelled>
-
-            <div className="sm:col-span-2">
-              <Labelled
-                label="Password"
-                hint={`Leave blank and one will be generated for you. At least ${MIN_PASSWORD} characters.`}
-              >
-                <PasswordInput
-                  className={inputClass}
-                  autoComplete="new-password"
-                  placeholder="Generate one for me"
-                  value={form.password}
-                  onChange={(e) => set("password", e.target.value)}
-                />
-              </Labelled>
-            </div>
           </div>
+
+          <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
+            You do not set a password. One is generated on the server and
+            emailed to {form.email.trim() || "the address above"}, with a link
+            to replace it with a password only they know.
+          </p>
 
           {errorMsg && (
             <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">

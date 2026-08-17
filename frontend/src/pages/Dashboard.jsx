@@ -94,21 +94,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Registering a patient is done from Patients, where the list you are
+          about to add to is. The dashboard is what the day looks like. */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
             Good day{firstName ? `, ${isDoctor ? "Dr. " : ""}${firstName}` : ""}
           </h1>
         </div>
-        {!isDoctor && (
-          <Link
-            to="/dashboard/patients?new=1"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-          >
-            <HiOutlineUserPlus className="h-4.5 w-4.5" />
-            Add patient
-          </Link>
-        )}
       </header>
 
       {errorMsg && (

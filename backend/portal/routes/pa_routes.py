@@ -29,7 +29,6 @@ from portal.helpers import email as mailer
 from portal.helpers.audit import audit
 from portal.helpers.contact import normalize_email
 from portal.helpers.credentials import (
-    MIN_PASSWORD,
     assign_username,
     generate_temp_password,
     issue_link,
@@ -79,20 +78,26 @@ def list_pas():
 def create_pa():
     """The doctor setting up an assistant's account.
 
-    The same handover `create_doctor` performs, in the other direction, and
-    deliberately identical in every part that matters -- one hashing path, one
-    password floor, one credentials email, one single-use link:
+    A name and an email. **The doctor never chooses or sees the first
+    password**, which is the whole shape of this route: one is generated here
+    from `secrets`, hashed into `users.password_hash` by `User.set_password`,
+    and sent to the assistant's own address along with the single-use link that
+    replaces it. Nothing in the response carries it, nothing is logged, and no
+    route reads a password back -- so the only party who ever holds the
+    assistant's credentials is the assistant.
 
-      * **the doctor types a password** -- checked against MIN_PASSWORD, the
-        same floor every other password on the system has to clear.
-      * **the doctor leaves it blank** -- a random one is generated and
-        returned once, in this response, to hand over.
+    A password in the payload is ignored rather than honoured. The field was
+    removed from the form, and quietly accepting one would put the account's
+    first secret back in the browser that sent it.
 
-    Either way the raw password is returned exactly once and never stored:
-    `users.password_hash` is written by `User.set_password`. A single-use link
-    to replace it is issued and mailed too, so the assistant can move to a
-    password nobody else has seen -- but the account works before they use it,
-    which is what "log in immediately" requires.
+    **The email is not best-effort here, unlike `auth_routes` resending a
+    reset.** An assistant nobody can tell the password to cannot sign in at
+    all, so a send that fails takes the account with it: the mail is attempted
+    before the commit and the transaction is rolled back if it does not go.
+    That costs an open transaction across an SMTP call -- acceptable for
+    something a practice does a handful of times -- and buys the property the
+    doctor's screen depends on, that a created assistant is always an invited
+    one.
 
     The account gets the `pa` role and nothing else. What that role can reach
     is decided in one place, `helpers/decorators`, and it is the desk's work:
@@ -116,16 +121,10 @@ def create_pa():
     if User.query.filter_by(email=email).first():
         return error("An account with that email already exists", status=409)
 
-    # Blank means "generate one". A password the doctor typed has to clear the
-    # same floor as any other; one we generate clears it by construction.
-    raw_password = payload.get("password") or ""
-    generated = not raw_password
-    if generated:
-        raw_password = generate_temp_password()
-    elif len(raw_password) < MIN_PASSWORD:
-        return error(
-            f"Password must be at least {MIN_PASSWORD} characters", status=422
-        )
+    # Always ours, never the caller's. Twelve characters from `secrets` --
+    # random, not derived from the name or anything else about the account, and
+    # clearing MIN_PASSWORD by construction.
+    raw_password = generate_temp_password()
 
     # The JWT identity is a string (`create_access_token(identity=str(id))`),
     # and the column it lands in is an integer foreign key.
@@ -162,16 +161,12 @@ def create_pa():
         entity_id=user.id,
         detail=f"PA account created for {name} ({email})",
     )
-    db.session.commit()
 
-    # After the commit, and never blocking the response: SMTP cannot be rolled
-    # back, and the account is already usable without the mail arriving.
-    #
-    # The outcome is reported rather than discarded. The account exists either
-    # way -- the doctor still has the credentials on screen to hand over by
-    # some other route -- but "we emailed them" and "we could not" lead to
-    # different next actions, and telling the doctor the first when the second
-    # happened leaves an assistant waiting for a message that will never come.
+    # Before the commit, deliberately. The mail is the only copy of the
+    # password that will ever exist, so a send that fails has to undo the
+    # account rather than leave one nobody can sign in to -- and the rollback
+    # takes the username, the reset token and the audit row with it, because
+    # they are all in this one open transaction.
     emailed = mailer.send_staff_credentials(
         user,
         temp_password=raw_password,
@@ -181,50 +176,42 @@ def create_pa():
         role_name=PA,
     )
 
-    # Why it did not go, in the terms the doctor can act on. `delivery_state`
-    # separates the two configuration faults from a send that was attempted and
-    # refused, because only the last of those is worth simply retrying.
-    email_error = None
     if not emailed:
+        db.session.rollback()
+        # Why it did not go, in the terms the doctor can act on.
+        # `delivery_state` separates the two configuration faults from a send
+        # that was attempted and refused: the first two are for an
+        # administrator, and only the last is worth simply trying again.
         state = mailer.delivery_state()
         if state == "unconfigured":
-            email_error = (
-                "No mail server is configured, so nothing was sent. Hand these "
-                "credentials over yourself, and ask your administrator to set "
-                "up email."
+            reason = (
+                "No mail server is configured on this server, so the invitation "
+                "could not be sent. Ask your administrator to set up email, then "
+                "add them again."
             )
         elif state == "disabled":
-            email_error = (
-                "Email sending is switched off on this server, so nothing was "
-                "sent. Hand these credentials over yourself."
+            reason = (
+                "Email sending is switched off on this server, so the invitation "
+                "could not be sent. Ask your administrator to turn it on, then "
+                "add them again."
             )
         else:
-            email_error = (
-                f"The account was created, but the email to {user.email} could "
-                "not be delivered. Check the address and hand these credentials "
-                "over yourself."
+            reason = (
+                f"The invitation to {email} could not be delivered. Check the "
+                "address is right and try again."
             )
+        return error(
+            f"{name}'s account was not created. {reason}",
+            status=502,
+        )
 
+    db.session.commit()
+
+    # No password, and no token. The assistant's own inbox holds both; what
+    # comes back here is only what the doctor's list already shows.
     return success(
-        {
-            **_to_dict(user),
-            # Never assumed. The panel that tells the doctor their assistant
-            # has been notified is driven by what actually happened.
-            "email_sent": emailed,
-            "email_error": email_error,
-            # Returned once and never again -- there is no route that reads a
-            # password back, because nothing stores one. The doctor hands these
-            # to the assistant, who can sign in with them right away.
-            "credentials": {
-                "username": user.username,
-                "email": user.email,
-                "password": raw_password,
-                # Lets the UI say "we generated this one" rather than echoing
-                # back a password the doctor just typed as though it were news.
-                "password_was_generated": generated,
-            },
-        },
-        message=f"{name} can now sign in.",
+        _to_dict(user),
+        message=f"{name}'s sign-in details have been emailed to {email}.",
         status=201,
     )
 

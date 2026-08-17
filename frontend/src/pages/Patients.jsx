@@ -4,11 +4,11 @@ import { HiOutlineUserPlus, HiOutlineUsers } from "react-icons/hi2";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PatientCard from "../components/PatientCard";
 import PatientFormModal from "../components/PatientFormModal";
-import BookAppointmentModal from "../components/BookAppointmentModal";
 import SearchInput from "../components/SearchInput";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 import useLiveRefresh from "../hooks/useLiveRefresh";
 import { useAuth } from "../context/AuthContext";
+import { fetchQueue } from "../services/appointmentService";
 import {
   createPatient,
   deletePatient,
@@ -19,9 +19,17 @@ import {
 import {
   canDeletePatient,
   canEditPatient,
-  canManageAppointments,
   canRegisterPatient,
 } from "../utils/permissions";
+
+// One card is a name and a number now, so the grid packs tighter than it did
+// when each carried six fields: one per row on a phone, two on a tablet, and
+// three or four across a desktop rather than a row of half-empty cards.
+// `auto-rows-fr` keeps every card in a row the same height whatever its
+// buttons, and the fixed column counts (rather than auto-fit) stop a wide
+// screen from ever drawing a card narrower than a long name can sit in.
+const GRID =
+  "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 auto-rows-fr";
 
 const TABS = [
   { key: "all", label: "All patients" },
@@ -37,9 +45,13 @@ const TABS = [
  * and the matching is a substring on the server — "rah" finds Rahul, and it
  * finds Sriram too, because half a name is what somebody actually remembers.
  *
- * `?new=1` opens the registration form on arrival, so the dashboard's "Add
- * patient" button lands here ready to type into rather than on a list with a
- * button to press.
+ * `?new=1` opens the registration form on arrival, for any link that means
+ * "register somebody" rather than "show me the list".
+ *
+ * Booking is not done from here. It belongs where the appointment book and the
+ * patient's own record are — Appointments has "Book appointment", and the
+ * record has it beside everything else known about the patient — and a Book
+ * button on every card in a directory was three ways into one modal.
  */
 export default function Patients() {
   const { user } = useAuth();
@@ -51,18 +63,20 @@ export default function Patients() {
 
   const [patients, setPatients] = useState([]);
   const [counts, setCounts] = useState(null);
+  // patient id -> today's queue position, for the number on the card. Taken
+  // from the same endpoint the queue board reads, so a patient told "you are
+  // third" is third on every screen that says so.
+  const [queueNumbers, setQueueNumbers] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   const [editing, setEditing] = useState(null);
   const [registering, setRegistering] = useState(params.get("new") === "1");
-  const [booking, setBooking] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const canRegister = canRegisterPatient(user?.role);
   const canEdit = canEditPatient(user?.role);
   const canDelete = canDeletePatient(user?.role);
-  const canBook = canManageAppointments(user?.role);
 
   // Whether the box is still waiting for its results, which is what the
   // spinner in SearchInput reports. True only while the typed value and the
@@ -74,12 +88,21 @@ export default function Patients() {
     async (background = false) => {
       if (!background) setLoading(true);
       try {
-        const [rows, tallies] = await Promise.all([
+        // The queue is a nicety on this page — a number beside the few
+        // patients who are here right now — so it fails quietly. A queue that
+        // could not be read should not empty the patient list.
+        const [rows, tallies, queue] = await Promise.all([
           fetchPatients(scope, debouncedSearch),
           fetchPatientCounts().catch(() => null),
+          fetchQueue().catch(() => null),
         ]);
         setPatients(rows);
         if (tallies) setCounts(tallies);
+        if (queue) {
+          setQueueNumbers(
+            Object.fromEntries(queue.map((a) => [a.patient_id, a.queue_number]))
+          );
+        }
         setErrorMsg("");
       } catch (err) {
         setErrorMsg(err.response?.data?.message || "Could not load patients.");
@@ -188,9 +211,9 @@ export default function Patients() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+        <div className={GRID}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-slate-100" />
           ))}
         </div>
       ) : patients.length === 0 ? (
@@ -208,17 +231,16 @@ export default function Patients() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className={GRID}>
           {patients.map((patient) => (
             <PatientCard
               key={patient.id}
               patient={patient}
+              queueNumber={queueNumbers[patient.id]}
               canEdit={canEdit}
               canDelete={canDelete}
-              canBook={canBook}
               onEdit={() => setEditing(patient)}
               onDelete={() => setConfirmDelete(patient)}
-              onBook={() => setBooking(patient)}
             />
           ))}
         </div>
@@ -233,14 +255,6 @@ export default function Patients() {
           patient={editing}
           onClose={() => setEditing(null)}
           onSave={handleEdit}
-        />
-      )}
-
-      {booking && (
-        <BookAppointmentModal
-          patient={booking}
-          onClose={() => setBooking(null)}
-          onBooked={() => load(true)}
         />
       )}
 

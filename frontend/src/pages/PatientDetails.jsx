@@ -148,7 +148,38 @@ export default function PatientDetails() {
 
   useLiveRefresh(load);
 
+  // Today's session for this patient, if there is one — the whole of what the
+  // button under their name needs to know.
+  //
+  // `POST /consultations` opens a *new* session and refuses while this patient
+  // already has one today, in either state: still recording ("Session 1 is
+  // still in progress") or finished ("You already saw this patient today").
+  // Both refusals are right — a visit is one session, with one summary and one
+  // prescription — but the button was sending every press through that route,
+  // so the doctor was told to go back to a session the page gave them no way
+  // back to.
+  //
+  // The two states are found in different places, because a session leaves the
+  // queue when it ends: an open one is on today's queue entry, and a finished
+  // one is on the patient's own history. Either way what the doctor wants is
+  // the same session, so the button opens it rather than asking for a new one.
+  const running = queueEntry?.consultation_id || null;
+  const finishedToday =
+    appointments.find((a) => a.consultation?.is_from_today)?.consultation || null;
+  const todaysSession = running || finishedToday?.id || null;
+
+  /** The button under the patient's name — see `todaysSession` above for the
+   *  two things it can mean.
+   *
+   *  Opening today's session is a navigation, not a POST: it already exists,
+   *  and the consulting room is where both of the things the doctor might
+   *  want next live — carrying on with the recording, or adding to a visit
+   *  they have just ended. Only a patient with no session today starts one. */
   async function handleStart() {
+    if (todaysSession) {
+      navigate(`/dashboard/consultations/${todaysSession}`);
+      return;
+    }
     setStarting(true);
     setErrorMsg("");
     try {
@@ -237,9 +268,11 @@ export default function PatientDetails() {
                 <HiOutlinePlayCircle className="h-4.5 w-4.5" />
                 {starting
                   ? "Opening…"
-                  : queueEntry?.consultation_id
+                  : running
                     ? "Resume consultation"
-                    : "Start consultation"}
+                    : finishedToday
+                      ? "Continue today's consultation"
+                      : "Start consultation"}
               </button>
             )}
             {canManageAppointments(user?.role) && (

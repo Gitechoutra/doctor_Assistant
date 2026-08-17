@@ -22,9 +22,14 @@ export function digitsOnly(value) {
 
 /** A number that has been started but not finished. Optional fields are
  *  allowed to be empty; they are not allowed to be half-typed, because a
- *  nine-digit number is not nearly valid — it reaches the wrong person. */
+ *  nine-digit number is not nearly valid — it reaches the wrong person.
+ *
+ *  Null and undefined count as empty, like everything else in this module: a
+ *  record with no phone on file sends one back as JSON null, and a validator
+ *  that throws on "nothing was recorded" takes the whole form down with it. */
 export function isPhoneIncomplete(value) {
-  return value.length > 0 && value.length < PHONE_DIGITS;
+  const phone = value || "";
+  return phone.length > 0 && phone.length < PHONE_DIGITS;
 }
 
 export const PHONE_ERROR = `Mobile number must be exactly ${PHONE_DIGITS} digits.`;

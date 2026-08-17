@@ -3,8 +3,9 @@ import api from "./api";
 /**
  * The practice's assistants — the desk's accounts, created by the doctor.
  *
- * The mirror of `doctorService.createDoctor`, and deliberately the same shape:
- * one POST that makes the account and hands back its credentials once.
+ * The near-mirror of `doctorService.createDoctor`, with one difference that
+ * matters: an assistant's first password is never returned to the caller. It
+ * goes to the assistant's inbox and nowhere else.
  */
 
 /** Every PA this practice has. Doctor only — the API 403s the PA. */
@@ -16,15 +17,18 @@ export async function fetchPAs() {
 /**
  * The doctor setting up an assistant's account. Doctor only.
  *
- * `password` is optional: leave it out and the server generates one. Either
- * way the response carries a `credentials` object holding the username, email
- * and the raw password **once** — it is not stored anywhere and no route reads
- * it back, so whatever the doctor does not hand over is gone. The PA can sign
- * in with it immediately.
+ * `{ name, email }`, and nothing else — there is no password to send. The
+ * server generates the first one, hashes it, and emails it to the assistant
+ * with a single-use link to replace it; no password is ever returned here, so
+ * nothing this client holds could leak one.
+ *
+ * Rejects rather than half-succeeds. If the invitation cannot be sent the
+ * account is rolled back and this throws, because an assistant who was never
+ * told their password has no way in.
  */
 export async function createPA(payload) {
   const res = await api.post("/pas", payload);
-  return res.data.data; // the PA's fields + { credentials }
+  return res.data.data; // the PA's fields — name, email, username, no secret
 }
 
 /**
