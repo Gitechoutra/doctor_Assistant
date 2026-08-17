@@ -58,7 +58,8 @@ export default function NotificationMenu() {
   const [loading, setLoading] = useState(false);
   const ref = useRef(null);
 
-  useDismissable(ref, () => setOpen(false), open);
+  const close = useCallback(() => setOpen(false), []);
+  useDismissable(ref, open, close);
 
   const load = useCallback(async () => {
     setLoading(true);

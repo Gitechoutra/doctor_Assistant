@@ -19,6 +19,24 @@ def local_utc_offset():
     return datetime.now().astimezone().utcoffset() or timedelta(0)
 
 
+def local_bounds_for(local_date):
+    """First and last instant of one local calendar date, as the naive UTC
+    that every timestamp column stores. Returns (start, end), both inclusive.
+
+    The general form of `local_day_bounds` below, for a date somebody chose
+    rather than today's — the Patients page's date filters, which have to be
+    able to ask for last Tuesday. The same offset reasoning applies, and is
+    why this is not `datetime.combine(local_date, time.min)`: a window built
+    without the shift is the UTC day, and east of UTC that is not the day the
+    staff mean.
+    """
+    offset = local_utc_offset()
+    return (
+        datetime.combine(local_date, time.min) - offset,
+        datetime.combine(local_date, time.max) - offset,
+    )
+
+
 def local_day_bounds(offset_days=0):
     """First and last instant of the practice's day, as the naive UTC that
     every timestamp column stores. Returns (start, end), both inclusive.
@@ -32,9 +50,4 @@ def local_day_bounds(offset_days=0):
     every other date the staff read are built, so the bounds are taken from
     the local date and shifted back into UTC for the comparison.
     """
-    local_date = (datetime.now() + timedelta(days=offset_days)).date()
-    offset = local_utc_offset()
-    return (
-        datetime.combine(local_date, time.min) - offset,
-        datetime.combine(local_date, time.max) - offset,
-    )
+    return local_bounds_for((datetime.now() + timedelta(days=offset_days)).date())

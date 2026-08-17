@@ -94,6 +94,10 @@ export default function ConsultationCard({ consultation, onDownloadReport, downl
             ]
               .filter(Boolean)
               .join(" · "),
+            // Its own line rather than appended to the one above: four fields
+            // on one line truncate on a card a third of a row wide, and a
+            // half-shown phone number is worse than none.
+            patient.phone,
             consultation.doctor,
           ]}
         />

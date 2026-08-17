@@ -3,10 +3,7 @@ import {
   HiOutlineCalendarDays,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
-  HiOutlineClipboardDocumentList,
   HiOutlineClock,
-  HiOutlineQueueList,
-  HiOutlineUserPlus,
   HiOutlineUsers,
 } from "react-icons/hi2";
 import Avatar from "../components/Avatar";
@@ -80,6 +77,12 @@ export default function Dashboard() {
   const queue = data.queue || [];
   const firstName = (user?.name || "").replace(/^Dr\.?\s*/i, "").split(" ")[0];
 
+  // Where "who is here right now" lives for whoever is looking. The same rows
+  // either way; the difference is which screen each role works them from, and
+  // a card must land on one the reader has in their sidebar. The doctor calls
+  // patients in from Appointments; the PA runs the board.
+  const dayListPath = isDoctor ? "/dashboard/appointments" : "/dashboard/queue";
+
   async function handleStart(appointment) {
     setStartingId(appointment.id);
     try {
@@ -108,34 +111,45 @@ export default function Dashboard() {
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">{errorMsg}</p>
       )}
 
-      {/* The same four numbers for both, so the desk and the room agree. */}
+      {/* The same four numbers for both, so the desk and the room agree.
+          Every one is today's: this row is what the day looks like right now,
+          not what the practice looks like. "Total patients today" counts
+          registrations rather than people currently in the building — a
+          patient registered this morning and already seen still counts,
+          which is what makes it a total and not a fourth way of saying
+          "waiting".
+
+          The three live counts come from the queue payload rather than from
+          separate SELECTs, which is what guarantees each card agrees with the
+          board underneath it — see dashboard_routes. */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="In the queue today"
-          value={data.todays_appointments}
-          hint="Patients here now, waiting or being seen"
-          icon={HiOutlineQueueList}
-          to="/dashboard/queue"
+          label="Total Patients Today"
+          value={data.todays_registrations}
+          hint="Patients registered today"
+          icon={HiOutlineUsers}
+          to="/dashboard/patients?period=today"
+        />
+        <StatCard
+          label="Active Consultations"
+          value={data.in_consultation}
+          hint="Patients consulting now"
+          icon={HiOutlineChatBubbleLeftRight}
+          to={dayListPath}
         />
         <StatCard
           label="Waiting"
           value={data.waiting}
-          hint="Checked in, not yet called"
+          hint="Patients waiting for consultation"
           icon={HiOutlineClock}
-          to="/dashboard/queue"
+          to={dayListPath}
         />
         <StatCard
-          label="In consultation"
-          value={data.in_consultation}
-          hint="With the doctor right now"
-          icon={HiOutlineChatBubbleLeftRight}
-          to="/dashboard/queue"
-        />
-        <StatCard
-          label="Completed today"
+          label="Completed"
           value={data.todays_completed}
-          hint="Consultations finished today"
+          hint="Completed consultations today"
           icon={HiOutlineCheckCircle}
+          to={isDoctor ? "/dashboard/consultations?period=today" : undefined}
         />
       </div>
 
@@ -145,10 +159,10 @@ export default function Dashboard() {
             title="Patient queue"
             action={
               <Link
-                to="/dashboard/queue"
+                to={dayListPath}
                 className="text-xs font-semibold text-brand-600 hover:text-brand-700"
               >
-                Open queue →
+                {isDoctor ? "Open appointments →" : "Open queue →"}
               </Link>
             }
           >
@@ -207,17 +221,12 @@ export default function Dashboard() {
 
           {isDoctor ? (
             <>
-              {/* Reports came off the menu, and its stat card went with it —
-                  a tile is a way in, and leaving one behind would have put
-                  the section back on screen by another door. */}
-              <StatCard
-                label="Prescriptions to sign"
-                value={data.pending_prescriptions}
-                hint="Finished visits awaiting sign-off"
-                icon={HiOutlineClipboardDocumentList}
-                to="/dashboard/consultations"
-              />
-
+              {/* "Prescriptions to sign" stood here. It came off for the same
+                  reason Reports' tile did: a stat card is a way in, and this
+                  one led somewhere the doctor already reaches from the
+                  sidebar. Signing off belongs in the consultation, where the
+                  medicines are. Nothing replaces it — the column is shorter,
+                  not refilled. */}
               <Panel
                 title="Recent consultations"
                 action={
@@ -259,22 +268,18 @@ export default function Dashboard() {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <StatCard
-                  label="Total patients"
-                  value={data.total_patients}
-                  hint="On the practice's books"
-                  icon={HiOutlineUsers}
-                  to="/dashboard/patients"
-                />
-                <StatCard
-                  label="Registered today"
-                  value={data.todays_registrations}
-                  hint="New patients added today"
-                  icon={HiOutlineUserPlus}
-                  to="/dashboard/patients"
-                />
-              </div>
+              {/* Only the running total. "Registered today" used to sit
+                  beside it and is now the first card in the row above, where
+                  it is one of the four numbers both roles read; two cards
+                  carrying the same count on one screen is how a dashboard
+                  starts being distrusted. */}
+              <StatCard
+                label="Total patients"
+                value={data.total_patients}
+                hint="On the practice's books"
+                icon={HiOutlineUsers}
+                to="/dashboard/patients"
+              />
 
               <Panel
                 title="Recently registered"

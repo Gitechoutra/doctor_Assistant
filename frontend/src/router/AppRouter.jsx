@@ -5,7 +5,7 @@ import NotFound from "../pages/NotFound";
 import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
 import RoleRoute from "../components/RoleRoute";
-import { ROLE_DOCTOR, ROLE_PA } from "../context/AuthContext";
+import { ROLE_DOCTOR } from "../context/AuthContext";
 
 // Every screen but the login is loaded on demand, so a session fetches its
 // own modules and nothing else.
@@ -58,10 +58,6 @@ function RouteFallback() {
 // in either nav is missing from the routes below.
 const DOCTOR_ONLY = [ROLE_DOCTOR];
 
-// Booking, rescheduling and the appointment book. Desk work; the API 403s the
-// doctor on every write behind this screen.
-const PA_ONLY = [ROLE_PA];
-
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -89,10 +85,14 @@ export default function AppRouter() {
               <Route path="reports" element={<Reports />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
-
-              <Route element={<RoleRoute allow={PA_ONLY} />}>
-                <Route path="appointments" element={<Appointments />} />
-              </Route>
+              {/* Both roles, and two different screens behind one path — see
+                  Appointments.jsx. The PA gets the appointment book they
+                  write to; the doctor gets the day's unfinished visits, which
+                  they read and call patients in from. Every write behind the
+                  PA's half is still `@front_desk_only` on the server, so the
+                  doctor reaching this route gains them nothing they could
+                  act on. */}
+              <Route path="appointments" element={<Appointments />} />
 
               <Route element={<RoleRoute allow={DOCTOR_ONLY} />}>
                 <Route path="consultations" element={<Consultations />} />

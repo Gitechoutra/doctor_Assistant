@@ -29,6 +29,7 @@ from portal.helpers.audit import (
 from portal.helpers.auth_helper import get_current_doctor
 from portal.helpers.broadcast import dashboard_changed
 from portal.helpers.contact import normalize_email, normalize_phone
+from portal.helpers.datetime_helper import local_bounds_for
 from portal.helpers.decorators import DOCTOR, PA, front_desk_only
 from portal.helpers.notify import notify
 from portal.helpers.patient_access import can_access_patient, scope_patients
@@ -85,6 +86,25 @@ def _parse_age(raw):
     return age, None
 
 
+def _parse_range_date(raw, field):
+    """Returns (date, error_message) for a YYYY-MM-DD filter bound. Absent is
+    not an error — it means that end of the range is open."""
+    if not raw:
+        return None, None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date(), None
+    except ValueError:
+        return None, f"{field} must be in YYYY-MM-DD format"
+
+
+def _local_day_start(local_date):
+    return local_bounds_for(local_date)[0]
+
+
+def _local_day_end(local_date):
+    return local_bounds_for(local_date)[1]
+
+
 def _in_queue():
     """Patient ids with an appointment that has not closed."""
     return db.session.query(Appointment.patient_id).filter(
@@ -122,6 +142,16 @@ def list_patients():
     Sriram too, because the match is a substring and not a prefix. It never
     widens the caller's reach: the scoping below runs regardless.
 
+    `?date_from=`/`?date_to=`, both YYYY-MM-DD and both inclusive, narrow to
+    when the patient was registered. This is what the Patients page's Today /
+    This week / This month / pick-a-date filters are: one window each, applied
+    here against `created_at` rather than in the browser, so the answer is the
+    same whether the practice has forty patients or forty thousand.
+
+    The window is the practice's wall-clock day, not UTC's — see
+    `local_day_bounds`. Filtering on the raw UTC date would drop everybody
+    registered before 05:30 out of "today" on an IST server.
+
     `?limit=` caps the rows, for pickers that want the first handful.
     """
     scope = request.args.get("scope", "all")
@@ -129,11 +159,23 @@ def list_patients():
         allowed = ", ".join(PATIENT_SCOPES)
         return error(f"scope must be one of: {allowed}", status=422)
 
+    date_from, date_from_error = _parse_range_date(request.args.get("date_from"), "date_from")
+    if date_from_error:
+        return error(date_from_error, status=422)
+    date_to, date_to_error = _parse_range_date(request.args.get("date_to"), "date_to")
+    if date_to_error:
+        return error(date_to_error, status=422)
+
     query = scope_patients(Patient.query, get_current_doctor())
 
     search = patient_search_filter(request.args.get("search"))
     if search is not None:
         query = query.filter(search)
+
+    if date_from:
+        query = query.filter(Patient.created_at >= _local_day_start(date_from))
+    if date_to:
+        query = query.filter(Patient.created_at <= _local_day_end(date_to))
 
     if scope == "consulted":
         query = query.filter(

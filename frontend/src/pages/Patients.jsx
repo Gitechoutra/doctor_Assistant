@@ -12,7 +12,6 @@ import { fetchQueue } from "../services/appointmentService";
 import {
   createPatient,
   deletePatient,
-  fetchPatientCounts,
   fetchPatients,
   updatePatient,
 } from "../services/patientService";
@@ -22,20 +21,64 @@ import {
   canRegisterPatient,
 } from "../utils/permissions";
 
-// One card is a name and a number now, so the grid packs tighter than it did
-// when each carried six fields: one per row on a phone, two on a tablet, and
-// three or four across a desktop rather than a row of half-empty cards.
-// `auto-rows-fr` keeps every card in a row the same height whatever its
-// buttons, and the fixed column counts (rather than auto-fit) stop a wide
-// screen from ever drawing a card narrower than a long name can sit in.
+// One card carries a name, an age, a phone number and a status now, so the
+// grid packs a little looser than a name-only card did: one per row on a
+// phone, two on a tablet, three or four across a desktop. `auto-rows-fr`
+// keeps every card in a row the same height whatever its buttons, and the
+// fixed column counts (rather than auto-fit) stop a wide screen from ever
+// drawing a card narrower than a long name can sit in.
 const GRID =
   "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 auto-rows-fr";
 
-const TABS = [
+const PERIODS = [
   { key: "all", label: "All patients" },
-  { key: "awaiting", label: "Booked in" },
-  { key: "consulted", label: "Seen" },
+  { key: "today", label: "Today" },
+  { key: "week", label: "This week" },
+  { key: "month", label: "This month" },
+  { key: "custom", label: "Custom date" },
 ];
+
+/** A local YYYY-MM-DD. Deliberately not `toISOString().slice(0, 10)`, which
+ *  is the UTC date: east of UTC that is yesterday's for the first hours of
+ *  the evening, so "today" would quietly ask the server for the wrong day. */
+function ymd(date) {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * The registration window each filter means, as the inclusive `{ date_from,
+ * date_to }` the API takes. `all` is both ends open.
+ *
+ * The week runs from Monday, not from seven days ago: "this week" is the week
+ * the practice is in, and a rolling window would answer a different question
+ * on a Tuesday than the person asking it has in mind. Both it and "this
+ * month" end today rather than at the period's end — nobody is registered in
+ * the future, and an open end is one less thing to get wrong.
+ */
+function rangeFor(period, customDate) {
+  const today = new Date();
+  switch (period) {
+    case "today":
+      return { date_from: ymd(today), date_to: ymd(today) };
+    case "week": {
+      const monday = new Date(today);
+      // getDay() is 0 for Sunday, which is the end of the week here, not the
+      // start — hence the 6-day step back rather than 0.
+      monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+      return { date_from: ymd(monday), date_to: ymd(today) };
+    }
+    case "month": {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { date_from: ymd(first), date_to: ymd(today) };
+    }
+    case "custom":
+      return customDate ? { date_from: customDate, date_to: customDate } : {};
+    default:
+      return {};
+  }
+}
 
 /**
  * The practice's patient list.
@@ -44,6 +87,18 @@ const TABS = [
  * `useDebouncedValue`), so typing "Rahul" costs one request rather than five,
  * and the matching is a substring on the server — "rah" finds Rahul, and it
  * finds Sriram too, because half a name is what somebody actually remembers.
+ * A patient ID (PAT0004) and a phone number match the same way.
+ *
+ * The date filters narrow by *registration* date, and they narrow on the
+ * server. That matters more than it looks: a filter applied in the browser
+ * can only sift the rows already fetched, so "registered this month" would
+ * silently mean "of the ones on screen, the ones from this month" — the same
+ * words for a different and much smaller answer. Search and date compose, so
+ * "Ramu" + "This month" is one request.
+ *
+ * Both live in the URL, which is what makes a filtered list something you can
+ * refresh, bookmark or link somebody to — and is how the dashboard's "Total
+ * Patients Today" card lands here already filtered.
  *
  * `?new=1` opens the registration form on arrival, for any link that means
  * "register somebody" rather than "show me the list".
@@ -57,16 +112,19 @@ export default function Patients() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
 
-  const [scope, setScope] = useState("all");
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebouncedValue(search);
+  const period = params.get("period") || "all";
+  const customDate = params.get("date") || "";
+  const search = params.get("q") || "";
+
+  // Local mirror so typing stays responsive while the URL catches up.
+  const [searchInput, setSearchInput] = useState(search);
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const [patients, setPatients] = useState([]);
-  const [counts, setCounts] = useState(null);
-  // patient id -> today's queue position, for the number on the card. Taken
-  // from the same endpoint the queue board reads, so a patient told "you are
-  // third" is third on every screen that says so.
-  const [queueNumbers, setQueueNumbers] = useState({});
+  // patient id -> today's queue row, for the position and status on the card.
+  // Taken from the same endpoint the queue board reads, so a patient told
+  // "you are third" is third on every screen that says so.
+  const [queueRows, setQueueRows] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -82,26 +140,35 @@ export default function Patients() {
   // spinner in SearchInput reports. True only while the typed value and the
   // one being queried disagree — so it appears during the debounce pause and
   // clears when the answer lands.
-  const searching = search !== debouncedSearch;
+  const searching = searchInput !== debouncedSearch;
+
+  const range = useMemo(() => rangeFor(period, customDate), [period, customDate]);
+
+  // The debounced term is written back to the URL rather than the keystroke,
+  // so the history holds searches somebody made and not every prefix of them.
+  useEffect(() => {
+    if (debouncedSearch === search) return;
+    const next = new URLSearchParams(params);
+    if (debouncedSearch) next.set("q", debouncedSearch);
+    else next.delete("q");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const load = useCallback(
     async (background = false) => {
       if (!background) setLoading(true);
       try {
-        // The queue is a nicety on this page — a number beside the few
-        // patients who are here right now — so it fails quietly. A queue that
-        // could not be read should not empty the patient list.
-        const [rows, tallies, queue] = await Promise.all([
-          fetchPatients(scope, debouncedSearch),
-          fetchPatientCounts().catch(() => null),
+        // The queue is a nicety on this page — a number and a status beside
+        // the few patients who are here right now — so it fails quietly. A
+        // queue that could not be read should not empty the patient list.
+        const [rows, queue] = await Promise.all([
+          fetchPatients("all", debouncedSearch, undefined, range),
           fetchQueue().catch(() => null),
         ]);
         setPatients(rows);
-        if (tallies) setCounts(tallies);
         if (queue) {
-          setQueueNumbers(
-            Object.fromEntries(queue.map((a) => [a.patient_id, a.queue_number]))
-          );
+          setQueueRows(Object.fromEntries(queue.map((a) => [a.patient_id, a])));
         }
         setErrorMsg("");
       } catch (err) {
@@ -110,7 +177,7 @@ export default function Patients() {
         setLoading(false);
       }
     },
-    [scope, debouncedSearch]
+    [debouncedSearch, range]
   );
 
   useEffect(() => {
@@ -130,14 +197,31 @@ export default function Patients() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tabCounts = useMemo(
-    () => ({
-      all: counts?.total,
-      awaiting: counts?.awaiting,
-      consulted: counts?.consulted,
-    }),
-    [counts]
-  );
+  function setPeriod(key) {
+    const next = new URLSearchParams(params);
+    if (key === "all") next.delete("period");
+    else next.set("period", key);
+    // A date only means anything alongside "custom", and leaving a stale one
+    // in the URL would make the back button restore a filter nobody can see.
+    if (key !== "custom") next.delete("date");
+    else if (!next.get("date")) next.set("date", ymd(new Date()));
+    setParams(next, { replace: true });
+  }
+
+  function setCustomDate(value) {
+    const next = new URLSearchParams(params);
+    next.set("period", "custom");
+    if (value) next.set("date", value);
+    else next.delete("date");
+    setParams(next, { replace: true });
+  }
+
+  function clearFilters() {
+    setSearchInput("");
+    setParams({}, { replace: true });
+  }
+
+  const hasFilters = period !== "all" || Boolean(search);
 
   async function handleRegister(payload) {
     await createPatient(payload);
@@ -177,54 +261,81 @@ export default function Patients() {
         )}
       </header>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {/* Stacks on a phone, sits on one line from `sm` up. The filter row
+          scrolls sideways inside itself rather than widening the page — five
+          chips do not fit across 375px, and a page that scrolls horizontally
+          is a page whose header drifts off. */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <SearchInput
-          value={search}
-          onChange={setSearch}
+          value={searchInput}
+          onChange={setSearchInput}
           busy={searching}
-          className="sm:max-w-md sm:flex-1"
+          placeholder="Search by name, patient ID or phone number…"
+          className="lg:max-w-md lg:flex-1"
         />
         <div className="flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1">
-          {TABS.map((tab) => (
+          {PERIODS.map((entry) => (
             <button
-              key={tab.key}
-              onClick={() => setScope(tab.key)}
+              key={entry.key}
+              onClick={() => setPeriod(entry.key)}
               className={`whitespace-nowrap rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
-                scope === tab.key
+                period === entry.key
                   ? "bg-white text-slate-800 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              {tab.label}
-              {tabCounts[tab.key] != null && (
-                <span className="ml-1.5 tabular-nums text-slate-400">
-                  {tabCounts[tab.key]}
-                </span>
-              )}
+              {entry.label}
             </button>
           ))}
         </div>
+
+        {period === "custom" && (
+          <input
+            type="date"
+            value={customDate}
+            max={ymd(new Date())}
+            onChange={(e) => setCustomDate(e.target.value)}
+            aria-label="Registered on"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          />
+        )}
+
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="self-start whitespace-nowrap text-sm font-semibold text-brand-600 transition hover:text-brand-700 lg:self-auto"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {errorMsg && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMsg}</p>
       )}
 
+      {!loading && (
+        <p className="text-sm text-slate-500">
+          {patients.length} patient{patients.length === 1 ? "" : "s"}
+          {hasFilters && " matching your filters"}
+        </p>
+      )}
+
       {loading ? (
         <div className={GRID}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-slate-100" />
+            <div key={i} className="h-40 animate-pulse rounded-2xl bg-slate-100" />
           ))}
         </div>
       ) : patients.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
           <HiOutlineUsers className="mx-auto h-9 w-9 text-slate-300" />
           <p className="mt-3 text-sm font-medium text-slate-600">
-            {debouncedSearch ? "No patients match that search" : "No patients yet"}
+            {hasFilters ? "No patients match those filters" : "No patients yet"}
           </p>
           <p className="mx-auto mt-1 max-w-sm text-xs text-slate-400">
-            {debouncedSearch
-              ? "Try part of a name, a phone number, or a patient ID like PAT0004."
+            {hasFilters
+              ? "Try part of a name, a phone number, or a patient ID like PAT0004 — or widen the date range."
               : canRegister
                 ? "Register the first patient to get started."
                 : "Patients appear here once the PA has registered them."}
@@ -236,7 +347,8 @@ export default function Patients() {
             <PatientCard
               key={patient.id}
               patient={patient}
-              queueNumber={queueNumbers[patient.id]}
+              queueNumber={queueRows[patient.id]?.queue_number}
+              status={queueRows[patient.id]?.status}
               canEdit={canEdit}
               canDelete={canDelete}
               onEdit={() => setEditing(patient)}

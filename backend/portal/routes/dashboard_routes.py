@@ -131,14 +131,11 @@ def summary():
             "consultations_total": Consultation.query.filter(
                 Consultation.doctor_id == doctor.id
             ).count(),
-            "pending_prescriptions": Consultation.query.filter(
-                Consultation.doctor_id == doctor.id,
-                Consultation.status == "completed",
-                Consultation.prescription_verified_at.is_(None),
-                # Only sessions that actually produced a prescription. A visit
-                # with nothing to sign is not outstanding work.
-                Consultation.prescriptions.any(),
-            ).count(),
+            # `pending_prescriptions` was here, and went with the "Prescriptions
+            # to sign" card it was the only reader of. Signing off happens in
+            # the consultation itself, and Prescriptions lists what is
+            # outstanding — a count on the home screen was a third way to be
+            # told, and the one furthest from the thing to do about it.
             "recent_consultations": [c.to_dict() for c in recent_consultations],
             "recent_patients": [p.to_dict() for p in recent_patients],
         }

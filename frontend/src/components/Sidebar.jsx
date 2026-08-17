@@ -43,10 +43,16 @@ const PA_NAV = [
   { to: "/dashboard/settings", label: "Settings", icon: HiOutlineCog6Tooth },
 ];
 
+// Appointments is the doctor's way into the day's unfinished work — booked,
+// waiting and in-consultation, with the button that calls each patient in.
+// That is what Patient Queue used to be for them, so the queue is no longer
+// offered here as a second door onto the same rows. Its route stays: the
+// "patient is waiting" notification links straight at it (see
+// helpers/queue_helper), and the PA still works from the board itself.
 const DOCTOR_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: HiOutlineSquares2X2, end: true },
-  { to: "/dashboard/queue", label: "Patient Queue", icon: HiOutlineQueueList },
   { to: "/dashboard/patients", label: "Patients", icon: HiOutlineUsers },
+  { to: "/dashboard/appointments", label: "Appointments", icon: HiOutlineCalendarDays },
   {
     to: "/dashboard/consultations",
     label: "Consultations",
