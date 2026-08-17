@@ -1,7 +1,5 @@
 # MediAssist AI
 
-**Smart Practice Management for Doctors.**
-
 A practice management system for one doctor and their PA (Personal Assistant).
 The PA registers patients, books appointments and runs the day's queue; the
 doctor calls patients in, records the consultation, prescribes and signs. Both
@@ -62,22 +60,36 @@ python app.py                          # http://127.0.0.1:5000
 ```
 
 The first start creates everything the practice needs to run: the two roles,
-the two accounts, the doctor's practice profile, and the prescribing catalogue.
-See `portal/helpers/bootstrap.py` — every check is additive and runs on every
+the doctor's account and practice profile, and the prescribing catalogue. See
+`portal/helpers/bootstrap.py` — every check is additive and runs on every
 start, so a fresh clone or a restored dump comes up usable.
 
-**The two seeded logins:**
+**The one seeded login — the doctor.** It is defined in
+`portal/seeders/seed_doctor.py`, in `DOCTOR_DEFAULTS`:
 
-| Role | Sign in as | Password |
-|---|---|---|
-| PA | `pa@mediassist.local` | `PA@12345` |
-| Doctor | `doctor@mediassist.local` | `Doctor@12345` |
+```python
+DOCTOR_DEFAULTS = {
+    "name": "Practice Doctor",
+    "email": "goddumahesh2@gmail.com",
+    "password": "Virat@100",
+}
+```
 
-Change them. Set `SEED_PA_PASSWORD` and `SEED_DOCTOR_PASSWORD` in the
-environment, or change the passwords after the first sign-in and set
-`SEED_ACCOUNT_SYNC=false` so a restart leaves them alone. Names, emails and the
-doctor's specialisation are configurable the same way — see
-`portal/seeders/seed_accounts.py`.
+Edit those and restart (or run `python -m portal.seeds`) and the existing
+doctor account is **moved** to match — the same account, renamed or with a new
+address and password. It is never duplicated: the seeder finds the doctor by
+role and rewrites that row. `SEED_DOCTOR_NAME`, `SEED_DOCTOR_EMAIL` and
+`SEED_DOCTOR_PASSWORD` override the file where a deployment would rather not
+edit it, and `SEED_ACCOUNT_SYNC=false` freezes the account once it exists, for
+a practice that changed the password from inside the app.
+
+**There is no seeded PA.** The doctor signs in with the credentials above and
+creates the desk's accounts under **Assistants** — each assistant gets their
+own username, password and emailed invite, and signs in with those. A PA gets
+the desk's access only (registration, the appointment book, the queue, and
+reading the record); creating accounts and everything clinical stays the
+doctor's. The split is defined in one place, `portal/helpers/decorators.py`,
+and enforced by the API regardless of what the browser allows.
 
 ### 3. Frontend
 

@@ -54,8 +54,6 @@ def generate_appointment_slip_pdf(appointment, output_path):
     practice_block = [
         Paragraph(practice.get("name") or "MediAssist AI", STYLE_PRACTICE_NAME)
     ]
-    if practice.get("tagline"):
-        practice_block.append(Paragraph(practice["tagline"], STYLE_PRACTICE_META))
     for line in _practice_lines(practice):
         practice_block.append(Paragraph(line, STYLE_PRACTICE_META))
 

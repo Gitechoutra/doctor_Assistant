@@ -9,15 +9,15 @@ import {
 import Avatar from "../components/Avatar";
 import PasswordInput from "../components/PasswordInput";
 import { MIN_PASSWORD } from "../services/authService";
-import { createDoctor, fetchDoctors } from "../services/doctorService";
+import { createPA, fetchPAs } from "../services/paService";
 
 /**
- * Adding a second doctor to the practice. Doctor only, and off the sidebar.
+ * The doctor's screen for setting the desk up.
  *
- * The practice's first doctor is the seeded account (see
- * `portal/seeders/seed_doctor.py`), so this screen is not part of setting a
- * practice up any more — it is for the day one takes on another doctor. The
- * desk's accounts are made on "Assistants" instead.
+ * A fresh practice comes up with the seeded doctor account and nobody else —
+ * see `portal/seeders/seed_doctor.py`. This is where that is fixed: the doctor
+ * enters the assistant's details, and the account exists and works when the
+ * form returns.
  *
  * The one thing this screen has to get right is the handover. The raw password
  * comes back exactly once, is stored nowhere, and no route reads it back — so
@@ -25,15 +25,7 @@ import { createDoctor, fetchDoctors } from "../services/doctorService";
  * it will not be shown again.
  */
 
-const EMPTY = {
-  name: "",
-  email: "",
-  password: "",
-  specialization: "",
-  qualification: "",
-  registration_no: "",
-  practice_name: "",
-};
+const EMPTY = { name: "", email: "", password: "" };
 
 const inputClass =
   "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
@@ -48,13 +40,13 @@ function Labelled({ label, hint, children }) {
   );
 }
 
-/** The credentials, shown once. Copyable, because the alternative is the PA
- *  transcribing a generated password by eye. */
+/** The credentials, shown once. Copyable, because the alternative is the
+ *  doctor transcribing a generated password by eye. */
 function CredentialsPanel({ credentials, name, onDismiss }) {
   const [copied, setCopied] = useState(false);
 
   const block = [
-    `Sign-in for Dr. ${name}`,
+    `Sign-in for ${name}`,
     `Username: ${credentials.username}`,
     `Email:    ${credentials.email}`,
     `Password: ${credentials.password}`,
@@ -78,15 +70,15 @@ function CredentialsPanel({ credentials, name, onDismiss }) {
         <HiOutlineCheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-emerald-900">
-            Dr. {name} can sign in now
+            {name} can sign in now
           </h2>
           <p className="mt-1 text-xs text-emerald-800">
             {credentials.password_was_generated
               ? "We generated this password. "
               : "This is the password you set. "}
-            Give these to the doctor — they are shown once and are not stored
-            anywhere, so they cannot be looked up again. A copy has also been
-            emailed to them, with a link to set a password only they know.
+            Give these to your assistant — they are shown once and are not
+            stored anywhere, so they cannot be looked up again. A copy has also
+            been emailed to them, with a link to set a password only they know.
           </p>
 
           <dl className="mt-3 space-y-1.5 rounded-xl bg-white/70 p-3 font-mono text-xs text-slate-800">
@@ -127,8 +119,8 @@ function CredentialsPanel({ credentials, name, onDismiss }) {
   );
 }
 
-export default function Doctors() {
-  const [doctors, setDoctors] = useState([]);
+export default function Assistants() {
+  const [assistants, setAssistants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -138,9 +130,9 @@ export default function Doctors() {
 
   async function load() {
     try {
-      setDoctors(await fetchDoctors());
+      setAssistants(await fetchPAs());
     } catch {
-      setErrorMsg("Could not load the practice's doctors.");
+      setErrorMsg("Could not load the practice's assistants.");
     } finally {
       setLoading(false);
     }
@@ -159,18 +151,18 @@ export default function Doctors() {
     setErrorMsg("");
     setSaving(true);
     try {
-      // Only send what was filled in — the server treats absent and empty
-      // differently for the optional fields.
+      // Only send what was filled in — a blank password means "generate one",
+      // which is not the same as sending an empty string.
       const payload = Object.fromEntries(
         Object.entries(form).filter(([, v]) => String(v).trim() !== "")
       );
-      const created = await createDoctor(payload);
+      const created = await createPA(payload);
       setIssued({ credentials: created.credentials, name: created.name });
       setForm(EMPTY);
       setShowForm(false);
       await load();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Could not create the doctor.");
+      setErrorMsg(err.response?.data?.message || "Could not create the assistant.");
     } finally {
       setSaving(false);
     }
@@ -180,7 +172,10 @@ export default function Doctors() {
     <div className="max-w-3xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Doctors</h1>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Assistants</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            The people who run your desk. Each gets their own sign-in.
+          </p>
         </div>
         {!showForm && (
           <button
@@ -192,7 +187,7 @@ export default function Doctors() {
             className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
           >
             <HiOutlinePlus className="h-4 w-4" />
-            Add doctor
+            Add assistant
           </button>
         )}
       </div>
@@ -208,20 +203,21 @@ export default function Doctors() {
       )}
 
       {/* The empty state is the whole point of this screen on a fresh
-          practice: no doctor exists until the PA makes one, and nothing can be
-          booked until then. Say so, rather than showing an empty list. */}
-      {!loading && doctors.length === 0 && !showForm && (
+          practice: only your own account exists until you make one, and
+          registration, booking and the queue are all the desk's work. Say so,
+          rather than showing an empty list. */}
+      {!loading && assistants.length === 0 && !showForm && (
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
           <div className="flex items-start gap-3">
             <HiOutlineExclamationTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
             <div>
               <h2 className="text-sm font-semibold text-amber-900">
-                This practice has no doctor yet
+                This practice has no assistant yet
               </h2>
               <p className="mt-1 text-sm text-amber-800">
-                Appointments, the queue and consultations all resolve to a
-                doctor, so nothing can be booked until one exists. Add the
-                practice's doctor with the details they give you.
+                Registering patients, booking appointments and running the day's
+                queue are the desk's work. Add your assistant and hand them the
+                credentials this screen gives you.
               </p>
             </div>
           </div>
@@ -235,7 +231,7 @@ export default function Doctors() {
         >
           <div className="flex items-center gap-2">
             <HiOutlineUserPlus className="h-5 w-5 text-brand-600" />
-            <h2 className="text-sm font-semibold text-slate-900">Add a doctor</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Add an assistant</h2>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -248,7 +244,10 @@ export default function Doctors() {
                 onChange={(e) => set("name", e.target.value)}
               />
             </Labelled>
-            <Labelled label="Email" hint="What they sign in with, and where their credentials are sent.">
+            <Labelled
+              label="Email"
+              hint="What they sign in with, and where their credentials are sent."
+            >
               <input
                 required
                 type="email"
@@ -272,35 +271,6 @@ export default function Doctors() {
                 />
               </Labelled>
             </div>
-
-            <Labelled label="Specialization" hint="Defaults to General Medicine.">
-              <input
-                className={inputClass}
-                value={form.specialization}
-                onChange={(e) => set("specialization", e.target.value)}
-              />
-            </Labelled>
-            <Labelled label="Qualification">
-              <input
-                className={inputClass}
-                value={form.qualification}
-                onChange={(e) => set("qualification", e.target.value)}
-              />
-            </Labelled>
-            <Labelled label="Registration number">
-              <input
-                className={inputClass}
-                value={form.registration_no}
-                onChange={(e) => set("registration_no", e.target.value)}
-              />
-            </Labelled>
-            <Labelled label="Practice name" hint="Printed on prescriptions and reports.">
-              <input
-                className={inputClass}
-                value={form.practice_name}
-                onChange={(e) => set("practice_name", e.target.value)}
-              />
-            </Labelled>
           </div>
 
           {errorMsg && (
@@ -315,7 +285,7 @@ export default function Doctors() {
               disabled={saving}
               className="rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:opacity-60"
             >
-              {saving ? "Creating…" : "Create doctor"}
+              {saving ? "Creating…" : "Create assistant"}
             </button>
             <button
               type="button"
@@ -332,30 +302,31 @@ export default function Doctors() {
         </form>
       )}
 
-      {doctors.length > 0 && (
+      {assistants.length > 0 && (
         <div className="mt-6 space-y-3">
-          {doctors.map((d) => (
+          {assistants.map((pa) => (
             <div
-              key={d.id}
+              key={pa.id}
               className="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
             >
-              <Avatar name={d.name} size="lg" />
+              <Avatar name={pa.name} size="lg" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900">Dr. {d.name}</p>
-                <p className="text-xs text-slate-500">
-                  {d.specialization}
-                  {d.qualification ? ` · ${d.qualification}` : ""}
-                </p>
+                <p className="text-sm font-semibold text-slate-900">{pa.name}</p>
                 <p className="mt-1 break-all text-xs text-slate-400">
-                  {d.email}
-                  {d.username ? ` · ${d.username}` : ""}
+                  {pa.email}
+                  {pa.username ? ` · ${pa.username}` : ""}
                 </p>
-                {d.created_by_name && (
-                  <p className="mt-1 text-xs text-slate-400">
-                    Added by {d.created_by_name}
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-slate-400">
+                  {pa.last_login_at
+                    ? `Last signed in ${new Date(pa.last_login_at).toLocaleString()}`
+                    : "Has not signed in yet"}
+                </p>
               </div>
+              {!pa.is_active && (
+                <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500">
+                  Disabled
+                </span>
+              )}
             </div>
           ))}
         </div>

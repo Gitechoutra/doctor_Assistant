@@ -217,7 +217,6 @@ def _layout(heading, lede, blocks, footer_note=None):
     """
     practice = _practice()
     name = html.escape(practice.get("name") or "MediAssist AI")
-    tagline = html.escape(practice.get("tagline") or "")
 
     contact_bits = [
         html.escape(practice.get(k))
@@ -233,7 +232,6 @@ def _layout(heading, lede, blocks, footer_note=None):
        border-radius:16px;overflow:hidden;">
     <div style="background:linear-gradient(135deg,{BRAND},{BRAND_DARK});padding:24px 28px;">
       <div style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.01em;">{name}</div>
-      <div style="color:#e0e7ff;font-size:13px;margin-top:2px;">{tagline}</div>
     </div>
     <div style="padding:28px;">
       <h1 style="margin:0 0 8px;font-size:20px;line-height:1.3;color:{INK};">{heading}</h1>

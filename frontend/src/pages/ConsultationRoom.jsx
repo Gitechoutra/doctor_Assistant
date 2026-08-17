@@ -577,15 +577,6 @@ export default function ConsultationRoom() {
                   ? "The summary and prescription above cover this session only. When the patient's treatment is finished, end it on the case to get one report covering every session with a single final prescription."
                   : "The consolidated report covering every session is on the case."}
               </p>
-              {/* Spelling out the rule where the decision is actually made,
-                  so nobody has to learn it by hitting a 409. */}
-              {caseInfo.status === "open" && (
-                <p className="mt-2 text-xs text-slate-400">
-                  {consultation.can_continue
-                    ? "Still with the patient? Use Continue consultation — today's visit stays one record. A new session is for when they come back another day."
-                    : "This visit is closed. If the patient returns on another day, start a new session — it gets its own summary and prescription, and this one is left untouched."}
-                </p>
-              )}
               <Link
                 to={`/dashboard/cases/${caseInfo.id}`}
                 className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700"

@@ -191,9 +191,6 @@ export default function Appointments() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Appointments</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {queue.length} in today&rsquo;s queue · {upcoming.length} booked ahead
-          </p>
         </div>
         <button
           onClick={() => setBooking(true)}

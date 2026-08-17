@@ -6,10 +6,10 @@ all of it otherwise a command somebody has to remember to run:
   * **the roles.** `users.role_id` is NOT NULL and several routes look a role
     up by name, so a database restored from an older dump comes up broken with
     no symptom until a sign-in fails.
-  * **the PA's account.** Somebody who clones this and runs `python app.py`
+  * **the doctor's account.** Somebody who clones this and runs `python app.py`
     would otherwise have a working server and no way to sign in to it. Only
-    the PA: the practice's doctor is created from inside the application by
-    the PA, so there is nothing to seed and no fictional default to delete.
+    the doctor: the desk's PA accounts are created from inside the application
+    by the doctor, each with credentials of their own.
   * **the formulary and the prescribing catalogue.** An empty `medicines`
     table makes every line of every AI-suggested prescription come back
     flagged off-formulary; an empty `medicine_brands` table is a prescription
@@ -22,9 +22,9 @@ reference data the workflows assume is there by the time it serves a request.
 
 Every check is *additive*. Nothing here renames, overwrites or deletes a row
 that already exists — a practice's own medicine edits survive every restart
-untouched. The one exception is deliberate and documented: the two configured
-accounts are brought back in step with their environment credentials, which is
-how a changed password takes effect (see `seeders/seed_accounts`).
+untouched. The one exception is deliberate and documented: the configured
+doctor account is brought back in step with its seed credentials, which is how
+a changed email or password takes effect (see `seeders/seed_accounts`).
 """
 
 from sqlalchemy import Enum, inspect
@@ -311,24 +311,27 @@ def ensure_usernames(app):
 
 
 def ensure_accounts(app):
-    """Creates the PA's account, or rewrites it to match the configured
+    """Creates the doctor's account, or rewrites it to match the configured
     credentials.
 
     Returns the roles it created accounts for. Same contract as
     `ensure_roles`: idempotent, and never raises.
 
-    **The PA only.** There is no default doctor: the practice's real doctor is
-    created by the PA through "Add doctor" (`routes/doctor_routes`), from the
-    details that doctor gives them. A default one written into the repository
-    meant every deployment came up as the same fictional person, and a restart
-    would recreate them after a practice deleted the row. So a fresh database
-    comes up with a PA to sign in as and no doctor, and the screens that ask
-    "which doctor?" render that as a prompt — see `helpers/practice`.
+    **The doctor only.** There is no default PA: the desk's accounts are
+    created by the doctor through "Assistants" (`routes/pa_routes`), which
+    issues each assistant credentials of their own. So a fresh database comes
+    up with a doctor to sign in as — the one account without which nobody can
+    reach the application at all — and the practice adds its own people from
+    inside it.
+
+    The doctor's `doctors` profile row is created with the account, because a
+    doctor without one is invisible to `helpers/practice.practice_doctor` and
+    nothing can be booked against them.
 
     Note what this does *not* do: it never creates a second account beside one
-    whose credentials have changed. Restarting the server after changing a
-    configured email must leave you with one PA, moved — not two, the second
-    holding a password that is published in the repository.
+    whose credentials have changed. Restarting the server after changing the
+    configured email must leave you with one doctor, moved — not two, the
+    second holding a password that is published in the repository.
 
     The actual work is `seeders/seed_accounts.ensure_account`, so that rule and
     the credentials are defined once and behave identically whether they arrive
@@ -341,7 +344,7 @@ def ensure_accounts(app):
     # Imported here rather than at module scope: helpers are imported early in
     # the app factory, and reaching into a seeder at that point would pull the
     # models in before they are registered.
-    from portal.models.role import PA
+    from portal.models.role import DOCTOR, role_label
     from portal.seeders.seed_accounts import account_credentials, ensure_account
 
     created = []
@@ -355,8 +358,8 @@ def ensure_accounts(app):
                     )
                     return []
 
-            for role_name in (PA,):
-                label = "PA" if role_name == PA else "Doctor"
+            for role_name in (DOCTOR,):
+                label = role_label(role_name)
                 _n, _e, _p, is_default_password = account_credentials(role_name)
                 user, was_created, changes = ensure_account(role_name)
 

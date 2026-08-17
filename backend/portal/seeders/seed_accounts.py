@@ -1,77 +1,46 @@
-"""The machinery a seeded staff account is made and kept in step with.
-
-**Only the PA is seeded.** A practice is two people, but only one of them can
-be created before anybody has signed in: the PA runs the desk, and the desk is
-where the doctor's account comes from. There is no default doctor -- the one
-that used to be written into this file meant every checkout came up as the
-same fictional person, and a real practice's first job was to edit a row it
-had never asked for. The PA creates the real doctor through "Add doctor" (see
-`routes/doctor_routes.create_doctor`), using the details that doctor gives
-them, and the account works the moment it is made.
-
-So a fresh database comes up with a PA to sign in as and no doctor, which is
-the honest state of a practice nobody has set up yet. `helpers/practice`
-already answers "which doctor?" with None, and the screens that ask render it
-as a prompt rather than an error.
-
-**The PA's own defaults live in `seeders/seed_PA`**, which owns that account
-end to end. What stays here is what makes an account and keeps it in step --
-`ensure_account`, `_apply_configured_credentials`, `account_credentials` and
-`report_account` -- so there is one implementation of the rule below rather
-than one per role.
-
-Configured from the environment, falling back to the documented defaults in
-`seed_PA` so a fresh checkout works with no setup at all:
-
-    SEED_PA_NAME / SEED_PA_EMAIL / SEED_PA_PASSWORD
-    SEED_ACCOUNT_SYNC=false   leave existing accounts alone once created
-
-The rule that matters, inherited from the administrator seeder this replaces:
-**an account whose configured email has changed is moved, not duplicated.**
-The account is found by its role, not by its address. Matching on email got
-that case badly wrong -- it read a renamed account as an absent one and
-created a second beside it, holding the default password from the repository.
-
-`is_active` is never written. A disabled account is one somebody deliberately
-switched off, and restarting the server must not switch it back on.
-"""
 
 import os
 
 from portal.extensions import db
-from portal.models.role import PA, Role
+from portal.models.doctor import DEFAULT_SPECIALIZATION, Doctor
+from portal.models.role import DOCTOR, ROLES_WITH_PROFILE, Role, role_label
 from portal.models.user import User
 
-# No DEFAULTS table here any more. The PA's live in `seeders/seed_PA`, and the
-# doctor has none by design -- see the module docstring.
+# No DEFAULTS table here any more. The doctor's live in `seeders/seed_doctor`,
+# and the PA has none by design -- see the module docstring.
 
 
 def _defaults_for(role):
     """The configured defaults for one role.
 
-    Imported inside the function rather than at module scope because `seed_PA`
-    imports this module for the shared machinery below -- at module scope the
-    two would form a cycle.
+    Imported inside the function rather than at module scope because
+    `seed_doctor` imports this module for the shared machinery below -- at
+    module scope the two would form a cycle.
     """
-    if role == PA:
-        from portal.seeders.seed_PA import PA_DEFAULTS
+    if role == DOCTOR:
+        from portal.seeders.seed_doctor import DOCTOR_DEFAULTS
 
-        return PA_DEFAULTS
+        return DOCTOR_DEFAULTS
     raise KeyError(
-        f"No seed defaults for the '{role}' role. Only the PA is seeded; a "
-        f"doctor is created by the PA through POST /api/doctors."
+        f"No seed defaults for the '{role}' role. Only the doctor is seeded; a "
+        f"PA is created by the doctor through POST /api/pas."
     )
 
 
-# Spellings of "no" accepted from the environment. Anything else — including
-# an unset or empty value — leaves syncing on, so the documented default
-# behaviour does not depend on remembering to set anything.
 _FALSEY = {"0", "false", "no", "off"}
 
 
+def _env_key(role, field):
+    """SEED_DOCTOR_EMAIL, SEED_DOCTOR_PASSWORD, ...
+
+    Derived from the role name rather than spelled out per role, so a second
+    seeded role needs nothing added here.
+    """
+    return f"SEED_{(role or '').upper()}_{field.upper()}"
+
+
 def _env(role, field, fallback):
-    key = f"SEED_{'PA' if role == PA else 'DOCTOR'}_{field.upper()}"
-    return (os.environ.get(key) or "").strip() or fallback
+    return (os.environ.get(_env_key(role, field)) or "").strip() or fallback
 
 
 def account_credentials(role):
@@ -79,9 +48,7 @@ def account_credentials(role):
     defaults = _defaults_for(role)
     name = _env(role, "name", defaults["name"])
     email = _env(role, "email", defaults["email"]).lower()
-    password = os.environ.get(
-        f"SEED_{'PA' if role == PA else 'DOCTOR'}_PASSWORD"
-    ) or defaults["password"]
+    password = os.environ.get(_env_key(role, "password")) or defaults["password"]
     return name, email, password, password == defaults["password"]
 
 
@@ -129,6 +96,29 @@ def _apply_configured_credentials(user, name, email, password):
     return changes
 
 
+def _ensure_profile(user, role_name):
+    """Gives the account the profile row its role requires, if it lacks one.
+
+    `doctor` is the only role with one (`models/role.ROLES_WITH_PROFILE`), and
+    a doctor with no `doctors` row is a half-formed account: `practice_doctor`
+    would not find them, so nothing could be booked, no consultation could name
+    them, and every "which doctor?" screen would render as though the practice
+    had none. `POST /api/doctors` makes that row in the same transaction as the
+    account; the seeded doctor arrives by a different door, so it is made here.
+
+    Additive, like everything else a restart runs: an existing profile is left
+    exactly as it is. The specialization, qualification and practice name are
+    the doctor's own — they are printed on every prescription and report — and
+    resetting them at each boot would undo an edit nobody asked to undo.
+    """
+    if role_name not in ROLES_WITH_PROFILE or user.doctor_profile:
+        return False
+
+    db.session.add(Doctor(user_id=user.id, specialization=DEFAULT_SPECIALIZATION))
+    db.session.commit()
+    return True
+
+
 def ensure_account(role_name):
     """Creates the account for one role, or brings it in step with the config.
 
@@ -148,31 +138,35 @@ def ensure_account(role_name):
     existing = User.query.filter_by(role_id=role.id).order_by(User.id).first()
     if existing:
         changes = _apply_configured_credentials(existing, name, email, password)
+        _ensure_profile(existing, role_name)
         return existing, False, changes
 
     clash = User.query.filter_by(email=email).first()
     if clash:
         raise RuntimeError(
             f"Cannot create the {role_name} account: {email} is already used by "
-            f"the {clash.role.name if clash.role else 'unknown'} account."
+            f"the {clash.role.name if clash.role else 'unknown'} account. Give "
+            f"the {role_name} a different address, or remove that account."
         )
 
     user = User(name=name, email=email, role_id=role.id)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
+    _ensure_profile(user, role_name)
     return user, True, []
 
 
 def report_account(role_name):
     """Seeds one role's account and prints what happened. Returns the user.
 
-    Lives here rather than in `seed_PA` because it belongs with the machinery
-    it reports on, and because a second seeded role would use it unchanged.
+    Lives here rather than in `seed_doctor` because it belongs with the
+    machinery it reports on, and because a second seeded role would use it
+    unchanged.
     """
     _n, _e, _p, is_default_password = account_credentials(role_name)
     user, created, changes = ensure_account(role_name)
-    label = "PA" if role_name == PA else "Doctor"
+    label = role_label(role_name)
     if created:
         print(f"  {label:<11} -> created {user.email}")
         if is_default_password:
@@ -192,7 +186,7 @@ def report_account(role_name):
     return user
 
 
-# No `run()` here. This module seeds nothing on its own any more: the PA is
-# `seeders/seed_PA.run()`, and the doctor is not seeded at all -- the PA
-# creates them through the application. `portal/seeds.py` calls seed_PA
+# No `run()` here. This module seeds nothing on its own any more: the doctor is
+# `seeders/seed_doctor.run()`, and the PA is not seeded at all -- the doctor
+# creates them through the application. `portal/seeds.py` calls seed_doctor
 # directly.

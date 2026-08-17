@@ -87,7 +87,6 @@ export default function ForgotPassword() {
                     autoComplete="username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="sandeep.viswanadh"
                     className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
                   />
                 </div>

@@ -26,13 +26,15 @@ export async function fetchDoctors() {
 }
 
 /**
- * The PA setting up a doctor's account. PA only — the API 403s the doctor.
+ * A doctor setting up another doctor's account. Doctor only — the API 403s the
+ * PA. The practice's *first* doctor is the seeded account and never comes
+ * through here; this is for a practice taking on a second one.
  *
  * `password` is optional: leave it out and the server generates one. Either
  * way the response carries a `credentials` object holding the username, email
  * and the raw password **once** — it is not stored anywhere and no route reads
- * it back, so whatever the PA does not hand over is gone. The doctor can sign
- * in with it immediately.
+ * it back, so whatever is not handed over is gone. The new doctor can sign in
+ * with it immediately.
  */
 export async function createDoctor(payload) {
   const res = await api.post("/doctors", payload);

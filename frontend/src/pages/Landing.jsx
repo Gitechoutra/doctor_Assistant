@@ -97,7 +97,7 @@ export default function Landing() {
       <main className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
         <section className="py-12 text-center sm:py-20">
           <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-tight text-slate-900 sm:text-5xl">
-            Smart practice management for doctors
+            MediAssist AI
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-500">
             MediAssist AI runs one doctor&rsquo;s practice: the patient list, the
@@ -165,7 +165,7 @@ export default function Landing() {
 
       <footer className="border-t border-slate-100 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6 lg:px-8">
-          <Logo subtitle={null} />
+          <Logo />
           <div className="flex items-center gap-5 text-xs text-slate-400">
             <Link to="/privacy" className="transition hover:text-slate-600">
               Privacy

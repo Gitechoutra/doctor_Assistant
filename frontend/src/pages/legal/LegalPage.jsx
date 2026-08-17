@@ -80,7 +80,7 @@ export default function LegalPage({ title, updated, intro, sections }) {
 
       <footer className="border-t border-slate-100 bg-white">
         <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-6 py-8 sm:flex-row lg:px-10">
-          <Logo subtitle={null} />
+          <Logo />
           <p className="text-xs text-slate-400">
             &copy; {new Date().getFullYear()} MediAssist AI
           </p>

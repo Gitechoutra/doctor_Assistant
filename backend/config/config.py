@@ -152,7 +152,6 @@ SETTINGS = (
     # What goes on the letterhead of a prescription, a report and every email
     # the practice sends.
     ("PRACTICE_NAME", "practice", "name", "MediAssist AI"),
-    ("PRACTICE_TAGLINE", "practice", "tagline", "Smart Practice Management for Doctors"),
     ("PRACTICE_ADDRESS", "practice", "address", ""),
     ("PRACTICE_PHONE", "practice", "phone", ""),
     ("PRACTICE_EMAIL", "practice", "email", ""),
@@ -598,7 +597,6 @@ class BaseConfig:
     PORTAL_BASE_URL = _VALUES["PORTAL_BASE_URL"].rstrip("/")
     PRACTICE = {
         "name": _VALUES["PRACTICE_NAME"],
-        "tagline": _VALUES["PRACTICE_TAGLINE"],
         "address": _VALUES["PRACTICE_ADDRESS"],
         "phone": _VALUES["PRACTICE_PHONE"],
         "email": _VALUES["PRACTICE_EMAIL"],

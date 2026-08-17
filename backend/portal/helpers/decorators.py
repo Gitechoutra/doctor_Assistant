@@ -17,6 +17,13 @@ where the split is named rather than re-derived at each route:
 
 Registration and the appointment book are the mirror image: `front_desk_only`
 is the PA's own work, and the doctor is deliberately outside it.
+
+One thing sits outside that split and is `doctor_only` for a different reason:
+**creating accounts** (`routes/pa_routes`, `routes/doctor_routes.create_doctor`).
+The doctor is the account a checkout is seeded with -- see
+`seeders/seed_doctor` -- so they are the one who exists first, and a PA able to
+mint accounts could mint a doctor's, which would make everything above
+decorative.
 """
 
 from functools import wraps

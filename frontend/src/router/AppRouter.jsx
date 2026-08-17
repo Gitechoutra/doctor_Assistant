@@ -23,6 +23,7 @@ const Patients = lazy(() => import("../pages/Patients"));
 const PatientDetails = lazy(() => import("../pages/PatientDetails"));
 const Appointments = lazy(() => import("../pages/Appointments"));
 const Doctors = lazy(() => import("../pages/Doctors"));
+const Assistants = lazy(() => import("../pages/Assistants"));
 const PatientQueue = lazy(() => import("../pages/PatientQueue"));
 const Consultations = lazy(() => import("../pages/Consultations"));
 const ConsultationRoom = lazy(() => import("../pages/ConsultationRoom"));
@@ -91,10 +92,6 @@ export default function AppRouter() {
 
               <Route element={<RoleRoute allow={PA_ONLY} />}>
                 <Route path="appointments" element={<Appointments />} />
-                {/* Where the practice's doctor comes from. There is no default
-                    one, and the doctor cannot create their own account — they
-                    have no way in until it exists. So this is the desk's. */}
-                <Route path="doctors" element={<Doctors />} />
               </Route>
 
               <Route element={<RoleRoute allow={DOCTOR_ONLY} />}>
@@ -103,6 +100,15 @@ export default function AppRouter() {
                 <Route path="cases" element={<Cases />} />
                 <Route path="cases/:id" element={<CaseRecord />} />
                 <Route path="prescriptions" element={<Prescriptions />} />
+                {/* Where the desk's accounts come from. The doctor is the
+                    seeded account, so they are the one who exists first and
+                    the only one who can issue credentials — a PA who could
+                    mint accounts could mint a doctor's. */}
+                <Route path="assistants" element={<Assistants />} />
+                {/* Off the menu, and the route kept: a practice taking on a
+                    second doctor adds them here. The first one comes from the
+                    seeder, not from this screen. */}
+                <Route path="doctors" element={<Doctors />} />
               </Route>
             </Route>
           </Route>

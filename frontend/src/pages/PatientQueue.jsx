@@ -61,18 +61,11 @@ export default function PatientQueue() {
     }
   }
 
-  const waiting = queue.filter((a) => a.status === "waiting").length;
-  const consulting = queue.filter((a) => a.status === "in_progress").length;
-
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Patient Queue</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {consulting > 0 && `${consulting} in consultation · `}
-            {waiting} {waiting === 1 ? "patient" : "patients"} waiting
-          </p>
         </div>
         <button
           onClick={() => load(true)}

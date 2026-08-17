@@ -14,8 +14,8 @@ import Avatar from "./Avatar";
  * pages still decide what goes in the badge row and the footer.
  */
 
-/** Icon + title + one line of explanation, at the top of a list page. */
-export function PageHeader({ icon: Icon, title, description, action }) {
+/** Icon + title, at the top of a list page. */
+export function PageHeader({ icon: Icon, title, action }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
@@ -23,9 +23,6 @@ export function PageHeader({ icon: Icon, title, description, action }) {
           {Icon && <Icon className="h-6 w-6 shrink-0 text-brand-600" />}
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{title}</h1>
         </div>
-        {description && (
-          <p className="mt-1 max-w-3xl text-sm text-slate-500">{description}</p>
-        )}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

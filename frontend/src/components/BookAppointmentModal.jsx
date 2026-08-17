@@ -218,7 +218,6 @@ export default function BookAppointmentModal({
             <input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Fever for three days"
               className={INPUT}
             />
           </label>

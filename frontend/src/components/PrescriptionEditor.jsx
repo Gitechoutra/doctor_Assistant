@@ -73,10 +73,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
       className="mt-3 rounded-xl border border-amber-200 bg-amber-50/50 p-4"
     >
       <p className="text-sm font-semibold text-slate-800">Add a medicine by hand</p>
-      <p className="mt-0.5 text-[11px] text-slate-500">
-        For something the catalogue does not carry. It goes on this prescription as
-        written, and is added to the practice's catalogue so it is there next time.
-      </p>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
@@ -86,7 +82,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.medicine_name}
             onChange={update("medicine_name")}
-            placeholder="e.g. Vitamin D3 60000 IU"
           />
         </div>
         <div>
@@ -108,7 +103,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.dose}
             onChange={update("dose")}
-            placeholder="1 sachet"
           />
         </div>
         <div>
@@ -117,7 +111,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.frequency}
             onChange={update("frequency")}
-            placeholder="Once weekly"
           />
         </div>
         <div>
@@ -126,7 +119,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.duration}
             onChange={update("duration")}
-            placeholder="8 weeks"
           />
         </div>
         <div>
@@ -135,7 +127,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.quantity}
             onChange={update("quantity")}
-            placeholder="8 sachets"
           />
         </div>
       </div>
@@ -148,7 +139,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.instructions}
             onChange={update("instructions")}
-            placeholder="Dissolve in water, take after breakfast"
           />
         </div>
         <div>
@@ -158,7 +148,6 @@ function CustomMedicineForm({ onAdd, onCancel }) {
             className={inputClass}
             value={form.notes}
             onChange={update("notes")}
-            placeholder="e.g. not stocked — patient to buy outside"
           />
         </div>
       </div>
@@ -270,11 +259,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
         <p className={labelClass}>Search medicine</p>
         <MedicineSearch alreadyAdded={addedBrandIds} onAdd={addMedicine} />
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] text-slate-400">
-            Medicines come from the practice's own catalogue.
-            Press <span className="font-semibold">+</span> to add one, then set the dosage
-            below.
-          </p>
           {/* The escape hatch. The catalogue must never be the reason a
               patient does not get what they need. */}
           <button
@@ -365,7 +349,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                   className={cellClass}
                   value={row.dose}
                   onChange={(e) => updateRow(i, "dose", e.target.value)}
-                  placeholder="1 tablet"
                 />
               </div>
               <div>
@@ -374,7 +357,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                   className={cellClass}
                   value={row.frequency}
                   onChange={(e) => updateRow(i, "frequency", e.target.value)}
-                  placeholder="Twice daily"
                 />
               </div>
               <div>
@@ -383,7 +365,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                   className={cellClass}
                   value={row.duration}
                   onChange={(e) => updateRow(i, "duration", e.target.value)}
-                  placeholder="5 days"
                 />
               </div>
               <div>
@@ -392,7 +373,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                   className={cellClass}
                   value={row.quantity}
                   onChange={(e) => updateRow(i, "quantity", e.target.value)}
-                  placeholder="10 tablets"
                 />
               </div>
             </div>
@@ -425,7 +405,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                   className={cellClass}
                   value={row.instructions}
                   onChange={(e) => updateRow(i, "instructions", e.target.value)}
-                  placeholder="Take after food with water"
                 />
               </div>
               <div>
@@ -435,7 +414,6 @@ export default function PrescriptionEditor({ prescriptions, saving, onCancel, on
                   className={cellClass}
                   value={row.notes}
                   onChange={(e) => updateRow(i, "notes", e.target.value)}
-                  placeholder="e.g. review response before repeating"
                 />
               </div>
             </div>

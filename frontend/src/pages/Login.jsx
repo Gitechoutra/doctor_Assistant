@@ -54,7 +54,7 @@ export default function Login() {
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-indigo-200/40 blur-3xl" />
 
       <div className="relative w-full max-w-md rounded-3xl border border-white/60 bg-white/80 p-8 shadow-2xl shadow-brand-900/10 backdrop-blur-xl">
-        <Logo className="justify-center" subtitle="Smart Practice Management for Doctors" />
+        <Logo className="justify-center" />
 
         <h1 className="mt-6 text-center text-xl font-bold text-slate-900">Welcome back</h1>
 
@@ -75,7 +75,6 @@ export default function Login() {
                 autoFocus
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="you@yourpractice.com"
                 className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
               />
             </div>
@@ -99,7 +98,6 @@ export default function Login() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
                 className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
               />
               <button
@@ -132,11 +130,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          MediAssist AI is used by two people: the doctor and their PA. Both sign
-          in here.
-        </p>
-        <p className="mt-3 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-sm text-slate-500">
           <Link to="/" className="font-semibold text-slate-500 hover:text-slate-700">
             ← Back to home
           </Link>

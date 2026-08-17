@@ -5,7 +5,6 @@ import {
   HiOutlineCheckCircle,
   HiOutlineClipboardDocumentList,
   HiOutlineClock,
-  HiOutlineDocumentChartBar,
   HiOutlineQueueList,
   HiOutlineUserPlus,
   HiOutlineUsers,
@@ -100,11 +99,6 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-slate-900">
             Good day{firstName ? `, ${isDoctor ? "Dr. " : ""}${firstName}` : ""}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {isDoctor
-              ? "Your patients and consultations for today."
-              : "The practice's day at a glance."}
-          </p>
         </div>
         {!isDoctor && (
           <Link
@@ -220,22 +214,16 @@ export default function Dashboard() {
 
           {isDoctor ? (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <StatCard
-                  label="Prescriptions to sign"
-                  value={data.pending_prescriptions}
-                  hint="Finished visits awaiting sign-off"
-                  icon={HiOutlineClipboardDocumentList}
-                  to="/dashboard/consultations"
-                />
-                <StatCard
-                  label="Reports"
-                  value={data.reports_generated}
-                  hint={`${data.todays_reports ?? 0} issued today`}
-                  icon={HiOutlineDocumentChartBar}
-                  to="/dashboard/reports"
-                />
-              </div>
+              {/* Reports came off the menu, and its stat card went with it —
+                  a tile is a way in, and leaving one behind would have put
+                  the section back on screen by another door. */}
+              <StatCard
+                label="Prescriptions to sign"
+                value={data.pending_prescriptions}
+                hint="Finished visits awaiting sign-off"
+                icon={HiOutlineClipboardDocumentList}
+                to="/dashboard/consultations"
+              />
 
               <Panel
                 title="Recent consultations"

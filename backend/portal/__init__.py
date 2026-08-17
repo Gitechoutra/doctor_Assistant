@@ -94,8 +94,8 @@ class InitApp:
 
         # -- Reference data ------------------------------------------------
         # What a database needs before anyone can use it: the two roles the
-        # authorization model is written against, the PA and doctor accounts
-        # to sign in as, and the formulary the prescribing workflow assumes.
+        # authorization model is written against, the doctor's account to sign
+        # in as, and the formulary the prescribing workflow assumes.
         # Checked on every start rather than left to a migration or a seed
         # command, so a fresh clone or a restored dump comes up usable.
         #

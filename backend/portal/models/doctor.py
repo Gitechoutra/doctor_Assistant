@@ -2,6 +2,17 @@ from datetime import datetime
 
 from portal.extensions import db
 
+# What a doctor's row says when the specialization was left blank. A practice
+# that has not told us is a General Medicine practice far more often than it is
+# nothing at all, and it is editable afterwards on the doctor's own
+# practice-details screen.
+#
+# Lives on the model rather than in the route that used to own it, because a
+# doctor now arrives by two doors -- the seeded default account
+# (`seeders/seed_accounts`) and `POST /api/doctors` -- and both must fill the
+# column the same way.
+DEFAULT_SPECIALIZATION = "General Medicine"
+
 
 class Doctor(db.Model):
     """The practice's doctor.
@@ -32,11 +43,11 @@ class Doctor(db.Model):
     # The practice's own name, as it should appear on paperwork. Null falls
     # back to the doctor's name.
     practice_name = db.Column(db.String(200), nullable=True)
-    # The PA who set this doctor up. Nullable because a doctor can exist
-    # without one -- a row created before this column, or the first doctor of a
-    # practice seeded some other way -- and ON DELETE SET NULL rather than
-    # CASCADE because removing the PA's account must not take the doctor, the
-    # consultations hanging off them and the practice's whole record with it.
+    # Who set this doctor up. Nullable because a doctor can exist without one
+    # -- the practice's seeded first doctor has nobody above them -- and ON
+    # DELETE SET NULL rather than CASCADE because removing the creator's
+    # account must not take the doctor, the consultations hanging off them and
+    # the practice's whole record with it.
     created_by_user_id = db.Column(
         db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

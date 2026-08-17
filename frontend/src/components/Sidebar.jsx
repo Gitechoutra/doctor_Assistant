@@ -5,8 +5,6 @@ import {
   HiOutlineChatBubbleLeftRight,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
-  HiOutlineDocumentChartBar,
-  HiOutlineFolderOpen,
   HiOutlineIdentification,
   HiOutlineQueueList,
   HiOutlineSquares2X2,
@@ -29,16 +27,18 @@ import { ROLE_DOCTOR, ROLE_PA, useAuth } from "../context/AuthContext";
  * Every path here is a real route in AppRouter. That is the invariant worth
  * keeping: a nav entry pointing at a deleted route is a dead button, and dead
  * buttons are how a refactor like this one leaks.
+ *
+ * The reverse does not hold, and deliberately so. Cases and Reports are off
+ * the menu for now, but their routes stay: the consultation room, a
+ * prescription and a report card all link straight into a case, and those
+ * links are live. Dropping the routes would break them. What changed here is
+ * only what the sidebar offers as a place to start.
  */
 const PA_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: HiOutlineSquares2X2, end: true },
   { to: "/dashboard/patients", label: "Patients", icon: HiOutlineUsers },
   { to: "/dashboard/appointments", label: "Appointments", icon: HiOutlineCalendarDays },
   { to: "/dashboard/queue", label: "Patient Queue", icon: HiOutlineQueueList },
-  // The practice's doctor is set up here. Not in the doctor's nav: they cannot
-  // sign in until the PA has made the account, so it could never be their job.
-  { to: "/dashboard/doctors", label: "Doctors", icon: HiOutlineUserPlus },
-  { to: "/dashboard/reports", label: "Reports", icon: HiOutlineDocumentChartBar },
   { to: "/dashboard/profile", label: "Profile", icon: HiOutlineIdentification },
   { to: "/dashboard/settings", label: "Settings", icon: HiOutlineCog6Tooth },
 ];
@@ -52,16 +52,15 @@ const DOCTOR_NAV = [
     label: "Consultations",
     icon: HiOutlineChatBubbleLeftRight,
   },
-  // A course of treatment across several visits — where a doctor picks an
-  // ongoing case back up, and where a finished one gets its consolidated
-  // report.
-  { to: "/dashboard/cases", label: "Cases", icon: HiOutlineFolderOpen },
   {
     to: "/dashboard/prescriptions",
     label: "Prescriptions",
     icon: HiOutlineClipboardDocumentList,
   },
-  { to: "/dashboard/reports", label: "Reports", icon: HiOutlineDocumentChartBar },
+  // The desk's accounts are set up here. Not in the PA's nav: the doctor is
+  // the seeded account and the only one who can issue credentials, so a PA
+  // cannot create accounts at all — the API 403s them either way.
+  { to: "/dashboard/assistants", label: "Assistants", icon: HiOutlineUserPlus },
   { to: "/dashboard/profile", label: "Profile", icon: HiOutlineIdentification },
   { to: "/dashboard/settings", label: "Settings", icon: HiOutlineCog6Tooth },
 ];

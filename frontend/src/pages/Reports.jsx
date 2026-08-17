@@ -33,19 +33,9 @@ export default function Reports() {
     }
   }
 
-  // The dashboard card shows both numbers, so the page it links to has to
-  // agree. Counted from the same rows on screen rather than a second request.
-  const todayKey = new Date().toDateString();
-  const todaysReports = reports.filter(
-    (r) => r.generated_at && new Date(r.generated_at).toDateString() === todayKey
-  ).length;
-
   return (
     <div>
       <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Reports</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        {todaysReports} generated today · {reports.length} total
-      </p>
 
       <div className="mt-6">
         {loading ? (

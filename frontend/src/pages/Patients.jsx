@@ -142,11 +142,6 @@ export default function Patients() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Patients</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {counts?.total != null
-              ? `${counts.total} on the practice's books`
-              : "The practice's patient records"}
-          </p>
         </div>
         {canRegister && (
           <button

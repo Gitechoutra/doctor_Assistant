@@ -4,14 +4,15 @@ Where the hospital version had a directory, a department filter and a
 rota-driven availability board, this has a list of one: there is nobody to
 search among, no department to filter by and no rota.
 
-**The doctor is created by the PA, not by a seeder.** There used to be a
-default doctor written into the repository and inserted at every boot, which
-meant every checkout of MediAssist AI came up as the same fictional person and
-a real practice's first job was to edit a row it never asked for. It is gone.
-A fresh database now has a PA and no doctor, and `create_doctor` below is how
-the practice gets one -- the PA enters the details the doctor gives them, the
-account and its login are made in one transaction, and the doctor can sign in
-with those credentials straight away.
+**The practice's first doctor comes from the seeder**, not from here: the
+credentials in `seeders/seed_doctor.DOCTOR_DEFAULTS` are the account a fresh
+checkout signs in with, and `helpers/bootstrap` keeps it in step with them at
+every start. `create_doctor` below is how a practice that takes on a *second*
+doctor adds them -- the same account-and-login-in-one-transaction handover the
+desk's accounts get from `routes/pa_routes`, and the doctor's own work now
+rather than the PA's. Creating accounts is the one thing the seeded role can
+do that the desk cannot; a PA who could mint a doctor's account would make the
+whole role split decorative.
 
 Nothing here implements a second way to log in. The account it creates is an
 ordinary `users` row with the `doctor` role, hashed by `User.set_password` and
@@ -34,22 +35,20 @@ from portal.helpers.credentials import (
     link_lifetime_minutes,
     login_url,
 )
-from portal.helpers.decorators import doctor_only, front_desk_only
+from portal.helpers.decorators import doctor_only
 from portal.helpers.practice import practice_doctor
 from portal.helpers.response import error, success
-from portal.models.doctor import Doctor
+
+# What a doctor's row says when the field is left blank. On the model, because
+# the seeded doctor's profile is filled in the same way -- see
+# `seeders/seed_accounts._ensure_profile`.
+from portal.models.doctor import DEFAULT_SPECIALIZATION, Doctor
 from portal.models.role import DOCTOR, Role
 from portal.models.user import User
 
 doctor_bp = Blueprint("doctors", __name__)
 
 DOCTOR_CREATED = "doctor.created"
-
-# What a doctor's row says when the PA leaves the field blank. A practice that
-# has not told us the specialization is a General Medicine practice far more
-# often than it is nothing at all, and both are editable by the doctor
-# afterwards on their own practice-details screen.
-DEFAULT_SPECIALIZATION = "General Medicine"
 
 
 @doctor_bp.get("")
@@ -66,29 +65,29 @@ def list_doctors():
 
 
 @doctor_bp.post("")
-@front_desk_only
+@doctor_only
 def create_doctor():
-    """The PA setting up a doctor's account.
+    """A doctor setting up another doctor's account.
 
-    The desk's work, not the doctor's: the doctor cannot create their own
-    account because they have no way to sign in until it exists. The PA is the
-    only role that can reach this, and the account it makes is linked back to
-    them through `doctors.created_by_user_id`.
+    The doctor's work, not the desk's. The practice's *first* doctor is the
+    seeded account and does not come through here at all -- somebody has to
+    exist before anyone can sign in. This is for the second one, and the
+    account it makes is linked back to whoever created it through
+    `doctors.created_by_user_id`.
 
-    Two ways to give it a password, and both end with an account the doctor can
-    sign in to immediately:
+    Two ways to give it a password, and both end with an account the new doctor
+    can sign in to immediately:
 
-      * **the PA types one** -- the doctor gave them a password to set, or the
-        two are sitting at the same desk. Checked against MIN_PASSWORD, the
-        same floor every other password on the system has to clear.
-      * **the PA leaves it blank** -- a random one is generated and returned
-        once, in this response, for the PA to hand over.
+      * **a password is typed in** -- checked against MIN_PASSWORD, the same
+        floor every other password on the system has to clear.
+      * **it is left blank** -- a random one is generated and returned once, in
+        this response, to hand over.
 
-    Either way the raw password is returned to the PA exactly once and never
-    stored: `users.password_hash` is written by `User.set_password`, the same
-    hashing every other account uses. A single-use link to replace it is also
-    issued and mailed, so the doctor can move to a password nobody else has
-    seen -- but the account works before they use it, which is what "log in
+    Either way the raw password is returned exactly once and never stored:
+    `users.password_hash` is written by `User.set_password`, the same hashing
+    every other account uses. A single-use link to replace it is also issued
+    and mailed, so the new doctor can move to a password nobody else has seen
+    -- but the account works before they use it, which is what "log in
     immediately" requires.
 
     One transaction. A doctor with no `doctors` row is a half-formed account:

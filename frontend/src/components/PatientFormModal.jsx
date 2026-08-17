@@ -143,7 +143,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
               <input
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="Rahul Verma"
                 autoFocus
                 required
                 className={INPUT}
@@ -202,7 +201,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 value={form.dob ? (derivedAge ?? "") : form.age}
                 disabled={Boolean(form.dob)}
                 onChange={(e) => set("age", e.target.value)}
-                placeholder="34"
                 className={`${INPUT} disabled:bg-slate-50 disabled:text-slate-400`}
               />
             </Field>
@@ -219,7 +217,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 inputMode="numeric"
                 value={form.phone}
                 onChange={(e) => set("phone", digitsOnly(e.target.value))}
-                placeholder="9876543210"
                 className={INPUT}
               />
             </Field>
@@ -229,7 +226,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 type="text"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
-                placeholder="rahul.verma@gmail.com"
                 className={INPUT}
               />
             </Field>
@@ -239,7 +235,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 rows={2}
                 value={form.address}
                 onChange={(e) => set("address", e.target.value)}
-                placeholder="14 MG Road, Kakinada"
                 className={INPUT}
               />
             </Field>
@@ -248,7 +243,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
               <input
                 value={form.emergency_contact_name}
                 onChange={(e) => set("emergency_contact_name", e.target.value)}
-                placeholder="Sunita Verma"
                 className={INPUT}
               />
             </Field>
@@ -258,7 +252,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 inputMode="numeric"
                 value={form.emergency_contact_phone}
                 onChange={(e) => set("emergency_contact_phone", digitsOnly(e.target.value))}
-                placeholder="9876500011"
                 className={INPUT}
               />
             </Field>
@@ -279,7 +272,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 rows={2}
                 value={form.allergies}
                 onChange={(e) => set("allergies", e.target.value)}
-                placeholder="Penicillin"
                 className={INPUT}
               />
             </Field>
@@ -289,7 +281,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 rows={3}
                 value={form.existing_conditions}
                 onChange={(e) => set("existing_conditions", e.target.value)}
-                placeholder="Type 2 diabetes"
                 className={INPUT}
               />
             </Field>
@@ -299,7 +290,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 rows={3}
                 value={form.medical_history}
                 onChange={(e) => set("medical_history", e.target.value)}
-                placeholder="Appendectomy 2019"
                 className={INPUT}
               />
             </Field>
@@ -313,7 +303,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                 rows={2}
                 value={form.notes}
                 onChange={(e) => set("notes", e.target.value)}
-                placeholder="Prefers morning appointments"
                 className={INPUT}
               />
             </Field>
@@ -345,7 +334,6 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
                   <input
                     value={form.reason}
                     onChange={(e) => set("reason", e.target.value)}
-                    placeholder="Fever for three days"
                     className={INPUT}
                   />
                 </Field>
