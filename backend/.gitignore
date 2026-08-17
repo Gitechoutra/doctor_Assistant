@@ -8,4 +8,4 @@ logs/*.log
 uploads/
 test_tone.wav
 migrations/
-seeders/seed_admin.py
+seeders/seed_doctor.py

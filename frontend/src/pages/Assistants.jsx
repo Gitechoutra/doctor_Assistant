@@ -4,12 +4,14 @@ import {
   HiOutlineClipboard,
   HiOutlineExclamationTriangle,
   HiOutlinePlus,
+  HiOutlineTrash,
   HiOutlineUserPlus,
 } from "react-icons/hi2";
 import Avatar from "../components/Avatar";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PasswordInput from "../components/PasswordInput";
 import { MIN_PASSWORD } from "../services/authService";
-import { createPA, fetchPAs } from "../services/paService";
+import { createPA, deletePA, fetchPAs } from "../services/paService";
 
 /**
  * The doctor's screen for setting the desk up.
@@ -154,6 +156,8 @@ export default function Assistants() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [issued, setIssued] = useState(null); // { credentials, name }
+  const [confirmDelete, setConfirmDelete] = useState(null); // the assistant, or null
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     try {
@@ -168,6 +172,23 @@ export default function Assistants() {
   useEffect(() => {
     load();
   }, []);
+
+  async function handleDelete() {
+    const pa = confirmDelete;
+    setDeleting(true);
+    setErrorMsg("");
+    try {
+      await deletePA(pa.id);
+      // Drops it from view the moment the server confirms, rather than
+      // waiting on a refetch the doctor would just be staring through.
+      setAssistants((list) => list.filter((a) => a.id !== pa.id));
+      setConfirmDelete(null);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Could not delete this assistant.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -223,6 +244,10 @@ export default function Assistants() {
           </button>
         )}
       </div>
+
+      {errorMsg && !showForm && (
+        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{errorMsg}</p>
+      )}
 
       {issued && (
         <div className="mt-6">
@@ -361,9 +386,31 @@ export default function Assistants() {
                   Disabled
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(pa)}
+                title={`Delete ${pa.name}`}
+                aria-label={`Delete ${pa.name}`}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+              >
+                <HiOutlineTrash className="h-3.5 w-3.5 shrink-0" />
+                Delete
+              </button>
             </div>
           ))}
         </div>
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Delete ${confirmDelete.name}?`}
+          message={`This permanently removes ${confirmDelete.name}'s account and sign-in credentials. They will no longer be able to log in. This cannot be undone.`}
+          confirmLabel="Delete"
+          destructive
+          busy={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );

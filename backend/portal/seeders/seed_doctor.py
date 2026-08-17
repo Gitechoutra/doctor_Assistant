@@ -22,9 +22,9 @@ from portal.seeders.seed_accounts import (
 # signs in with these and creates the desk's accounts through "Assistants"
 # (POST /api/pas), which issues each PA their own credentials.
 DOCTOR_DEFAULTS = {
-    "name": "Practice Doctor",
-    "email": "goddumahesh2@gmail.com",
-    "password": "Virat@100",
+    "name": "Dr. Raghuram Reddy",
+    "email": "lingamrevanth106@gmail.com",
+    "password": "Doc@1234",
 }
 
 

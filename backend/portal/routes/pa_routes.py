@@ -44,6 +44,7 @@ from portal.models.user import User
 pa_bp = Blueprint("pas", __name__)
 
 PA_CREATED = "pa.created"
+PA_DELETED = "pa.deleted"
 
 
 def _to_dict(user):
@@ -226,3 +227,48 @@ def create_pa():
         message=f"{name} can now sign in.",
         status=201,
     )
+
+
+@pa_bp.delete("/<int:pa_id>")
+@doctor_only
+def delete_pa(pa_id):
+    """Permanently removes an assistant's account and credentials.
+
+    Filtered by role as well as id, so this can never reach the doctor's own
+    account through a guessed or mistyped id -- only a row with the `pa` role
+    is ever a candidate.
+
+    Nothing clinical hangs off a PA to block this the way a patient's
+    consultation records do (see `patient_routes.delete_patient`): closing a
+    case, verifying a prescription and reviewing a custom medicine request are
+    all `doctor_only`, so a PA's id can never be the one recorded on any of
+    those rows. What *is* tied to the account -- their notifications and any
+    password-reset link issued to them -- cascades with the row
+    (`ondelete="CASCADE"` in `models/notification` and
+    `models/password_reset_token`), so nothing is left pointing at a deleted
+    user.
+    """
+    role = Role.query.filter_by(name=PA).first()
+    if not role:
+        return error("Assistant not found", status=404)
+
+    user = User.query.filter_by(id=pa_id, role_id=role.id).first()
+    if not user:
+        return error("Assistant not found", status=404)
+
+    name, email = user.name, user.email
+
+    audit(
+        PA_DELETED,
+        entity="user",
+        entity_id=user.id,
+        detail=f"PA account deleted -- {name} ({email})",
+    )
+    db.session.delete(user)
+    try:
+        db.session.commit()
+    except Exception as exc:  # noqa: BLE001 - surface a DB failure as clean JSON
+        db.session.rollback()
+        return error(f"Could not delete this assistant: {exc}", status=500)
+
+    return success({"id": pa_id}, message=f"{name}'s account has been removed.")
