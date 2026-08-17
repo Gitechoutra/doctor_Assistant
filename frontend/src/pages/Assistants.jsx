@@ -41,8 +41,16 @@ function Labelled({ label, hint, children }) {
 }
 
 /** The credentials, shown once. Copyable, because the alternative is the
- *  doctor transcribing a generated password by eye. */
-function CredentialsPanel({ credentials, name, onDismiss }) {
+ *  doctor transcribing a generated password by eye.
+ *
+ *  `emailSent` is the server's account of what actually happened, not an
+ *  assumption. The account is created either way — that part is committed
+ *  before the mail is attempted — so this stays the "it worked" panel, and the
+ *  delivery failure is called out inside it rather than replacing it. Saying
+ *  "we emailed them" when we did not is the one thing this must never do: the
+ *  doctor would stop handing the credentials over, and the assistant would
+ *  wait for a message that is not coming. */
+function CredentialsPanel({ credentials, name, emailSent, emailError, onDismiss }) {
   const [copied, setCopied] = useState(false);
 
   const block = [
@@ -77,9 +85,28 @@ function CredentialsPanel({ credentials, name, onDismiss }) {
               ? "We generated this password. "
               : "This is the password you set. "}
             Give these to your assistant — they are shown once and are not
-            stored anywhere, so they cannot be looked up again. A copy has also
-            been emailed to them, with a link to set a password only they know.
+            stored anywhere, so they cannot be looked up again.
+            {emailSent
+              ? " A copy has also been emailed to them, with a link to set a password only they know."
+              : ""}
           </p>
+
+          {!emailSent && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <HiOutlineExclamationTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-xs font-semibold text-amber-900">
+                  We could not email these to {name}
+                </p>
+                <p className="mt-1 text-xs text-amber-800">
+                  {emailError ||
+                    "The account was created, but the email could not be sent."}{" "}
+                  They can still sign in with the password above, and set their
+                  own from Profile once they are in.
+                </p>
+              </div>
+            </div>
+          )}
 
           <dl className="mt-3 space-y-1.5 rounded-xl bg-white/70 p-3 font-mono text-xs text-slate-800">
             <div className="flex gap-2">
@@ -157,7 +184,12 @@ export default function Assistants() {
         Object.entries(form).filter(([, v]) => String(v).trim() !== "")
       );
       const created = await createPA(payload);
-      setIssued({ credentials: created.credentials, name: created.name });
+      setIssued({
+        credentials: created.credentials,
+        name: created.name,
+        emailSent: created.email_sent,
+        emailError: created.email_error,
+      });
       setForm(EMPTY);
       setShowForm(false);
       await load();
@@ -197,6 +229,8 @@ export default function Assistants() {
           <CredentialsPanel
             credentials={issued.credentials}
             name={issued.name}
+            emailSent={issued.emailSent}
+            emailError={issued.emailError}
             onDismiss={() => setIssued(null)}
           />
         </div>

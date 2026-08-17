@@ -165,7 +165,13 @@ def create_pa():
 
     # After the commit, and never blocking the response: SMTP cannot be rolled
     # back, and the account is already usable without the mail arriving.
-    mailer.send_staff_credentials(
+    #
+    # The outcome is reported rather than discarded. The account exists either
+    # way -- the doctor still has the credentials on screen to hand over by
+    # some other route -- but "we emailed them" and "we could not" lead to
+    # different next actions, and telling the doctor the first when the second
+    # happened leaves an assistant waiting for a message that will never come.
+    emailed = mailer.send_staff_credentials(
         user,
         temp_password=raw_password,
         reset_link=reset_link,
@@ -174,9 +180,37 @@ def create_pa():
         role_name=PA,
     )
 
+    # Why it did not go, in the terms the doctor can act on. `delivery_state`
+    # separates the two configuration faults from a send that was attempted and
+    # refused, because only the last of those is worth simply retrying.
+    email_error = None
+    if not emailed:
+        state = mailer.delivery_state()
+        if state == "unconfigured":
+            email_error = (
+                "No mail server is configured, so nothing was sent. Hand these "
+                "credentials over yourself, and ask your administrator to set "
+                "up email."
+            )
+        elif state == "disabled":
+            email_error = (
+                "Email sending is switched off on this server, so nothing was "
+                "sent. Hand these credentials over yourself."
+            )
+        else:
+            email_error = (
+                f"The account was created, but the email to {user.email} could "
+                "not be delivered. Check the address and hand these credentials "
+                "over yourself."
+            )
+
     return success(
         {
             **_to_dict(user),
+            # Never assumed. The panel that tells the doctor their assistant
+            # has been notified is driven by what actually happened.
+            "email_sent": emailed,
+            "email_error": email_error,
             # Returned once and never again -- there is no route that reads a
             # password back, because nothing stores one. The doctor hands these
             # to the assistant, who can sign in with them right away.
