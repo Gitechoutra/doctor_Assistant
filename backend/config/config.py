@@ -103,7 +103,21 @@ SETTINGS = (
     # -- [ai] --------------------------------------------------------------
     # Transcription and consultation summaries both run through Gemini.
     ("GEMINI_API_KEY", "ai", "gemini_api_key", ""),
-    ("GEMINI_MODEL", "ai", "gemini_model", "gemini-flash-latest"),
+    # A concrete version, not the "gemini-flash-latest" alias. The alias moves
+    # on Google's release schedule, and the model behind it once began
+    # answering every audio request with 500 INTERNAL while text on the same
+    # alias stayed fine -- transcription stopped working with no change on this
+    # side and nothing to roll back to. Pinning makes a model change something
+    # the practice chooses. Picked on measured audio reliability, not on version
+    # number -- see DEFAULT_MODEL in portal/ai/gemini_client.py.
+    ("GEMINI_MODEL", "ai", "gemini_model", "gemini-3.5-flash"),
+    # Tried in order, and only when the primary fails on the service's side: a
+    # 500/503, or a model Google has withdrawn. A dropped connection does not
+    # trigger it, because every model would fail that way. Comma-separated;
+    # blank disables failover. Not a load-balancing pool -- the primary is
+    # always preferred, so transcription stays predictable and a fallback is a
+    # visible, logged event rather than the normal case.
+    ("GEMINI_MODEL_FALLBACKS", "ai", "gemini_model_fallbacks", "gemini-3.6-flash"),
     # -- [email] -----------------------------------------------------------
     # Outbound mail. Staff credentials and password-reset links are the only
     # things the portal sends, and both are useless if they don't arrive, so
@@ -227,6 +241,7 @@ INI_ALIASES = {
     "RESET_TOKEN_MINUTES": (("password_reset", "reset_token_minutes"),),
     "GEMINI_API_KEY": (("gemini", "api_key"),),
     "GEMINI_MODEL": (("gemini", "model"),),
+    "GEMINI_MODEL_FALLBACKS": (("gemini", "model_fallbacks"),),
 }
 
 TRUTHY = {"1", "true", "yes", "on"}
@@ -561,6 +576,7 @@ class BaseConfig:
     # -- AI ----------------------------------------------------------------
     GEMINI_API_KEY = _VALUES["GEMINI_API_KEY"]
     GEMINI_MODEL = _VALUES["GEMINI_MODEL"]
+    GEMINI_MODEL_FALLBACKS = _VALUES["GEMINI_MODEL_FALLBACKS"]
 
     # -- File storage ------------------------------------------------------
     # Avatars and patient photos. Absolute, so a deployment can point it at a

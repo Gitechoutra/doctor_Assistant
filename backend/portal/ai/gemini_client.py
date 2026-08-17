@@ -90,14 +90,26 @@ def _quota_error(exc, model):
 
 
 class AIServiceUnavailableError(Exception):
-    """The Gemini API could not be reached, after retrying.
+    """The call could not be completed, after retrying. Not a quota refusal:
+    nothing is wrong with the request, the account or the recording.
 
-    Distinct from a quota refusal: nothing is wrong with the request, the
-    account or the recording — the connection to Google dropped. Raised in
-    place of the raw socket error so a doctor sees an instruction they can act
-    on instead of "[WinError 10054] An existing connection was forcibly closed
-    by the remote host".
+    Raised in place of the raw error so a doctor sees an instruction they can
+    act on instead of "[WinError 10054] An existing connection was forcibly
+    closed by the remote host".
+
+    `server_side` separates the two causes, because the advice is opposite. A
+    dropped socket is something the practice can act on — check the router,
+    the wifi, the tethered phone. A 500 or 503 from Google is not: the request
+    arrived and the service failed to serve it, and telling a doctor to check
+    their internet connection then sends them to fix a connection that was
+    never broken. That is exactly what happened here — audio requests returned
+    500 INTERNAL for hours while text requests on the same key and the same
+    alias succeeded — so the distinction is carried rather than guessed at.
     """
+
+    def __init__(self, message, server_side=False):
+        super().__init__(message)
+        self.server_side = server_side
 
 
 class SilentRecordingError(Exception):
@@ -121,6 +133,44 @@ _RETRIABLE_WINSOCK = (10053, 10054, 10060)
 
 MAX_ATTEMPTS = 4
 RETRY_BASE_DELAY = 1.5  # seconds, doubled each attempt
+
+# A concrete version, not the "gemini-flash-latest" alias this used to default
+# to. The alias moves on Google's release schedule, and the model behind it
+# started answering every audio request with 500 INTERNAL while text on the
+# same alias kept working — transcription was dead with no change on this side
+# and no earlier version to fall back to. What model reads a clinical
+# recording is a decision the practice should make and be able to revisit, so
+# it is pinned here and overridable from config.
+#
+# Chosen on measurement rather than version number: tested through this
+# module's own audio pipeline on 2026-08-17, one attempt each, 3.5-flash
+# transcribed 4/4 where 3.6-flash returned 500 INTERNAL 4/4. Re-measure before
+# raising this — a newer flash model is not automatically a working one for
+# audio.
+DEFAULT_MODEL = "gemini-3.5-flash"
+
+# Tried in order when the primary fails on the service's side. Not a
+# load-balancing pool: the primary is always preferred, so what transcribes a
+# consultation stays predictable and a switch is a logged, visible event.
+DEFAULT_MODEL_FALLBACKS = "gemini-3.6-flash"
+
+
+def chat_model_name():
+    """The model used for transcription, summaries and consolidation."""
+    return os.getenv("GEMINI_MODEL") or DEFAULT_MODEL
+
+
+def fallback_model_names():
+    """Alternates to try when the primary model fails server-side.
+
+    Blank disables failover, which is what a practice that would rather see an
+    error than a quietly different model should set.
+    """
+    raw = os.getenv("GEMINI_MODEL_FALLBACKS")
+    if raw is None:
+        raw = DEFAULT_MODEL_FALLBACKS
+    return [name.strip() for name in raw.split(",") if name.strip()]
+
 
 # How long any single request may take before it is abandoned and retried. A
 # whole-consultation recording is a real upload followed by real inference, so
@@ -156,11 +206,53 @@ def _is_transient(exc):
     return False
 
 
-def _call(fn, model, doing="talking to the AI service", attempts=MAX_ATTEMPTS):
-    """Runs an SDK call, retrying dropped connections and translating refusals.
+def _is_server_side(exc):
+    """Whether the service answered with a fault of its own.
 
-    Wrapped at the call site rather than at the top of each public function so
-    a 429 raised on a retry attempt is translated too.
+    This is what decides whether trying another model is worth the doctor's
+    time. A 500 on one model while another answers normally is a fault in that
+    model's serving path, and asking a different one is likely to work. A reset
+    socket, by contrast, fails every model identically — retrying down a list
+    of them just makes the doctor wait longer for the same error.
+    """
+    if isinstance(exc, genai_errors.ServerError):
+        return True
+    return (
+        isinstance(exc, genai_errors.APIError)
+        and getattr(exc, "code", None) in _RETRIABLE_STATUS
+    )
+
+
+def _is_model_gone(exc):
+    """Whether the model itself has been withdrawn.
+
+    Google retires models on its own schedule and a call to a retired one comes
+    back 404 ("no longer available"), not as a server error. Pinning a version
+    is what stops an upstream release from silently changing how consultations
+    are transcribed, but it would be a poor trade if it also meant the day the
+    pinned model is retired every consultation stops working. So a 404 is worth
+    trying the next model for — loudly logged, because the pin does then need
+    updating — while never being retried against the model that is already gone.
+    """
+    return isinstance(exc, genai_errors.ClientError) and getattr(exc, "code", None) == 404
+
+
+class _ModelFailed(Exception):
+    """Internal: one model could not complete the call. Carries why, for the
+    caller to decide whether another model could do better."""
+
+    def __init__(self, last_error, server_side, model_gone=False):
+        super().__init__(str(last_error))
+        self.last_error = last_error
+        self.server_side = server_side
+        self.model_gone = model_gone
+        # Both causes live on the service's side of the wire, so both are worth
+        # re-asking elsewhere. A dropped link is not.
+        self.try_other_models = server_side or model_gone
+
+
+def _attempt_model(fn, model, doing, attempts):
+    """Runs one model's full retry budget. `fn` is called as fn(model).
 
     The SDK does not retry anything by default, and even when configured it
     only covers connect and timeout errors — not a reset partway through, which
@@ -169,28 +261,43 @@ def _call(fn, model, doing="talking to the AI service", attempts=MAX_ATTEMPTS):
     and summary calls uniformly.
     """
     last_error = None
+    server_side = False
     for attempt in range(attempts):
         try:
-            return fn()
+            return fn(model)
         except genai_errors.ClientError as exc:
+            # Translated at the call site rather than at the top of each public
+            # function, so a 429 raised on a retry attempt is translated too.
             quota = _quota_error(exc, model)
             if quota:
                 raise quota from exc
+            if _is_model_gone(exc):
+                # No retry: a withdrawn model will not come back within four
+                # attempts. Straight to the next candidate.
+                logger.error(
+                    "Model %s is no longer available while %s (%s) — the configured "
+                    "GEMINI_MODEL needs updating",
+                    model,
+                    doing,
+                    exc,
+                )
+                raise _ModelFailed(exc, server_side=False, model_gone=True) from exc
             if not _is_transient(exc):
                 raise
-            last_error = exc
+            last_error, server_side = exc, _is_server_side(exc)
         except Exception as exc:  # noqa: BLE001 - re-raised below unless transient
             if not _is_transient(exc):
                 raise
-            last_error = exc
+            last_error, server_side = exc, _is_server_side(exc)
 
         if attempt < attempts - 1:
             # Jittered, so two consultations ending at the same moment don't
             # retry in lockstep against a service that is already struggling.
             delay = RETRY_BASE_DELAY * (2**attempt) + random.uniform(0, 0.5)
             logger.warning(
-                "Transient failure while %s (attempt %s/%s): %s — retrying in %.1fs",
+                "Transient failure while %s on %s (attempt %s/%s): %s — retrying in %.1fs",
                 doing,
+                model,
                 attempt + 1,
                 attempts,
                 last_error,
@@ -198,14 +305,110 @@ def _call(fn, model, doing="talking to the AI service", attempts=MAX_ATTEMPTS):
             )
             time.sleep(delay)
 
-    logger.error("Gave up %s after %s attempts: %s", doing, attempts, last_error)
-    raise AIServiceUnavailableError(
-        f"The connection to the AI service kept dropping while {doing}. This is a "
-        "network problem, not a problem with your recording — nothing has been lost. "
-        "Check the internet connection and try again."
-    ) from last_error
+    raise _ModelFailed(last_error, server_side)
 
-SYSTEM_INSTRUCTION = """You are a clinical documentation assistant embedded in a doctor's private practice \
+
+def _unavailable(doing, failure):
+    """The message a doctor gets when nothing worked, matched to the cause.
+
+    Two different faults with two different remedies, so they must not share
+    one sentence. Reporting a 500 as "check the internet connection" sends
+    someone to reset a router that was working the whole time.
+    """
+    if failure.model_gone:
+        message = (
+            f"The AI model this practice is configured to use is no longer available "
+            f"from Google, so {doing} cannot be completed. Nothing is wrong with your "
+            "recording and nothing has been lost, but this needs a settings change "
+            "rather than another attempt — GEMINI_MODEL has to be pointed at a current "
+            "model. Please pass this on to whoever maintains the system."
+        )
+    elif failure.server_side:
+        message = (
+            f"The AI service failed on its own side while {doing}, on every model "
+            "configured and after several retries. Nothing is wrong with your "
+            "recording, your internet connection or this computer, and nothing has "
+            "been lost. This kind of fault normally clears by itself — try again in "
+            "a few minutes."
+        )
+    else:
+        message = (
+            f"The connection to the AI service kept dropping while {doing}. This is a "
+            "network problem, not a problem with your recording — nothing has been lost. "
+            "Check the internet connection and try again."
+        )
+    return AIServiceUnavailableError(
+        message, server_side=failure.server_side or failure.model_gone
+    )
+
+
+def _call(
+    fn,
+    model,
+    doing="talking to the AI service",
+    attempts=MAX_ATTEMPTS,
+    allow_fallback=True,
+):
+    """Runs an SDK call, retrying, failing over between models, and translating
+    refusals. `fn` is called as fn(model_name).
+
+    `allow_fallback=False` for calls where the model is irrelevant (uploading a
+    file) or where the configured alternates would be the wrong kind of model
+    entirely (embeddings).
+    """
+    candidates = [model]
+    if allow_fallback:
+        for name in fallback_model_names():
+            if name not in candidates:
+                candidates.append(name)
+
+    failure = None
+    # Remembered across candidates, because a withdrawn model outranks a 500 when
+    # it comes to what to tell the doctor. A 500 clears on its own; a model that
+    # has been retired never will, and if the message it produced were allowed to
+    # win just for arriving last, the one fault here that needs a human to change
+    # a setting would be reported as "try again in a few minutes" forever.
+    saw_model_gone = False
+    for candidate in candidates:
+        try:
+            result = _attempt_model(fn, candidate, doing, attempts)
+        except _ModelFailed as exc:
+            saw_model_gone = saw_model_gone or exc.model_gone
+            if not exc.model_gone:
+                # Already logged, with its own reason, when the model is gone.
+                logger.error(
+                    "Gave up %s on %s after %s attempts: %s",
+                    doing,
+                    candidate,
+                    attempts,
+                    exc.last_error,
+                )
+            failure = exc
+            if not exc.try_other_models:
+                # The link is down, not the model. Every remaining candidate
+                # would fail the same way, so failing now beats making the
+                # doctor wait out a full retry budget per model.
+                break
+            continue
+
+        if candidate != model:
+            logger.warning(
+                "Completed %s on fallback model %s — %s failed with %s",
+                doing,
+                candidate,
+                model,
+                "a model that is no longer available"
+                if failure is not None and failure.model_gone
+                else "a server-side error",
+            )
+        return result
+
+    if saw_model_gone:
+        failure.model_gone = True
+    raise _unavailable(doing, failure) from failure.last_error
+
+
+SYSTEM_INSTRUCTION ="""You are a clinical documentation assistant embedded in a doctor's private practice \
 management system. You are NOT a doctor and must never present a diagnosis as final \
 or certain — all diagnosis output is assistive only, for the treating doctor to review.
 
@@ -506,8 +709,13 @@ def _wait_until_active(client, uploaded, model_name):
                 "Nothing has been lost — please try again."
             )
         time.sleep(2)
+        # No fallback: which model will read the file has no bearing on whether
+        # the file service has finished accepting it.
         uploaded = _call(
-            lambda: client.files.get(name=uploaded.name), model_name, "checking the upload"
+            lambda _model, name=uploaded.name: client.files.get(name=name),
+            model_name,
+            "checking the upload",
+            allow_fallback=False,
         )
 
     if getattr(uploaded.state, "name", str(uploaded.state)) == "FAILED":
@@ -525,12 +733,15 @@ def _audio_part(client, audio_bytes, model_name):
         return types.Part.from_bytes(data=audio_bytes, mime_type=AUDIO_MIME_TYPE), None
 
     uploaded = _call(
-        lambda: client.files.upload(
+        lambda _model: client.files.upload(
             file=io.BytesIO(audio_bytes),
             config=types.UploadFileConfig(mime_type=AUDIO_MIME_TYPE),
         ),
         model_name,
         "uploading the recording",
+        # The upload is not addressed to a model, so failing over between them
+        # would retry the identical request and call it a different attempt.
+        allow_fallback=False,
     )
     uploaded = _wait_until_active(client, uploaded, model_name)
     return uploaded, uploaded.name
@@ -566,8 +777,8 @@ def embed_text(text, is_query=False):
 
     model_name = embedding_model_name()
     response = _call(
-        lambda: _get_client().models.embed_content(
-            model=model_name,
+        lambda model: _get_client().models.embed_content(
+            model=model,
             contents=[text],
             config=types.EmbedContentConfig(
                 task_type="RETRIEVAL_QUERY" if is_query else "RETRIEVAL_DOCUMENT",
@@ -580,6 +791,10 @@ def embed_text(text, is_query=False):
         # degrades gracefully to "no precedents", so a long backoff here only
         # delays a consultation that is going to be summarised regardless.
         attempts=2,
+        # The fallbacks are chat models and cannot embed. Substituting one here
+        # would turn a clean failure into a confusing error — and vectors from a
+        # different model are not comparable with the stored ones anyway.
+        allow_fallback=False,
     )
     return list(response.embeddings[0].values)
 
@@ -596,14 +811,14 @@ def transcribe_audio(audio_bytes):
     also what keeps the upload small enough to survive an ordinary connection.
     """
     prepared, peak = _prepare_audio(audio_bytes)
-    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    model_name = chat_model_name()
     client = _get_client()
     part, uploaded_name = _audio_part(client, prepared, model_name)
 
     try:
         response = _call(
-            lambda: client.models.generate_content(
-                model=model_name,
+            lambda model: client.models.generate_content(
+                model=model,
                 contents=[TRANSCRIBE_INSTRUCTION, part],
                 # Verbatim transcription is not a creative task, and sampling
                 # is where invented dialogue comes from.
@@ -763,7 +978,7 @@ def generate_consultation_summary(
     invention. Every suggestion remains a suggestion: the doctor reviews,
     edits and signs off before anything counts as prescribed.
     """
-    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    model_name = chat_model_name()
     prompt = _build_prompt(
         patient, messages, formulary, prior_sessions, session_number, precedents
     )
@@ -788,8 +1003,8 @@ def _generate_json(client, model_name, prompt, config, doing="writing up the con
     last_error = None
     for _attempt in range(2):
         response = _call(
-            lambda: client.models.generate_content(
-                model=model_name, contents=prompt, config=config
+            lambda model: client.models.generate_content(
+                model=model, contents=prompt, config=config
             ),
             model_name,
             doing,
@@ -913,7 +1128,7 @@ def consolidate_case(patient, sessions):
     passing one removes any opening for a new medicine to appear at the point
     where nobody is expecting a new clinical decision.
     """
-    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+    model_name = chat_model_name()
     client = _get_client()
     config = types.GenerateContentConfig(
         system_instruction=CONSOLIDATION_SYSTEM_INSTRUCTION,

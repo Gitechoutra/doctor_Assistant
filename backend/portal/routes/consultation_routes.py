@@ -322,8 +322,11 @@ def transcribe_turn(consultation_id):
         # detected" sends a doctor looking for a fault in the conversation.
         return error(str(exc), status=422)
     except gemini_client.AIServiceUnavailableError as exc:
-        # The connection dropped, repeatedly. Already retried; the raw socket
-        # error is in the log, and what the doctor gets is what to do about it.
+        # Either the connection kept dropping or the service kept failing on its
+        # own side — already retried across every configured model. The message
+        # distinguishes the two, because "check your internet connection" is
+        # wrong and misleading advice for a 500 from Google. The raw error is in
+        # the log; what the doctor gets is what to do about it.
         return error(str(exc), status=503)
     except Exception as exc:  # noqa: BLE001 - surface transcription failure to the client
         current_app.logger.exception("Transcription failed for consultation %s", consultation.id)
