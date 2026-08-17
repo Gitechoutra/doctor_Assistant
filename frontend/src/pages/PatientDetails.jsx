@@ -35,6 +35,20 @@ function when(iso, fallback = "—") {
   });
 }
 
+/** A `YYYY-MM-DD` date of birth, formatted without going through `Date` —
+ *  a date-only string parses as UTC midnight, which `toLocaleString` can push
+ *  back a day in any timezone west of it. */
+function formatDob(iso) {
+  if (!iso) return "—";
+  const [year, month, day] = iso.split("-");
+  const MONTHS = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const label = MONTHS[Number(month) - 1];
+  return label ? `${Number(day)} ${label} ${year}` : iso;
+}
+
 function Section({ title, icon: Icon, count, action, children }) {
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -428,6 +442,8 @@ export default function PatientDetails() {
           {/* --- Clinical background ---------------------------------- */}
           <Section title="Patient information">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Detail label="Date of birth" value={patient.dob ? formatDob(patient.dob) : null} />
+              <Detail label="Phone" value={patient.phone} />
               <Detail label="Existing conditions" value={patient.existing_conditions} wide />
               <Detail label="Medical history" value={patient.medical_history} wide />
               <Detail label="Address" value={patient.address} wide />

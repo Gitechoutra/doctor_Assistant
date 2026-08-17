@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import { BLOOD_GROUPS } from "../constants/patient";
+import { PHONE_DIGITS, PHONE_ERROR, digitsOnly, isPhoneIncomplete } from "../utils/contact";
 
 /**
  * Registering a patient, and correcting one afterwards.
@@ -10,26 +11,46 @@ import { BLOOD_GROUPS } from "../constants/patient";
  * be two places for a field to go missing from. `patient` decides which:
  * absent means a new registration, present means an edit.
  *
- * Who the patient is, and nothing else. Two groups of fields used to sit under
- * this one — what the doctor should know (allergies, conditions, history,
- * notes) and how to reach them (phone, email, address, next of kin) — and both
- * are gone from the form. The desk was being asked to take a clinical history
- * and a full set of contact details across a counter, and a registration
- * nobody can finish in a queue is one that gets finished badly.
+ * Who the patient is and how to reach them: name, gender, date of birth or
+ * age, a mobile number and an address. Phone and age are required — a
+ * registration the desk cannot call back on, or with nobody sure how old the
+ * patient is, is one that causes trouble later rather than at the counter.
+ * Everything clinical (allergies, conditions, history, notes) and the rest of
+ * the contact detail (email, next of kin) still lives on the record and is
+ * still shown on the patient's page — this form does not touch it.
  *
- * Every one of those columns still exists, still holds what was recorded
- * before, and is still shown on the patient's record and in the consulting
- * room. `blank()` below is the whole of what this form touches, and it has to
- * keep the rest out of the *payload* and not merely off the screen — an edit
- * writes an explicit null for anything it sends empty, so a field left in by
- * accident would erase a phone number rather than ignore it.
- *
- * Age, not date of birth. Most patients at a private practice know their age
- * and not their birth date; asking for the date produced records full of
- * invented 1st-of-January birthdays. `patients.dob` is still read wherever it
- * was already set — `Patient.age` prefers it and counts the years — so a
- * record that has one keeps it, and this form simply never sets one.
+ * Date of birth or age, not both kept independently. Typing a date of birth
+ * fills the age in from it — `calcAge` below mirrors `Patient.age` on the
+ * server, which prefers the date whenever one is on file — but the age field
+ * is never locked: a patient who only knows their age can have one typed
+ * directly, and a typed age can still be adjusted afterwards. The server has
+ * the same final say either way (`patient_routes.update_patient`), so this is
+ * about what the desk sees while filling the form in, not a second source of
+ * truth.
  */
+
+/** Today, as `YYYY-MM-DD` — the ceiling on the date of birth picker. A birth
+ *  date after today is not early data entry, it is a typo. */
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Whole years from a `YYYY-MM-DD` date of birth, counted the same way
+ *  `Patient.age` counts them on the server: this year's birthday only counts
+ *  once it has actually happened. Empty or unparsable comes back as "" so it
+ *  never fights with whatever the age field already holds. */
+function calcAge(dobStr) {
+  if (!dobStr) return "";
+  const dob = new Date(`${dobStr}T00:00:00`);
+  if (Number.isNaN(dob.getTime())) return "";
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const hadBirthdayThisYear =
+    today.getMonth() > dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
+  if (!hadBirthdayThisYear) age -= 1;
+  return age >= 0 ? String(age) : "";
+}
 
 function Field({ label, children, hint, error, className = "" }) {
   return (
@@ -58,7 +79,10 @@ function blank() {
   return {
     name: "",
     gender: "",
+    dob: "",
     age: "",
+    phone: "",
+    address: "",
     blood_group: "",
     reason: "",
     book_now: false,
@@ -82,6 +106,9 @@ function fromPatient(patient) {
     // way, and an edit that sends it back unchanged says nothing new.
     age: patient.age ?? "",
     gender: patient.gender || "",
+    dob: patient.dob || "",
+    phone: patient.phone || "",
+    address: patient.address || "",
     blood_group: patient.blood_group || "",
   };
 }
@@ -96,14 +123,30 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  const nameError = !form.name.trim() ? "A name is required." : "";
-  const blocked = Boolean(nameError);
+  // Entering a date of birth fills the age in from it, same as the server
+  // would compute it — but the field stays this form's to edit either way,
+  // so a manual correction or a patient with no birth date on file both work.
+  function setDob(value) {
+    setForm((current) => ({
+      ...current,
+      dob: value,
+      age: value ? calcAge(value) : current.age,
+    }));
+  }
 
-  // A record registered before this form stopped asking for a birth date has
-  // one, and `Patient.age` counts from it — so its age is not this form's to
-  // set. Shown, and left alone: typing over a derived age would either be
-  // ignored or quietly contradict the date it was derived from.
-  const ageFromDob = isEdit && Boolean(patient.dob);
+  const nameError = !form.name.trim() ? "A name is required." : "";
+  const phoneError = !form.phone
+    ? "A phone number is required."
+    : isPhoneIncomplete(form.phone)
+      ? PHONE_ERROR
+      : "";
+  const ageError =
+    form.age === ""
+      ? "Age is required — give a date of birth or type one in."
+      : Number(form.age) < 0 || Number(form.age) > 130
+        ? "Age must be between 0 and 130."
+        : "";
+  const blocked = Boolean(nameError || phoneError || ageError);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -120,7 +163,9 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
       if (cleaned !== "" && cleaned != null) payload[key] = cleaned;
       else if (isEdit) payload[key] = null;
     }
-    if (ageFromDob) delete payload.age;
+    // The date of birth wins server-side whenever both are on file (see
+    // `Patient.age`), so a typed age is only ever meaningful without one.
+    if (form.dob) delete payload.age;
     if (!isEdit) {
       payload.book_now = form.book_now;
       if (form.book_now && form.reason.trim()) payload.reason = form.reason.trim();
@@ -170,6 +215,32 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
               </select>
             </Field>
 
+            <Field label="Date of birth" hint="Fills the age in below, if given">
+              <input
+                type="date"
+                value={form.dob}
+                max={todayISO()}
+                onChange={(e) => setDob(e.target.value)}
+                className={INPUT}
+              />
+            </Field>
+
+            <Field
+              label="Age"
+              error={ageError}
+              hint={form.dob ? "Calculated from the date of birth — you can adjust it" : undefined}
+            >
+              <input
+                type="number"
+                min="0"
+                max="130"
+                required
+                value={form.age}
+                onChange={(e) => set("age", e.target.value)}
+                className={INPUT}
+              />
+            </Field>
+
             <Field label="Blood group">
               <select
                 value={form.blood_group}
@@ -185,18 +256,25 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
               </select>
             </Field>
 
-            <Field
-              label="Age"
-              hint={ageFromDob ? "Taken from the date of birth on file" : undefined}
-            >
+            <Field label="Phone number" error={phoneError}>
               <input
-                type="number"
-                min="0"
-                max="130"
-                value={form.age}
-                disabled={ageFromDob}
-                onChange={(e) => set("age", e.target.value)}
-                className={`${INPUT} disabled:bg-slate-50 disabled:text-slate-400`}
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                required
+                placeholder={`${PHONE_DIGITS}-digit mobile number`}
+                value={form.phone}
+                onChange={(e) => set("phone", digitsOnly(e.target.value))}
+                className={INPUT}
+              />
+            </Field>
+
+            <Field label="Address" className="sm:col-span-2">
+              <textarea
+                rows={2}
+                value={form.address}
+                onChange={(e) => set("address", e.target.value)}
+                className={`${INPUT} resize-none`}
               />
             </Field>
           </div>

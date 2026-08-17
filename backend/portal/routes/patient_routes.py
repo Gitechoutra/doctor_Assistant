@@ -251,6 +251,10 @@ def create_patient():
     age_years, age_error = _parse_age(payload.get("age"))
     if age_error:
         return error(age_error, status=422)
+    if not dob and age_years is None:
+        return error(
+            "Patient age is required — enter a date of birth or an age", status=422
+        )
 
     gender = (payload.get("gender") or "").strip().lower() or None
     if gender and gender not in GENDERS:
@@ -260,11 +264,13 @@ def create_patient():
     if blood_group_error:
         return error(blood_group_error, status=422)
 
-    # Both optional on a patient record but held to the same shape as
-    # everywhere else when given.
+    # Held to the same shape as everywhere else, and required on a fresh
+    # registration — the desk's own way to reach the patient back.
     phone, phone_error = normalize_phone(payload.get("phone"))
     if phone_error:
         return error(phone_error, status=422)
+    if not phone:
+        return error("Patient phone number is required", status=422)
 
     email, email_error = normalize_email(payload.get("email"))
     if email_error:
@@ -400,6 +406,8 @@ def update_patient(patient_id):
         value, value_error = normalize_phone(payload.get("phone"))
         if value_error:
             return error(value_error, status=422)
+        if not value:
+            return error("Patient phone number is required", status=422)
         normalised["phone"] = value
 
     if "emergency_contact_phone" in payload:
@@ -436,6 +444,15 @@ def update_patient(patient_id):
         if patient.age_years != age_years:
             changed.append("age")
         patient.age_years = age_years
+
+    # Only when this edit actually touches one of the two: an old record with
+    # neither on file is not blocked from an unrelated correction, but an edit
+    # that clears the date of birth and the age together is refused rather
+    # than saved with no age at all.
+    if ("dob" in payload or "age" in payload) and patient.dob is None and patient.age_years is None:
+        return error(
+            "Patient age is required — enter a date of birth or an age", status=422
+        )
 
     for field in EDITABLE_FIELDS:
         if field not in payload:
