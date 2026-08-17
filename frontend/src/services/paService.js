@@ -26,3 +26,12 @@ export async function createPA(payload) {
   const res = await api.post("/pas", payload);
   return res.data.data; // the PA's fields + { credentials }
 }
+
+/**
+ * Permanently removes an assistant's account and credentials. Doctor only.
+ * There is no undo — the caller is expected to confirm first.
+ */
+export async function deletePA(id) {
+  const res = await api.delete(`/pas/${id}`);
+  return res.data.data;
+}
