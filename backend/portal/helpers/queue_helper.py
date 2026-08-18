@@ -93,7 +93,14 @@ def book_appointment(
     the same transaction as whatever raised it -- a patient registered with an
     appointment is both or neither, never a patient nobody queued.
     """
-    doctor = practice_doctor()
+    # Whoever the patient is assigned to, so the appointment lands in that
+    # doctor's queue rather than in whichever one the practice resolves to.
+    # Registration stamps `assigned_doctor_id` on every patient, so this is
+    # normally the answer; `practice_doctor` remains the fallback for a
+    # patient on file from before there was a doctor to assign. In a
+    # single-doctor practice the two are the same row, which is why this can
+    # change without anything else moving.
+    doctor = patient.assigned_doctor or practice_doctor()
     if not doctor:
         return None, error(
             "No doctor has been set up for this practice yet, so there is no "

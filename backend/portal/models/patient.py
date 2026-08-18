@@ -1,5 +1,7 @@
 from datetime import date, datetime
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from portal.extensions import db
 from portal.helpers.datetime_helper import to_utc_iso
 
@@ -74,6 +76,31 @@ class Patient(db.Model):
     # ordering and the follow-up window on the appointment form.
     last_registered_at = db.Column(db.DateTime, nullable=True)
 
+    # -- The patient's own sign-in, for the patient portal ------------------
+    #
+    # Deliberately here and not in `users`. A staff account and a patient
+    # account are not the same kind of thing wearing different roles: every
+    # staff route is `@jwt_required()` and resolves "which doctor am I?" by
+    # looking for a Doctor profile, treating *no profile* as the PA who sees
+    # the practice's whole book. A patient row in `users` would therefore have
+    # been read as the desk by every route that never thought to ask, and one
+    # forgotten decorator would have handed a patient the practice.
+    #
+    # Two identity spaces instead, which cannot be confused because they do
+    # not share a table, a token shape or a route prefix -- see
+    # `helpers/portal_auth`.
+    #
+    # Nullable throughout: the practice registers most of its patients at the
+    # desk and they never sign in at all. A patient with no `portal_email` is
+    # simply a patient, exactly as before.
+    portal_email = db.Column(db.String(150), nullable=True, unique=True, index=True)
+    portal_password_hash = db.Column(db.String(255), nullable=True)
+    # Lets the desk revoke access without deleting the credential -- the row
+    # stays, so the audit trail still reads correctly, and turning it back on
+    # does not need the patient to enrol again.
+    portal_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    portal_last_login_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), default=datetime.utcnow)
     updated_at = db.Column(
         db.TIMESTAMP, server_default=db.func.now(),
@@ -107,6 +134,26 @@ class Patient(db.Model):
     def photo_url(self):
         return f"/api/patients/photo/{self.photo_path}" if self.photo_path else None
 
+    # -- Portal credentials -------------------------------------------------
+
+    def set_portal_password(self, raw_password):
+        self.portal_password_hash = generate_password_hash(raw_password)
+
+    def check_portal_password(self, raw_password):
+        """False rather than an exception for a patient who has never enrolled,
+        so the sign-in route can treat "no account" and "wrong password"
+        identically and give nothing away about which it was."""
+        if not self.portal_password_hash:
+            return False
+        return check_password_hash(self.portal_password_hash, raw_password)
+
+    @property
+    def has_portal_access(self):
+        """Whether this patient can sign in right now. Enrolled *and* not
+        revoked -- both, because the desk turning access off must not be
+        undone by the patient simply still knowing their password."""
+        return bool(self.portal_password_hash) and bool(self.portal_enabled)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -137,6 +184,10 @@ class Patient(db.Model):
             "existing_conditions": self.existing_conditions,
             "notes": self.notes,
             "last_registered_at": to_utc_iso(self.last_registered_at),
+            # Whether this patient signs in to the portal, for the desk's
+            # record screen. The credential itself never leaves the server.
+            "portal_email": self.portal_email,
+            "has_portal_access": self.has_portal_access,
             "created_at": to_utc_iso(self.created_at),
         }
 

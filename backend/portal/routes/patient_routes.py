@@ -275,11 +275,18 @@ def create_patient():
     registration one accountable step: the demographics and the patient code
     are recorded by the person who met them or took their call.
 
-    `book_now: true` also books them into today's queue in the same
-    transaction — the walk-in case, where registering and arriving are the same
-    moment. Both are written together, so a patient registered as a walk-in is
-    never left on file with nobody told they are waiting. Without the flag the
-    patient is simply added to the books, to be booked later.
+    Registration always raises an appointment, in the same transaction as the
+    patient, assigned to the doctor the patient is assigned to. Patient,
+    appointment and doctor are therefore written together or not at all: there
+    is no state in which somebody is on the books with nothing raised for them
+    and nobody told they are coming.
+
+    `book_now` chooses which kind, and defaults to the walk-in:
+
+      true / absent   they are here now — checked in, so they join today's
+                      queue and the doctor is told they are waiting
+      false           booked ahead with no time set — Appointments' Upcoming
+                      tab, and the doctor is told they have been registered
     """
     payload = request.get_json(silent=True) or {}
     name = (payload.get("name") or "").strip()
@@ -325,10 +332,11 @@ def create_patient():
         return error(f"Emergency contact: {emergency_phone_error}", status=422)
 
     # Not a form field. One doctor, resolved rather than chosen -- see
-    # helpers/practice. None only before the practice has been set up at all,
-    # which `book_appointment` reports properly if the caller also asked to
-    # book; the registration itself is allowed through so the books can be
-    # filled in before the doctor's account exists.
+    # helpers/practice. Stamped on the patient as their assigned doctor, and
+    # the appointment raised below follows that assignment rather than
+    # resolving the practice a second time, so patient, appointment and doctor
+    # all name the same row. None only before the practice has been set up at
+    # all -- see the booking block for what happens then.
     doctor = practice_doctor()
 
     def _text(field, limit=5000):
@@ -361,12 +369,35 @@ def create_patient():
         detail=f"Registered {patient.name}",
     )
 
+    # Every registration raises an appointment, in the same transaction as the
+    # patient. It used to raise one only when the desk ticked "They are here
+    # now", and a patient registered without it landed on the books with
+    # nothing pointing at them: nothing in Appointments, nothing in the queue,
+    # and no way for the doctor to learn they existed short of going looking
+    # through Patients. Registering somebody is the practice agreeing to see
+    # them, so there is always something to see them about.
+    #
+    # `book_now` no longer decides *whether* there is an appointment, only
+    # which kind:
+    #
+    #   here now (the default)  a walk-in, already checked in -- joins today's
+    #                           queue, and the doctor is told they are waiting
+    #   not yet                 a booking with no time on it, which is what
+    #                           Appointments' Upcoming tab already carries
+    #                           (see `upcoming_query`, which sorts undated
+    #                           bookings last)
+    #
+    # Defaulting to the walk-in is what the desk is actually doing nearly
+    # every time: the patient is standing in front of them. A caller that
+    # means the other thing says so with `book_now: false`, and still gets an
+    # appointment.
+    walk_in = bool(payload.get("book_now", True))
     appointment = None
-    if payload.get("book_now"):
+    if doctor:
         appointment, failure = book_appointment(
             patient,
             reason=_text("reason", 1000),
-            walk_in=True,
+            walk_in=walk_in,
             actor_user_id=get_jwt_identity(),
         )
         if failure:
@@ -375,11 +406,17 @@ def create_patient():
             # next request on this connection does not inherit a dirty session.
             db.session.rollback()
             return failure
-    elif doctor and doctor.user_id:
-        # The one place the doctor learns a patient exists before they go
-        # looking. Only when nothing was booked -- `book_appointment` sends its
-        # own, better notification ("waiting to be seen"), and two pings for
-        # one registration is noise.
+    # No doctor on the system at all is the one case that cannot raise an
+    # appointment, because there is nobody to assign it to. The registration
+    # still goes through -- the books have to be fillable before the doctor's
+    # account exists -- and the patient is picked up by the desk's own
+    # "add to today's queue" once there is somebody to book with.
+
+    if not walk_in and doctor and doctor.user_id:
+        # `book_appointment` sends its own, better notification ("waiting to
+        # be seen") for a walk-in, so this is only the quieter version for a
+        # patient booked ahead -- and between them a registration never
+        # reaches the doctor silently.
         notify(
             [doctor.user_id],
             title="New patient registered",
@@ -397,7 +434,11 @@ def create_patient():
         # Returned alongside the patient because the caller just created both —
         # it saves the page a second request to find the row it caused.
         data["appointment"] = appointment.to_dict()
-        message = f"{patient.name} registered and added to today's queue"
+        message = (
+            f"{patient.name} registered and added to today's queue"
+            if walk_in
+            else f"{patient.name} registered and booked in"
+        )
     else:
         message = f"{patient.name} registered"
 

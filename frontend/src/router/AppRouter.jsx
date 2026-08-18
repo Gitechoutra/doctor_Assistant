@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
 import DashboardLayout from "../layouts/DashboardLayout";
@@ -33,6 +33,20 @@ const Prescriptions = lazy(() => import("../pages/Prescriptions"));
 const Reports = lazy(() => import("../pages/Reports"));
 const Settings = lazy(() => import("../pages/Settings"));
 const Profile = lazy(() => import("../pages/Profile"));
+
+// The patient portal. A separate tree from /dashboard in every sense: its own
+// auth provider, its own tokens, its own layout — see layouts/PortalLayout and
+// context/PortalAuthContext. Lazy like everything else, so a staff session
+// never fetches a line of it.
+const PortalLayout = lazy(() => import("../layouts/PortalLayout"));
+const PortalPublicLayout = lazy(() =>
+  import("../layouts/PortalLayout").then((m) => ({ default: m.PortalPublicLayout }))
+);
+const PortalLogin = lazy(() => import("../pages/portal/PortalLogin"));
+const PortalRegister = lazy(() => import("../pages/portal/PortalRegister"));
+const PortalAppointments = lazy(() => import("../pages/portal/PortalAppointments"));
+const PortalHistory = lazy(() => import("../pages/portal/PortalHistory"));
+const PortalProfile = lazy(() => import("../pages/portal/PortalProfile"));
 
 /** Shown for the moment a screen's chunk is in flight. Deliberately plain —
  *  a spinner that appears for 80ms reads as a flicker, not as progress. */
@@ -111,6 +125,23 @@ export default function AppRouter() {
                 <Route path="doctors" element={<Doctors />} />
               </Route>
             </Route>
+          </Route>
+
+          {/* ---- the patient portal ------------------------------------
+              Deliberately outside <ProtectedRoute>, which guards the
+              practice's session. A patient has no `mediassist_user`, so that
+              guard would bounce them to the staff login — PortalLayout does
+              its own check against its own session instead. */}
+          <Route element={<PortalPublicLayout />}>
+            <Route path="/portal/login" element={<PortalLogin />} />
+            <Route path="/portal/register" element={<PortalRegister />} />
+          </Route>
+
+          <Route path="/portal" element={<PortalLayout />}>
+            <Route index element={<Navigate to="/portal/appointments" replace />} />
+            <Route path="appointments" element={<PortalAppointments />} />
+            <Route path="history" element={<PortalHistory />} />
+            <Route path="profile" element={<PortalProfile />} />
           </Route>
 
           {/* Without this a mistyped or stale URL matched nothing and React

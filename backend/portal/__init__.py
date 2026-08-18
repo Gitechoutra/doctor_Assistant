@@ -80,6 +80,15 @@ class InitApp:
 
             register_routes(app)
 
+            # Installed after the blueprints and before anything can be
+            # served: a patient's token is refused at every path outside
+            # /api/portal/*, including the ones added after this line was
+            # written. See helpers/portal_auth for why the patient portal is
+            # a second identity space rather than a third role.
+            from portal.helpers.portal_auth import register_portal_boundary
+
+            register_portal_boundary(app)
+
             # Registers Socket.IO event handlers (join_consultation, and the
             # dashboard/queue channel both roles watch) on the shared
             # `socketio` instance.

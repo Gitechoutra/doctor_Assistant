@@ -19,6 +19,7 @@ from portal.routes.knowledge_routes import knowledge_bp
 from portal.routes.notification_routes import notification_bp
 from portal.routes.pa_routes import pa_bp
 from portal.routes.patient_routes import patient_bp
+from portal.routes.portal_routes import portal_bp
 from portal.routes.prescription_routes import prescription_bp
 from portal.routes.report_routes import report_bp
 
@@ -38,3 +39,7 @@ def register_routes(app):
     app.register_blueprint(report_bp, url_prefix="/api/reports")
     app.register_blueprint(notification_bp, url_prefix="/api/notifications")
     app.register_blueprint(audit_bp, url_prefix="/api/audit")
+    # The patient portal. Its own prefix because that prefix is the
+    # security boundary: `helpers/portal_auth.register_portal_boundary`
+    # refuses a patient's token at every path that is not under it.
+    app.register_blueprint(portal_bp, url_prefix="/api/portal")

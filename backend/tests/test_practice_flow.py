@@ -185,11 +185,29 @@ def main():
         rahul.get("assigned_doctor_id") is not None,
         rahul.get("assigned_doctor"),
     )
+    # Registration books. A patient on the books with nothing raised for them
+    # is a patient the doctor never learns about, which is what this used to
+    # allow whenever the desk left "They are here now" unticked.
+    rahul_auto = rahul.get("appointment") or {}
     check(
-        "registering alone books nothing",
-        "appointment" not in rahul,
+        "registering raises an appointment in the same breath",
+        bool(rahul_auto),
         list(rahul.keys()),
     )
+    check(
+        "it is assigned to the same doctor the patient is",
+        rahul_auto.get("doctor_id") == rahul.get("assigned_doctor_id"),
+        (rahul_auto.get("doctor_id"), rahul.get("assigned_doctor_id")),
+    )
+    check(
+        "and it puts them straight into today's queue",
+        rahul_auto.get("status") == "waiting",
+        rahul_auto.get("status"),
+    )
+
+    # Kept so the booking section below can withdraw them and test raising an
+    # appointment by hand.
+    auto_appointment_ids = [rahul_auto.get("id")]
 
     response = client.post(
         "/api/patients", json={"name": "Ramesh Iyer", "age": 51, "phone": "9812345678"},
@@ -197,6 +215,7 @@ def main():
     )
     check("a second patient registers", response.status_code == 201, body(response))
     ramesh_id = (data_of(response) or {}).get("id")
+    auto_appointment_ids.append(((data_of(response) or {}).get("appointment") or {}).get("id"))
 
     response = client.post(
         "/api/patients",
@@ -204,6 +223,7 @@ def main():
         headers=PA,
     )
     sriram_id = (data_of(response) or {}).get("id")
+    auto_appointment_ids.append(((data_of(response) or {}).get("appointment") or {}).get("id"))
     check("a third patient registers", response.status_code == 201, body(response))
 
     response = client.post("/api/patients", json={"name": ""}, headers=PA)
@@ -272,6 +292,19 @@ def main():
 
     # ------------------------------------------------------------- booking --
     section("the PA books appointments")
+
+    # Registration already raised one for each of these three, and the
+    # duplicate guard counts it -- which is the point of the guard, since the
+    # patient is already standing in the queue. Withdrawing them first is what
+    # lets this section still exercise booking on its own terms: a cancelled
+    # row is deliberately not counted as a duplicate (see
+    # `recent_duplicate_for`), exactly so the desk can raise a corrected one.
+    for auto_id in [i for i in auto_appointment_ids if i]:
+        client.post(
+            f"/api/appointments/{auto_id}/cancel",
+            json={"reason": "re-raised by hand in the booking tests"},
+            headers=PA,
+        )
 
     response = client.post(
         "/api/appointments",

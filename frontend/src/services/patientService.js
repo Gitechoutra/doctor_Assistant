@@ -45,8 +45,11 @@ export async function fetchPatient(patientId) {
 /**
  * Registers a patient. PA only.
  *
- * `book_now: true` also puts them in today's queue, in the same transaction —
- * the walk-in case. Without it the patient is simply added to the books.
+ * Always raises an appointment with the patient's doctor, in the same
+ * transaction, so a registration can never leave somebody on the books with
+ * nothing in Appointments and nobody told they are coming. `book_now` chooses
+ * which kind: true (the default when omitted) checks them straight into
+ * today's queue, false books them in for later, under Upcoming.
  */
 export async function createPatient(payload) {
   const res = await api.post("/patients", payload);

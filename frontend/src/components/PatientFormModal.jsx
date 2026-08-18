@@ -87,8 +87,6 @@ function blank() {
     phone: "",
     address: "",
     blood_group: "",
-    reason: "",
-    book_now: false,
   };
 }
 
@@ -192,7 +190,6 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
     // untouched field would overwrite a stored value with nothing on an edit.
     const payload = {};
     for (const [key, value] of Object.entries(form)) {
-      if (key === "book_now" || key === "reason") continue;
       const cleaned = typeof value === "string" ? value.trim() : value;
       if (cleaned !== "" && cleaned != null) payload[key] = cleaned;
       else if (isEdit) payload[key] = null;
@@ -201,8 +198,9 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
     // `Patient.age`), so a typed age is only ever meaningful without one.
     if (form.dob) delete payload.age;
     if (!isEdit) {
-      payload.book_now = form.book_now;
-      if (form.book_now && form.reason.trim()) payload.reason = form.reason.trim();
+      // Always the walk-in: the desk registers the person in front of them,
+      // so they join today's queue as soon as the record exists.
+      payload.book_now = true;
     }
 
     try {
@@ -361,39 +359,6 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
           </section>
         )}
 
-        {!isEdit && (
-          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={form.book_now}
-                onChange={(e) => set("book_now", e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
-              />
-              <span>
-                <span className="block text-sm font-semibold text-slate-700">
-                  They are here now
-                </span>
-                <span className="block text-xs text-slate-500">
-                  Adds them to today&rsquo;s queue as soon as they are registered.
-                </span>
-              </span>
-            </label>
-
-            {form.book_now && (
-              <div className="mt-3">
-                <Field label="Reason for visit">
-                  <input
-                    value={form.reason}
-                    onChange={(e) => set("reason", e.target.value)}
-                    className={INPUT}
-                  />
-                </Field>
-              </div>
-            )}
-          </section>
-        )}
-
         {errorMsg && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{errorMsg}</p>
         )}
@@ -415,9 +380,7 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
               ? "Saving…"
               : isEdit
                 ? "Save changes"
-                : form.book_now
-                  ? "Register and add to queue"
-                  : "Register patient"}
+                : "Register and add to queue"}
           </button>
         </div>
       </form>
