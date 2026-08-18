@@ -148,7 +148,11 @@ export default function Dashboard() {
           value={data.todays_completed}
           hint="Completed consultations today"
           icon={HiOutlineCheckCircle}
-          to={isDoctor ? "/dashboard/consultations?period=today" : undefined}
+          to={
+            isDoctor
+              ? "/dashboard/consultations?period=today"
+              : "/dashboard/appointments?tab=past"
+          }
         />
       </div>
 
