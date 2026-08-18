@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { HiOutlineQueueList } from "react-icons/hi2";
 import Modal from "./Modal";
+import StatusBadge from "./StatusBadge";
 import { BLOOD_GROUPS } from "../constants/patient";
+import { addToTodaysQueue } from "../services/appointmentService";
 import { PHONE_DIGITS, PHONE_ERROR, digitsOnly, isPhoneIncomplete } from "../utils/contact";
 
 /**
@@ -113,14 +116,45 @@ function fromPatient(patient) {
   };
 }
 
-export default function PatientFormModal({ patient, onClose, onSave }) {
+export default function PatientFormModal({ patient, queueEntry, onClose, onSave, onQueueGenerated }) {
   const isEdit = Boolean(patient);
   const [form, setForm] = useState(() => (patient ? fromPatient(patient) : blank()));
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Mirrors `queueEntry` locally so "Generate Queue" below can show the
+  // result the moment the server confirms it, rather than waiting on the
+  // list behind this modal to refetch and pass a new prop down.
+  const [queueState, setQueueState] = useState(queueEntry || null);
+  const [generatingQueue, setGeneratingQueue] = useState(false);
+  const [queueMsg, setQueueMsg] = useState("");
+
   function set(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleGenerateQueue() {
+    setGeneratingQueue(true);
+    setQueueMsg("");
+    setErrorMsg("");
+    try {
+      const { message, appointment } = await addToTodaysQueue(patient.id);
+      setQueueState(appointment);
+      setQueueMsg(
+        appointment.status === "in_progress"
+          ? `${message} — with the doctor now.`
+          : `${message}. Queue Number: #${appointment.queue_number}`
+      );
+      // Refreshes the card behind this modal — the list is where the queue
+      // number is actually meant to be seen; this panel only confirms it.
+      onQueueGenerated?.();
+    } catch (err) {
+      setErrorMsg(
+        err.response?.data?.message || "Could not add this patient to today's queue."
+      );
+    } finally {
+      setGeneratingQueue(false);
+    }
   }
 
   // Entering a date of birth fills the age in from it, same as the server
@@ -279,6 +313,53 @@ export default function PatientFormModal({ patient, onClose, onSave }) {
             </Field>
           </div>
         </section>
+
+        {/* Edit only: this is for a patient who already exists, registered
+            without "Is the patient here?" — booked by phone, most often —
+            and who has now walked in. Not an alternative to that checkbox;
+            it is what the desk reaches for afterwards, once, whenever the
+            patient actually arrives. */}
+        {isEdit && (
+          <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center gap-2">
+              <HiOutlineQueueList className="h-5 w-5 text-brand-600" />
+              <h3 className="text-sm font-semibold text-slate-900">Today&rsquo;s queue</h3>
+            </div>
+
+            {queueState ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2.5">
+                <span className="text-sm text-slate-700">
+                  {queueState.status === "in_progress"
+                    ? "With the doctor now"
+                    : `Already in queue — Queue #${queueState.queue_number}`}
+                </span>
+                <StatusBadge status={queueState.status} />
+              </div>
+            ) : (
+              <>
+                <p className="mt-1 text-xs text-slate-500">
+                  Has {patient?.name || "the patient"} arrived? Add them to today&rsquo;s
+                  queue — the next queue number is assigned automatically.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleGenerateQueue}
+                  disabled={generatingQueue}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <HiOutlineQueueList className="h-4.5 w-4.5" />
+                  {generatingQueue ? "Adding…" : "Generate Queue"}
+                </button>
+              </>
+            )}
+
+            {queueMsg && (
+              <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+                {queueMsg}
+              </p>
+            )}
+          </section>
+        )}
 
         {!isEdit && (
           <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">

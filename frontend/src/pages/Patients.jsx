@@ -365,8 +365,10 @@ export default function Patients() {
       {editing && (
         <PatientFormModal
           patient={editing}
+          queueEntry={queueRows[editing.id]}
           onClose={() => setEditing(null)}
           onSave={handleEdit}
+          onQueueGenerated={() => load(true)}
         />
       )}
 

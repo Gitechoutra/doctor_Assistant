@@ -153,6 +153,69 @@ def book_appointment(
     return appointment, None
 
 
+def add_to_todays_queue(patient, *, reason=None, notes=None, actor_user_id=None, now=None):
+    """Puts `patient` into today's queue, however they need to get there —
+    and never twice.
+
+    This is the general form of "the desk has this patient in front of them
+    right now," tried in the order they could actually be found in:
+
+      1. **Already on today's queue** (waiting, or with the doctor). Returned
+         as-is, nothing written — pressing this again cannot double-book them
+         or move their place in the line.
+      2. **Booked for today and not yet checked in.** Checked in, exactly as
+         the appointment book's own check-in button would do it.
+      3. **Neither.** A fresh walk-in, exactly as ticking "Is the patient
+         here?" at registration does.
+
+    Registration's own walk-in path (`patient_routes.create_patient`) and the
+    appointment book's check-in button already cover the first patient to
+    arrive and a patient who booked ahead; this exists for the third case
+    neither reaches — someone registered earlier with no booking at all (a
+    phone call logged as a patient with nothing raised for them yet), now
+    standing at the desk. Built entirely from the same three primitives
+    `queue_query`, `check_in` and `book_appointment` rather than a second copy
+    of any of their rules, so a patient can never end up queued one way here
+    and another way anywhere else in the app.
+
+    Returns (appointment, outcome, failure). `outcome` is `"existing"`,
+    `"checked_in"` or `"created"` — what actually happened, since all three
+    return an appointment and no failure on success and the caller has to
+    tell the desk which one it was.
+    """
+    now = now or datetime.utcnow()
+    doctor = practice_doctor()
+
+    already_queued = queue_query(doctor).filter(Appointment.patient_id == patient.id).first()
+    if already_queued:
+        return already_queued, "existing", None
+
+    day_start, day_end = local_day_bounds()
+    scheduled_today = (
+        Appointment.query.filter(
+            Appointment.patient_id == patient.id,
+            Appointment.status == "scheduled",
+            Appointment.scheduled_at >= day_start,
+            Appointment.scheduled_at <= day_end,
+        )
+        .order_by(Appointment.scheduled_at.asc())
+        .first()
+    )
+    if scheduled_today:
+        check_in(scheduled_today, actor_user_id=actor_user_id, now=now)
+        return scheduled_today, "checked_in", None
+
+    appointment, failure = book_appointment(
+        patient,
+        reason=reason,
+        notes=notes,
+        walk_in=True,
+        actor_user_id=actor_user_id,
+        now=now,
+    )
+    return appointment, "created", failure
+
+
 def check_in(appointment, *, actor_user_id=None, now=None):
     """The booked patient has arrived. Puts them in today's queue."""
     now = now or datetime.utcnow()

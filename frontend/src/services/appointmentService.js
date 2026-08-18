@@ -48,6 +48,26 @@ export async function createAppointment(payload) {
   return res.data.data;
 }
 
+/**
+ * "Generate Queue" — puts a patient already on file into today's queue,
+ * however they need to get there. The server tries, in order: already
+ * queued (nothing written, their existing spot is returned), booked for
+ * today and not yet checked in (checked in), or neither (a fresh walk-in) —
+ * see `add_to_todays_queue` on the backend. Safe to call more than once: a
+ * patient already queued is returned as-is rather than queued a second time.
+ *
+ * For someone registered earlier — by phone, or simply ahead of arriving —
+ * with nothing raised for them yet, and who has just walked in.
+ *
+ * Returns `{ message, appointment }`. `message` is the server's own account
+ * of which of the three happened, since "already in today's queue" and
+ * "added to today's queue" are both success but not the same news.
+ */
+export async function addToTodaysQueue(patientId) {
+  const res = await api.post("/appointments", { patient_id: patientId, walk_in: true });
+  return { message: res.data.message, appointment: res.data.data };
+}
+
 /** The booked patient has arrived. This is what puts them in the queue. */
 export async function checkInAppointment(appointmentId) {
   const res = await api.post(`/appointments/${appointmentId}/check-in`);
