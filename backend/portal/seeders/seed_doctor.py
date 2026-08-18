@@ -11,8 +11,8 @@ from portal.seeders.seed_accounts import (
 
 DOCTOR_DEFAULTS = {
     "name": "Dr.Ramana",
-    "email": "ramanamuddada@gmail.com",
-    "password": "Ramana@123",
+    "email": "goddumahesh2@gmail.com",
+    "password": "Virat@100",
 }
 
 
