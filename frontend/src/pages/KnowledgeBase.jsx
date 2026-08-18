@@ -3,10 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   HiOutlineAcademicCap,
   HiOutlineCheckBadge,
-  HiOutlineMagnifyingGlass,
-  HiOutlineXMark,
 } from "react-icons/hi2";
 import StatCard from "../components/StatCard";
+import SearchInput from "../components/SearchInput";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 import useLiveRefresh from "../hooks/useLiveRefresh";
 import { fetchKnowledgeStats, fetchPrecedents } from "../services/knowledgeService";
 
@@ -125,7 +125,17 @@ export default function KnowledgeBase() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  useEffect(() => setSearchInput(searchTerm), [searchTerm]);
+  const debouncedSearch = useDebouncedValue(searchInput);
+
+  // The debounced term is written back to the URL rather than the keystroke:
+  // the list narrows as you type, while the history holds searches somebody
+  // made rather than every prefix of them. `load` keys off the URL, so this is
+  // the one place typing turns into a request.
+  useEffect(() => {
+    if (debouncedSearch === searchTerm) return;
+    setParam("search", debouncedSearch, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const load = useCallback(
     (silent = false) => {
@@ -184,43 +194,13 @@ export default function KnowledgeBase() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setParam("search", searchInput.trim(), "");
-          }}
-          className="flex w-full items-center gap-2 sm:w-auto sm:min-w-72 sm:flex-1"
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
-            <HiOutlineMagnifyingGlass className="h-4 w-4 shrink-0 text-slate-400" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search diagnosis, symptoms or medicine…"
-              className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchInput("");
-                  setParam("search", "", "");
-                }}
-                aria-label="Clear search"
-                className="shrink-0 text-slate-400 transition hover:text-slate-600"
-              >
-                <HiOutlineXMark className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <button
-            type="submit"
-            className="shrink-0 rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
-          >
-            Search
-          </button>
-        </form>
+        <SearchInput
+          value={searchInput}
+          onChange={setSearchInput}
+          busy={searchInput !== debouncedSearch}
+          placeholder="Search diagnosis, symptoms or medicine…"
+          className="w-full sm:w-auto sm:min-w-72 sm:flex-1"
+        />
 
         <select
           value={status}

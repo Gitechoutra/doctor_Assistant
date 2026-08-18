@@ -126,7 +126,7 @@ export default function GlobalSearch() {
       if (rows.length) choose(rows[active]);
       else if (ready) {
         close();
-        navigate(`/dashboard/patients?search=${encodeURIComponent(query)}`);
+        navigate(`/dashboard/patients?q=${encodeURIComponent(query)}`);
       }
     }
   }
