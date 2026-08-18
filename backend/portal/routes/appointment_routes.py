@@ -41,6 +41,7 @@ from portal.helpers.patient_access import can_access_patient
 from portal.helpers.patient_search import code_clauses, patient_search_filter
 from portal.helpers.practice import practice_doctor
 from portal.helpers.queue_helper import (
+    add_to_todays_queue,
     book_appointment,
     check_in,
     collapse_duplicates,
@@ -68,6 +69,14 @@ MAX_PAGE_SIZE = 100
 
 def _slip_path(appointment_id):
     return os.path.join(SLIPS_DIR, f"appointment_{appointment_id}.pdf")
+
+
+def _queue_position(appointment, doctor):
+    """Where `appointment` sits in today's queue right now, the same way
+    `/queue` computes it — so a number handed back from booking or checking a
+    patient in always agrees with the board."""
+    numbered = number_queue(collapse_duplicates(queue_query(doctor).all()))
+    return next((n for a, n in numbered if a.id == appointment.id), None)
 
 
 def _parse_range_date(raw, field):
@@ -296,14 +305,25 @@ def appointment_history():
 def create_appointment():
     """Books a patient in.
 
-    `walk_in: true` means they are standing at the desk now — the appointment
-    is created already checked in and joins today's queue. Otherwise
-    `scheduled_at` is when they are expected, and they join the queue when the
-    PA checks them in on the day.
+    `walk_in: true` means they are standing at the desk now. Idempotent, and
+    smarter than a plain insert about how they get into today's queue —
+    already there, booked for today and not yet checked in, or neither — see
+    `add_to_todays_queue` for the three cases and why pressing this twice, or
+    two desks pressing it for the same patient at once, cannot double-book
+    them: whichever request commits second finds the first's row already
+    queued and returns that instead of raising a duplicate.
+
+    This is also what "Generate Queue" on a patient's record calls (through
+    this same endpoint, same as every other walk-in) for someone registered
+    earlier — by phone, or simply ahead of arriving — who has just come in the
+    door with no booking behind them at all.
+
+    Without `walk_in`, `scheduled_at` is when they are expected, and they join
+    the queue when the PA checks them in on the day.
 
     The doctor is not a parameter: there is one, and `book_appointment`
     resolves it. Everything else — the duplicate window, who gets notified, the
-    audit line — is `book_appointment` too, shared with registration so the two
+    audit line — is `book_appointment` too, shared with registration so the
     ways of booking cannot drift apart.
     """
     payload = request.get_json(silent=True) or {}
@@ -325,12 +345,41 @@ def create_appointment():
             status=422,
         )
 
+    reason = (payload.get("reason") or "").strip() or None
+    notes = (payload.get("notes") or "").strip() or None
+
+    if walk_in:
+        appointment, outcome, failure = add_to_todays_queue(
+            patient, reason=reason, notes=notes, actor_user_id=get_jwt_identity()
+        )
+        if failure:
+            return failure
+
+        # "existing" wrote nothing — the patient was already on the board —
+        # so there is nothing to commit or to tell other screens changed.
+        if outcome != "existing":
+            db.session.commit()
+            dashboard_changed(
+                "appointment_checked_in" if outcome == "checked_in" else "appointment_created"
+            )
+
+        position = _queue_position(appointment, practice_doctor())
+        message = {
+            "existing": "Already in today's queue",
+            "checked_in": "Checked in and added to today's queue",
+            "created": "Patient added to today's queue",
+        }[outcome]
+        return success(
+            appointment.to_dict(queue_number=position),
+            message=message,
+            status=201 if outcome == "created" else 200,
+        )
+
     appointment, failure = book_appointment(
         patient,
-        reason=(payload.get("reason") or "").strip() or None,
-        notes=(payload.get("notes") or "").strip() or None,
+        reason=reason,
+        notes=notes,
         scheduled_at=scheduled_at,
-        walk_in=walk_in,
         actor_user_id=get_jwt_identity(),
     )
     if failure:
@@ -339,11 +388,7 @@ def create_appointment():
     db.session.commit()
     dashboard_changed("appointment_created")
 
-    return success(
-        appointment.to_dict(),
-        message="Patient added to today's queue" if walk_in else "Appointment booked",
-        status=201,
-    )
+    return success(appointment.to_dict(), message="Appointment booked", status=201)
 
 
 @appointment_bp.post("/<int:appointment_id>/check-in")

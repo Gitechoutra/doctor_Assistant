@@ -153,7 +153,14 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      {/* items-start: without it, CSS Grid stretches both columns to the
+          height of the taller one, and a short card in the right column
+          (`StatCard` is `h-full`, sized for the row of four above where every
+          sibling should match) inherits that height and shows as a large box
+          with its content stranded at the top. Each column now takes only the
+          height its own content asks for, and a card only grows when there is
+          more in it to show. */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Panel
             title="Patient queue"
@@ -280,6 +287,27 @@ export default function Dashboard() {
                 icon={HiOutlineUsers}
                 to="/dashboard/patients"
               />
+
+              {/* Who the desk is booking for. `data.doctor` came back with
+                  every dashboard load already — nothing new to fetch — and
+                  was simply never drawn on this side. */}
+              {data.doctor && (
+                <Panel title="Practice">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={data.doctor.name} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        {data.doctor.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {[data.doctor.specialization, data.doctor.practice_name]
+                          .filter(Boolean)
+                          .join(" · ") || "Specialization not set"}
+                      </p>
+                    </div>
+                  </div>
+                </Panel>
+              )}
 
               <Panel
                 title="Recently registered"

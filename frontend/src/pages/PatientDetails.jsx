@@ -362,11 +362,13 @@ export default function PatientDetails() {
       {editing && (
         <PatientFormModal
           patient={patient}
+          queueEntry={queueEntry}
           onClose={() => setEditing(false)}
           onSave={async (payload) => {
             await updatePatient(id, payload);
             load(true);
           }}
+          onQueueGenerated={() => load(true)}
         />
       )}
 
