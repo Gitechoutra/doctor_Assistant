@@ -22,6 +22,12 @@ import { PHONE_DIGITS, PHONE_ERROR, digitsOnly, isPhoneIncomplete } from "../uti
  * the contact detail (email, next of kin) still lives on the record and is
  * still shown on the patient's page — this form does not touch it.
  *
+ * Nothing is marked wrong before the desk has had a chance to get it right.
+ * A required field says so once it has been visited and left, or once the
+ * button at the bottom has been pressed — a form that opens already covered
+ * in red is telling somebody off for not having typed yet, and it buries the
+ * one message that will matter later among two that do not yet.
+ *
  * Date of birth or age, not both kept independently. Typing a date of birth
  * fills the age in from it — `calcAge` below mirrors `Patient.age` on the
  * server, which prefers the date whenever one is on file — but the age field
@@ -72,6 +78,12 @@ function Field({ label, children, hint, error, className = "" }) {
 const INPUT =
   "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
 
+/** The same input, once a message is showing beneath it. Only the border and
+ *  the focus ring change colour — the field keeps its shape, so a form with
+ *  one thing to fix still reads as the form rather than as an error screen. */
+const INPUT_INVALID =
+  "w-full rounded-xl border border-red-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100";
+
 /** Every field this form owns, and the only ones it will ever send.
  *
  *  `fromPatient` copies these keys and no others out of a record, so what the
@@ -120,6 +132,13 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Which fields have been visited and left, and whether the button has been
+  // pressed at least once. Between them they decide whether a field's message
+  // is on screen — the checks themselves (`nameError` and friends below) run
+  // either way, because what blocks the save must not depend on what is shown.
+  const [touched, setTouched] = useState({});
+  const [attempted, setAttempted] = useState(false);
+
   // Mirrors `queueEntry` locally so "Generate Queue" below can show the
   // result the moment the server confirms it, rather than waiting on the
   // list behind this modal to refetch and pass a new prop down.
@@ -129,6 +148,15 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
 
   function set(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function touch(field) {
+    setTouched((current) => (current[field] ? current : { ...current, [field]: true }));
+  }
+
+  /** A field's message, or "" while it is still too early to show it. */
+  function shown(field, message) {
+    return message && (attempted || touched[field]) ? message : "";
   }
 
   async function handleGenerateQueue() {
@@ -182,6 +210,9 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Pressing the button is the moment the whole form becomes fair to judge,
+    // so anything still missing says so now — fields never visited included.
+    setAttempted(true);
     if (blocked) return;
     setSaving(true);
     setErrorMsg("");
@@ -218,19 +249,24 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
 
   return (
     <Modal title={isEdit ? `Edit ${patient.name}` : "Register a patient"} onClose={onClose} wide>
-      <form onSubmit={handleSubmit} className="space-y-5 pb-1">
+      {/* `noValidate` leaves validation to the messages below. The browser's
+          own bubbles would fire on the first press and stop `handleSubmit`
+          from running at all, so the form could never reveal the rest. */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-5 pb-1">
         <section>
           <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
             Who they are
           </h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Full name" error={nameError} className="sm:col-span-2">
+            <Field label="Full name" error={shown("name", nameError)} className="sm:col-span-2">
               <input
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
+                onBlur={() => touch("name")}
                 autoFocus
                 required
-                className={INPUT}
+                aria-invalid={Boolean(shown("name", nameError))}
+                className={shown("name", nameError) ? INPUT_INVALID : INPUT}
               />
             </Field>
 
@@ -259,7 +295,7 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
 
             <Field
               label="Age"
-              error={ageError}
+              error={shown("age", ageError)}
               hint={form.dob ? "Calculated from the date of birth — you can adjust it" : undefined}
             >
               <input
@@ -269,7 +305,9 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
                 required
                 value={form.age}
                 onChange={(e) => set("age", e.target.value)}
-                className={INPUT}
+                onBlur={() => touch("age")}
+                aria-invalid={Boolean(shown("age", ageError))}
+                className={shown("age", ageError) ? INPUT_INVALID : INPUT}
               />
             </Field>
 
@@ -288,7 +326,7 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
               </select>
             </Field>
 
-            <Field label="Phone number" error={phoneError}>
+            <Field label="Phone number" error={shown("phone", phoneError)}>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -297,7 +335,9 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
                 placeholder={`${PHONE_DIGITS}-digit mobile number`}
                 value={form.phone}
                 onChange={(e) => set("phone", digitsOnly(e.target.value))}
-                className={INPUT}
+                onBlur={() => touch("phone")}
+                aria-invalid={Boolean(shown("phone", phoneError))}
+                className={shown("phone", phoneError) ? INPUT_INVALID : INPUT}
               />
             </Field>
 
@@ -371,9 +411,12 @@ export default function PatientFormModal({ patient, queueEntry, onClose, onSave,
           >
             Cancel
           </button>
+          {/* Live even while something is missing: a greyed-out button that
+              never says why is a dead end, whereas pressing this one names the
+              fields still needed. `handleSubmit` is what stops the save. */}
           <button
             type="submit"
-            disabled={saving || blocked}
+            disabled={saving}
             className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving
