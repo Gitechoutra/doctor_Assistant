@@ -32,6 +32,7 @@ from portal.models.appointment import Appointment
 from portal.models.consultation import Consultation
 from portal.models.patient import Patient
 from portal.models.report import Report
+from portal.routes.appointment_routes import todays_completed_count
 from portal.routes.report_routes import scope_reports
 
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -66,14 +67,13 @@ def summary():
     waiting = sum(1 for a in queue if a["status"] == "waiting")
     in_consultation = sum(1 for a in queue if a["status"] == "in_progress")
 
-    todays_completed = scope_appointments(
-        Appointment.query.filter(
-            Appointment.status == "completed",
-            Appointment.arrived_at >= day_start,
-            Appointment.arrived_at <= day_end,
-        ),
-        doctor,
-    ).count()
+    # Not counted here. `todays_completed_count` is the one definition of
+    # "finished today", and this route reading it rather than keeping its own
+    # copy is what stopped the two drifting apart -- the copy that stood here
+    # dated a visit by when the patient arrived, so a consultation ended after
+    # midnight was counted on the previous day and the card sat one behind the
+    # Consultations page it links to.
+    todays_completed = todays_completed_count(doctor)
 
     upcoming = upcoming_query(doctor).limit(RECENT_LIMIT).all()
     upcoming_total = upcoming_query(doctor).count()

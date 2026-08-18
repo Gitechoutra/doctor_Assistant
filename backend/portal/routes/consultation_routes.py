@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, time, timedelta
+from datetime import datetime
 
 from flask import Blueprint, current_app, request
 from flask_jwt_extended import get_jwt_identity
@@ -28,6 +28,7 @@ from portal.helpers.case_helper import (
     prior_session_context,
     todays_session,
 )
+from portal.helpers.datetime_helper import local_day_bounds
 from portal.helpers.decorators import clinical_read, doctor_only
 from portal.helpers.formulary import formulary_payload, prescribable_for, resolve_medicine
 from portal.helpers.notify import notify, role_user_ids
@@ -88,10 +89,22 @@ def list_consultations():
             allowed = ", ".join(list(PERIOD_DAYS) + ["all"])
             return error(f"period must be one of: {allowed}", status=422)
         days = PERIOD_DAYS[period]
-        since = datetime.combine(datetime.utcnow().date() - timedelta(days=days), time.min)
-        # Falls back to created_at for a consultation that has no start time.
+        # The practice's day, not UTC's. `datetime.utcnow().date()` is still
+        # yesterday's date east of UTC until the offset passes, so a window
+        # built from it drops the first hours of every working day -- and this
+        # is the page the dashboard's "Completed" card links to with
+        # ?period=today, so the two have to be counting the same day.
+        since, _ = local_day_bounds(offset_days=-days)
+        # Dated by when the visit finished, which is already how this list
+        # orders itself and how `todays_completed_count` counts it. A
+        # consultation that ran past midnight belongs to the day the doctor
+        # wrote it up, not the day the patient walked in. Falls back through
+        # started_at to created_at for a row that has neither.
         query = query.filter(
-            db.func.coalesce(Consultation.started_at, Consultation.created_at) >= since
+            db.func.coalesce(
+                Consultation.ended_at, Consultation.started_at, Consultation.created_at
+            )
+            >= since
         )
 
     # The patient (name, code, phone, email) or what was written up about the
