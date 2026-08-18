@@ -103,10 +103,10 @@ function rangeFor(period, customDate) {
  * `?new=1` opens the registration form on arrival, for any link that means
  * "register somebody" rather than "show me the list".
  *
- * Booking is not done from here. It belongs where the appointment book and the
- * patient's own record are — Appointments has "Book appointment", and the
- * record has it beside everything else known about the patient — and a Book
- * button on every card in a directory was three ways into one modal.
+ * Booking is not done from here. It belongs on the patient's own record,
+ * beside everything else known about them — a Book button on every card in a
+ * directory was a second way into the same modal, from a screen that does not
+ * show you enough about the patient to be sure you have the right one.
  */
 export default function Patients() {
   const { user } = useAuth();

@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Modal from "./Modal";
-import SearchInput from "./SearchInput";
-import Avatar from "./Avatar";
-import useDebouncedValue from "../hooks/useDebouncedValue";
 import { createAppointment, updateAppointment } from "../services/appointmentService";
-import { fetchPatients } from "../services/patientService";
 
 const INPUT =
   "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
@@ -28,72 +24,18 @@ function defaultSlot() {
   return localInputValue(when);
 }
 
-function PatientPicker({ onPick }) {
-  const [search, setSearch] = useState("");
-  const debounced = useDebouncedValue(search);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    fetchPatients("all", debounced, 25)
-      .then((rows) => active && setResults(rows))
-      .catch(() => active && setResults([]))
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [debounced]);
-
-  return (
-    <div className="space-y-3">
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        busy={loading || search !== debounced}
-        autoFocus
-        placeholder="Find a patient by name, ID or phone…"
-      />
-      <div className="max-h-72 space-y-1 overflow-y-auto">
-        {results.length === 0 && !loading ? (
-          <p className="py-8 text-center text-xs text-slate-400">
-            {debounced ? "No patients match that search." : "No patients on file yet."}
-          </p>
-        ) : (
-          results.map((patient) => (
-            <button
-              key={patient.id}
-              type="button"
-              onClick={() => onPick(patient)}
-              className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition hover:bg-slate-50"
-            >
-              <Avatar name={patient.name} imageUrl={patient.photo_url} size="md" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-700">{patient.name}</p>
-                <p className="truncate text-xs text-slate-400">
-                  {[patient.code, patient.phone, patient.age != null && `${patient.age} yrs`]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </div>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
 /**
  * Booking a patient in, and moving a booking that already exists.
  *
  * Two modes, one form:
  *
- *   `patient`     — book this person. Skips the picker.
+ *   `patient`     — book this person.
  *   `appointment` — reschedule this booking. The patient is fixed and only
  *                   the time can move.
- *   neither       — pick a patient first, then book.
+ *
+ * One of the two is always given. Booking starts from a patient — their
+ * record, or a row on the appointment book — so there is nobody to search
+ * for by the time this opens.
  *
  * The walk-in switch is the important one. A practice takes bookings by phone
  * for next week *and* has people turn up at the desk, and those are different
@@ -102,14 +44,8 @@ function PatientPicker({ onPick }) {
  * Making it an explicit choice is what keeps the queue honest about who is
  * actually in the building.
  */
-export default function BookAppointmentModal({
-  patient: fixedPatient,
-  appointment,
-  onClose,
-  onBooked,
-}) {
+export default function BookAppointmentModal({ patient, appointment, onClose, onBooked }) {
   const isReschedule = Boolean(appointment);
-  const [patient, setPatient] = useState(fixedPatient || null);
   const [walkIn, setWalkIn] = useState(false);
   const [scheduledAt, setScheduledAt] = useState(
     appointment?.scheduled_at
@@ -120,8 +56,6 @@ export default function BookAppointmentModal({
   const [notes, setNotes] = useState(appointment?.notes || "");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  const subject = isReschedule ? appointment.patient : patient?.name;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -155,114 +89,98 @@ export default function BookAppointmentModal({
   }
 
   const title = isReschedule
-    ? `Reschedule — ${subject}`
-    : patient
-      ? `Book ${patient.name}`
-      : "Book an appointment";
+    ? `Reschedule — ${appointment.patient}`
+    : `Book ${patient.name}`;
 
   return (
     <Modal title={title} onClose={onClose}>
-      {!patient && !isReschedule ? (
-        <PatientPicker onPick={setPatient} />
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isReschedule && !fixedPatient && (
-            <button
-              type="button"
-              onClick={() => setPatient(null)}
-              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-            >
-              ← Choose a different patient
-            </button>
-          )}
-
-          {!isReschedule && (
-            <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <input
-                type="checkbox"
-                checked={walkIn}
-                onChange={(e) => setWalkIn(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
-              />
-              <span>
-                <span className="block text-sm font-semibold text-slate-700">
-                  Walk-in — they are here now
-                </span>
-                <span className="block text-xs text-slate-500">
-                  Joins today&rsquo;s queue straight away instead of waiting to be
-                  checked in.
-                </span>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {!isReschedule && (
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <input
+              type="checkbox"
+              checked={walkIn}
+              onChange={(e) => setWalkIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-slate-700">
+                Walk-in — they are here now
               </span>
-            </label>
-          )}
-
-          {!walkIn && (
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Date and time
+              <span className="block text-xs text-slate-500">
+                Joins today&rsquo;s queue straight away instead of waiting to be
+                checked in.
               </span>
-              <input
-                type="datetime-local"
-                required
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                className={INPUT}
-              />
-            </label>
-          )}
+            </span>
+          </label>
+        )}
 
+        {!walkIn && (
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-              Reason for visit
+              Date and time
             </span>
             <input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              type="datetime-local"
+              required
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
               className={INPUT}
             />
           </label>
+        )}
 
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-              Notes
-            </span>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anything the doctor should know before they come in"
-              className={INPUT}
-            />
-          </label>
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+            Reason for visit
+          </span>
+          <input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className={INPUT}
+          />
+        </label>
 
-          {errorMsg && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{errorMsg}</p>
-          )}
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold text-slate-600">
+            Notes
+          </span>
+          <textarea
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Anything the doctor should know before they come in"
+            className={INPUT}
+          />
+        </label>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving
-                ? "Saving…"
-                : isReschedule
-                  ? "Move appointment"
-                  : walkIn
-                    ? "Add to today's queue"
-                    : "Book appointment"}
-            </button>
-          </div>
-        </form>
-      )}
+        {errorMsg && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{errorMsg}</p>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving
+              ? "Saving…"
+              : isReschedule
+                ? "Move appointment"
+                : walkIn
+                  ? "Add to today's queue"
+                  : "Book appointment"}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }

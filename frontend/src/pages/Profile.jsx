@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { HiOutlineCamera, HiOutlineTrash } from "react-icons/hi2";
+import { HiOutlineArrowLeft, HiOutlineCamera, HiOutlineTrash } from "react-icons/hi2";
 import Avatar from "../components/Avatar";
 import { useAuth } from "../context/AuthContext";
 import { removeAvatar, updateProfile, uploadAvatar } from "../services/authService";
@@ -117,7 +117,17 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">My Profile</h1>
+      {/* Profile is not a sidebar entry — you arrive here from Settings or the
+          avatar menu — so the way back has to be on the page itself. Without
+          it the screen is a dead end with no nav item lit. */}
+      <Link
+        to="/dashboard/settings"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
+      >
+        <HiOutlineArrowLeft className="h-4 w-4" />
+        Settings
+      </Link>
+      <h1 className="mt-3 text-xl font-bold text-slate-900 sm:text-2xl">My Profile</h1>
 
       <div className="mt-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-slate-900">Profile picture</h2>

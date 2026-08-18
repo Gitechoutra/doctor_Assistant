@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
 import {
-  HiOutlineCalendarDays,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
   HiOutlineClock,
@@ -180,52 +179,13 @@ export default function Dashboard() {
               emptyMessage={
                 isDoctor
                   ? "Nobody is waiting. Patients appear here as the PA checks them in."
-                  : "Nobody is waiting. Book a walk-in from Appointments."
+                  : "Nobody is waiting. Open a patient's record to book them in."
               }
             />
           </Panel>
         </div>
 
         <div className="space-y-5">
-          <Panel
-            title="Upcoming appointments"
-            action={
-              !isDoctor && (
-                <Link
-                  to="/dashboard/appointments"
-                  className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-                >
-                  Manage →
-                </Link>
-              )
-            }
-          >
-            {(data.upcoming || []).length === 0 ? (
-              <EmptyLine>Nothing booked ahead.</EmptyLine>
-            ) : (
-              <ul className="space-y-3">
-                {data.upcoming.map((appointment) => (
-                  <li key={appointment.id} className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500">
-                      <HiOutlineCalendarDays className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to={`/dashboard/patients/${appointment.patient_id}`}
-                        className="block truncate text-sm font-medium text-slate-700 hover:text-brand-700"
-                      >
-                        {appointment.patient}
-                      </Link>
-                      <p className="truncate text-xs text-slate-400">
-                        {whenLabel(appointment.scheduled_at)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-
           {isDoctor ? (
             <>
               {/* "Prescriptions to sign" stood here. It came off for the same

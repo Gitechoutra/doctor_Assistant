@@ -47,16 +47,6 @@ function whenLabel(iso, fallback = "No time set") {
   });
 }
 
-/** How long they have been in the building. Only meaningful once they have
- *  arrived, so it returns null for a booking nobody has checked in yet. */
-function waitedFor(appointment) {
-  if (!appointment.arrived_at) return null;
-  const minutes = Math.floor((Date.now() - new Date(appointment.arrived_at).getTime()) / 60000);
-  if (minutes < 1) return "just arrived";
-  if (minutes < 60) return `waiting ${minutes} min`;
-  return `waiting ${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-}
-
 /**
  * One appointment, on either role's screen.
  *
@@ -78,7 +68,6 @@ function Row({ appointment, children }) {
   ]
     .filter(Boolean)
     .join(" · ");
-  const waited = waitedFor(appointment);
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200 hover:shadow-sm">
@@ -99,7 +88,6 @@ function Row({ appointment, children }) {
           <HiOutlineClock className="h-3.5 w-3.5 shrink-0" />
           {whenLabel(appointment.scheduled_at, whenLabel(appointment.arrived_at, "Walk-in"))}
           {appointment.code && <span>· {appointment.code}</span>}
-          {waited && <span className="text-amber-600">· {waited}</span>}
         </p>
         {appointment.reason && (
           <p className="mt-1 truncate text-xs text-slate-500">{appointment.reason}</p>
@@ -122,7 +110,7 @@ function Row({ appointment, children }) {
  * page's: `GET /appointments` with no status filter returns exactly the rows
  * that have not closed, already scoped to the calling doctor.
  *
- * The desk's half of this screen — booking, rescheduling, checking in — is
+ * The desk's half of this screen — checking in, rescheduling, cancelling — is
  * `FrontDeskAppointments` below. Same path, because it is the same book; two
  * components, because the two people do genuinely different things to it, and
  * a single screen with half its buttons disabled tells neither of them what it
@@ -236,7 +224,7 @@ function DoctorAppointments() {
               {appointment.status === "in_progress" && appointment.consultation_id ? (
                 <Link
                   to={`/dashboard/consultations/${appointment.consultation_id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
                 >
                   <HiOutlineArrowRightCircle className="h-4 w-4" />
                   Resume
@@ -249,7 +237,7 @@ function DoctorAppointments() {
                 <button
                   onClick={() => handleStart(appointment)}
                   disabled={startingId === appointment.id}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <HiOutlineArrowRightCircle className="h-4 w-4" />
                   {startingId === appointment.id ? "Starting…" : "Consult"}
@@ -271,6 +259,12 @@ function DoctorAppointments() {
  * of one list: who is here now, who is coming, and what has already happened.
  * They are kept apart because the actions differ completely — you check a
  * booking in, you cancel a booking, and you can only read a past one.
+ *
+ * A booking is not made from here. It starts at the patient, not at the
+ * calendar: the desk needs to know who is in front of them before a slot
+ * means anything, and the record is where their history, their phone number
+ * and the Book button already are. This screen is what happens to a booking
+ * afterwards — arriving, moving, cancelling, printing.
  */
 function FrontDeskAppointments() {
   const [tab, setTab] = useState("today");
@@ -284,7 +278,6 @@ function FrontDeskAppointments() {
   const [errorMsg, setErrorMsg] = useState("");
   const [busyId, setBusyId] = useState(null);
 
-  const [booking, setBooking] = useState(false);
   const [rescheduling, setRescheduling] = useState(null);
   const [cancelling, setCancelling] = useState(null);
 
@@ -377,17 +370,11 @@ function FrontDeskAppointments() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Appointments</h1>
-        </div>
-        <button
-          onClick={() => setBooking(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-        >
-          <HiOutlineCalendarDays className="h-4.5 w-4.5" />
-          Book appointment
-        </button>
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900">Appointments</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Check patients in, reschedule or cancel a booking, and print a slip.
+        </p>
       </header>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -428,7 +415,7 @@ function FrontDeskAppointments() {
       ) : tab === "today" ? (
         <QueueBoard
           queue={visibleQueue}
-          emptyMessage="Nobody has been checked in yet. Book a walk-in, or check a booking in from the Upcoming tab when the patient arrives."
+          emptyMessage="Nobody has been checked in yet. Check a booking in from the Upcoming tab when the patient arrives."
         />
       ) : tab === "upcoming" ? (
         visibleUpcoming.length === 0 ? (
@@ -436,7 +423,7 @@ function FrontDeskAppointments() {
             <HiOutlineCalendarDays className="mx-auto h-9 w-9 text-slate-300" />
             <p className="mt-3 text-sm font-medium text-slate-600">Nothing booked ahead</p>
             <p className="mt-1 text-xs text-slate-400">
-              Book an appointment and it will appear here until the patient arrives.
+              Appointments booked from a patient's record appear here until they arrive.
             </p>
           </div>
         ) : (
@@ -502,10 +489,6 @@ function FrontDeskAppointments() {
             </Row>
           ))}
         </div>
-      )}
-
-      {booking && (
-        <BookAppointmentModal onClose={() => setBooking(false)} onBooked={() => load(true)} />
       )}
 
       {rescheduling && (

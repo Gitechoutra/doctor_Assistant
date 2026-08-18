@@ -5,7 +5,6 @@ import {
   HiOutlineChatBubbleLeftRight,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
-  HiOutlineIdentification,
   HiOutlineQueueList,
   HiOutlineSquares2X2,
   HiOutlineUserPlus,
@@ -33,13 +32,17 @@ import { ROLE_DOCTOR, ROLE_PA, useAuth } from "../context/AuthContext";
  * prescription and a report card all link straight into a case, and those
  * links are live. Dropping the routes would break them. What changed here is
  * only what the sidebar offers as a place to start.
+ *
+ * Profile is off both menus for the same reason. Your own account is one
+ * subject, and Settings is where it lives — the account card there carries
+ * the "Edit profile" link, and the avatar menu has its own way in. A sidebar
+ * entry beside it made two front doors onto one thing.
  */
 const PA_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: HiOutlineSquares2X2, end: true },
   { to: "/dashboard/patients", label: "Patients", icon: HiOutlineUsers },
   { to: "/dashboard/appointments", label: "Appointments", icon: HiOutlineCalendarDays },
   { to: "/dashboard/queue", label: "Patient Queue", icon: HiOutlineQueueList },
-  { to: "/dashboard/profile", label: "Profile", icon: HiOutlineIdentification },
   { to: "/dashboard/settings", label: "Settings", icon: HiOutlineCog6Tooth },
 ];
 
@@ -67,11 +70,10 @@ const DOCTOR_NAV = [
   // the seeded account and the only one who can issue credentials, so a PA
   // cannot create accounts at all — the API 403s them either way.
   { to: "/dashboard/assistants", label: "Assistants", icon: HiOutlineUserPlus },
-  { to: "/dashboard/profile", label: "Profile", icon: HiOutlineIdentification },
   { to: "/dashboard/settings", label: "Settings", icon: HiOutlineCog6Tooth },
 ];
 
-export function navFor(role) {
+function navFor(role) {
   if (role === ROLE_DOCTOR) return DOCTOR_NAV;
   if (role === ROLE_PA) return PA_NAV;
   return [];

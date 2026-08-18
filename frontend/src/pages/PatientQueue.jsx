@@ -94,7 +94,7 @@ export default function PatientQueue() {
           emptyMessage={
             isDoctor
               ? "Nobody is waiting. Patients appear here as the PA checks them in."
-              : "Nobody is waiting. Book a walk-in, or check in a patient who has arrived, from Appointments."
+              : "Nobody is waiting. Book a walk-in from the patient's record, or check in an arrival from Appointments."
           }
         />
       )}
