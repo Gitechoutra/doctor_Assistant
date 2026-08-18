@@ -44,15 +44,18 @@ function PatientLine({ appointment, children, highlight = false }) {
           : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm"
       }`}
     >
-      {/* The position, given the weight of a number and not a bullet. */}
-      <div
-        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-bold tabular-nums ${
-          highlight ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600"
-        }`}
-        aria-hidden
-      >
-        {highlight ? "•" : appointment.queue_number}
-      </div>
+      {/* The position, given the weight of a number and not a bullet. Whoever
+          is with the doctor right now has no position to show — there is
+          nothing after "now" to count — so the slot is skipped rather than
+          filled with a placeholder mark. */}
+      {!highlight && (
+        <div
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-base font-bold tabular-nums text-slate-600"
+          aria-hidden
+        >
+          {appointment.queue_number}
+        </div>
+      )}
 
       <Avatar name={appointment.patient} imageUrl={patient?.photo_url} size="md" />
 
@@ -124,7 +127,7 @@ export default function QueueBoard({
                 {onStart && (
                   <Link
                     to={`/dashboard/consultations/${appointment.consultation_id}`}
-                    className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700"
+                    className="shrink-0 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
                   >
                     Resume
                   </Link>
@@ -147,7 +150,7 @@ export default function QueueBoard({
                   <button
                     onClick={() => onStart(appointment)}
                     disabled={startingId === appointment.id}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <HiOutlineArrowRightCircle className="h-4 w-4" />
                     {startingId === appointment.id ? "Starting…" : "Start"}

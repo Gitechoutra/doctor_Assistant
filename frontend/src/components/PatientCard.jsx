@@ -32,21 +32,16 @@ function registeredOn(iso) {
  *
  * `status` is where the patient is in their day, from today's queue, and is
  * absent for the majority who are simply on the books; the card draws nothing
- * rather than an empty slot. `queueNumber` is the server's position (0 for
- * whoever is with the doctor, 1..n waiting — see `helpers/queue_helper`), so
- * a patient told "you are third" is third on every screen that says so.
+ * rather than an empty slot.
  */
 export default function PatientCard({
   patient,
-  queueNumber,
   status,
   canEdit,
   canDelete,
   onEdit,
   onDelete,
 }) {
-  const queued = queueNumber != null;
-  const consulting = queueNumber === 0;
   const identity = [
     patient.age != null ? `${patient.age} yrs` : null,
     patient.gender,
@@ -73,16 +68,6 @@ export default function PatientCard({
             {[patient.code, identity].filter(Boolean).join(" · ")}
           </p>
         </div>
-        {queued && (
-          <span
-            title={consulting ? "With the doctor now" : `Number ${queueNumber} in today's queue`}
-            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums ${
-              consulting ? "bg-brand-600 text-white" : "bg-brand-50 text-brand-700"
-            }`}
-          >
-            {consulting ? "•" : queueNumber}
-          </span>
-        )}
       </Link>
 
       {/* Wraps rather than truncating: half a phone number reads as a whole

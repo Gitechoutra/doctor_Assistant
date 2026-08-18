@@ -347,7 +347,6 @@ export default function Patients() {
             <PatientCard
               key={patient.id}
               patient={patient}
-              queueNumber={queueRows[patient.id]?.queue_number}
               status={queueRows[patient.id]?.status}
               canEdit={canEdit}
               canDelete={canDelete}
