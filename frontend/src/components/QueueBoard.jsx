@@ -150,7 +150,7 @@ export default function QueueBoard({
                   <button
                     onClick={() => onStart(appointment)}
                     disabled={startingId === appointment.id}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <HiOutlineArrowRightCircle className="h-4 w-4" />
                     {startingId === appointment.id ? "Starting…" : "Start"}
