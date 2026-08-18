@@ -666,14 +666,31 @@ def download_slip(appointment_id):
 
 def todays_completed_count(doctor=None):
     """Consultations finished today. Both dashboards read it, so it is defined
-    once here rather than twice with a chance of disagreeing."""
+    once here rather than twice with a chance of disagreeing.
+
+    Counted on `Consultation.ended_at` -- when the visit was actually
+    finished. It used to count completed *appointments* by `arrived_at`, which
+    is when the patient walked in, and the two are not the same day often
+    enough to matter: a patient seen late who is written up after midnight,
+    or a consultation left open overnight and ended the next morning, was
+    counted on the day they arrived and so never appeared on the day the
+    doctor finished them. The card then disagreed with the Consultations page
+    it links to, which has always dated a visit by its end.
+
+    Counting the consultation rather than the appointment also settles the
+    double-count: a patient booked twice for one visit has two appointment
+    rows pointing at the same session (see `complete_appointment_for`), and
+    they are one completed consultation, not two.
+    """
     day_start, day_end = local_day_bounds()
-    query = Appointment.query.filter(
-        Appointment.status == "completed",
-        Appointment.arrived_at >= day_start,
-        Appointment.arrived_at <= day_end,
+    query = Consultation.query.filter(
+        Consultation.status == "completed",
+        Consultation.ended_at >= day_start,
+        Consultation.ended_at <= day_end,
     )
-    return scope_appointments(query, doctor).count()
+    if doctor:
+        query = query.filter(Consultation.doctor_id == doctor.id)
+    return query.count()
 
 
 def practice_doctor_summary():
