@@ -43,6 +43,8 @@ class Doctor(db.Model):
     # The practice's own name, as it should appear on paperwork. Null falls
     # back to the doctor's name.
     practice_name = db.Column(db.String(200), nullable=True)
+    # Years in practice, as the doctor states it on their own profile screen.
+    experience_years = db.Column(db.Integer, nullable=True)
     # Who set this doctor up. Nullable because a doctor can exist without one
     # -- the practice's seeded first doctor has nobody above them -- and ON
     # DELETE SET NULL rather than CASCADE because removing the creator's
@@ -74,6 +76,7 @@ class Doctor(db.Model):
             "qualification": self.qualification,
             "practice_name": self.practice_name,
             "registration_no": self.registration_no,
+            "experience_years": self.experience_years,
             # Who set them up. Both halves: the id for a client that wants to
             # compare it against the signed-in user, the name for one that just
             # wants to show it.

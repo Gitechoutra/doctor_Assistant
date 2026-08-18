@@ -59,7 +59,7 @@ function whenLabel(iso, fallback = "No time set") {
  * It wraps rather than truncating below `sm` — a phone number cut off at
  * "+91 98765…" is worse than no phone number, because it looks like one.
  */
-function Row({ appointment, children }) {
+function Row({ appointment, serial, children }) {
   const patient = appointment.patient_detail;
   const identity = [
     patient?.age != null ? `${patient.age} yrs` : null,
@@ -71,7 +71,14 @@ function Row({ appointment, children }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200 hover:shadow-sm">
-      <Avatar name={appointment.patient} imageUrl={patient?.photo_url} size="md" />
+      <div className="relative shrink-0">
+        <Avatar name={appointment.patient} imageUrl={patient?.photo_url} size="md" />
+        {serial != null && (
+          <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-slate-800 text-[10px] font-semibold text-white">
+            {serial}
+          </span>
+        )}
+      </div>
 
       <div className="min-w-0 flex-1 basis-48">
         <div className="flex flex-wrap items-center gap-2">
@@ -219,15 +226,15 @@ function DoctorAppointments() {
         </div>
       ) : (
         <div className="space-y-2">
-          {ordered.map((appointment) => (
-            <Row key={appointment.id} appointment={appointment}>
+          {ordered.map((appointment, index) => (
+            <Row key={appointment.id} appointment={appointment} serial={index + 1}>
               {appointment.status === "in_progress" && appointment.consultation_id ? (
                 <Link
                   to={`/dashboard/consultations/${appointment.consultation_id}`}
                   className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
                 >
                   <HiOutlineArrowRightCircle className="h-4 w-4" />
-                  Resume
+                  Resume consultation
                 </Link>
               ) : (
                 // Offered for a booking that has not been checked in as well
@@ -240,7 +247,7 @@ function DoctorAppointments() {
                   className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <HiOutlineArrowRightCircle className="h-4 w-4" />
-                  {startingId === appointment.id ? "Starting…" : "Consult"}
+                  {startingId === appointment.id ? "Starting…" : "Start consultation"}
                 </button>
               )}
             </Row>

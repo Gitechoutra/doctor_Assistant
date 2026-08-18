@@ -33,6 +33,7 @@ const Prescriptions = lazy(() => import("../pages/Prescriptions"));
 const Reports = lazy(() => import("../pages/Reports"));
 const Settings = lazy(() => import("../pages/Settings"));
 const Profile = lazy(() => import("../pages/Profile"));
+const Security = lazy(() => import("../pages/Security"));
 
 // The patient portal. A separate tree from /dashboard in every sense: its own
 // auth provider, its own tokens, its own layout — see layouts/PortalLayout and
@@ -99,6 +100,7 @@ export default function AppRouter() {
               <Route path="reports" element={<Reports />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="settings/security" element={<Security />} />
               {/* Both roles, and two different screens behind one path — see
                   Appointments.jsx. The PA gets the appointment book they
                   write to; the doctor gets the day's unfinished visits, which

@@ -27,6 +27,7 @@ class User(db.Model):
     # directory can move without a data migration.
     avatar_path = db.Column(db.String(255), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    notifications_enabled = db.Column(db.Boolean, nullable=False, default=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), default=datetime.utcnow)
     updated_at = db.Column(
@@ -76,6 +77,7 @@ class User(db.Model):
             "role_label": role_label(self.role.name) if self.role else None,
             "avatar_url": self.avatar_url,
             "is_active": self.is_active,
+            "notifications_enabled": self.notifications_enabled,
             # The Doctor row's own id. Null for the PA, and every "is this my
             # patient / my consultation?" check on the client reads it.
             "doctor_id": doctor.id if doctor else None,
@@ -83,6 +85,7 @@ class User(db.Model):
             "qualification": doctor.qualification if doctor else None,
             "registration_no": doctor.registration_no if doctor else None,
             "practice_name": doctor.practice_name if doctor else None,
+            "experience_years": doctor.experience_years if doctor else None,
         }
 
     def __repr__(self):

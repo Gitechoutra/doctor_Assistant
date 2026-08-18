@@ -23,6 +23,10 @@ export default function Profile() {
   const [email, setEmail] = useState(user?.email || "");
   const [specialization, setSpecialization] = useState(user?.specialization || "");
   const [registrationNo, setRegistrationNo] = useState(user?.registration_no || "");
+  const [qualification, setQualification] = useState(user?.qualification || "");
+  const [experienceYears, setExperienceYears] = useState(
+    user?.experience_years != null ? String(user.experience_years) : ""
+  );
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +47,9 @@ export default function Profile() {
     email !== (user?.email || "") ||
     (isDoctor &&
       (specialization !== (user?.specialization || "") ||
-        registrationNo !== (user?.registration_no || "")));
+        registrationNo !== (user?.registration_no || "") ||
+        qualification !== (user?.qualification || "") ||
+        experienceYears !== (user?.experience_years != null ? String(user.experience_years) : "")));
 
   function apply(updatedUser, message) {
     updateUser(updatedUser);
@@ -55,6 +61,11 @@ export default function Profile() {
   // held to the same rule as the one an administrator typed when creating it.
   const emailInvalid = !isValidEmail(email);
 
+  const experienceInvalid =
+    isDoctor &&
+    experienceYears !== "" &&
+    (!/^\d+$/.test(experienceYears) || Number(experienceYears) > 80);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorMsg("");
@@ -63,12 +74,18 @@ export default function Profile() {
       setErrorMsg(EMAIL_ERROR);
       return;
     }
+    if (experienceInvalid) {
+      setErrorMsg("Experience must be a whole number of years, 0–80.");
+      return;
+    }
     setSaving(true);
     try {
       const fields = { name: name.trim(), email: email.trim() };
       if (isDoctor) {
         fields.specialization = specialization.trim();
         fields.registration_no = registrationNo.trim();
+        fields.qualification = qualification.trim();
+        fields.experience_years = experienceYears === "" ? null : Number(experienceYears);
       }
       apply(await updateProfile(fields), "Profile updated.");
     } catch (err) {
@@ -203,6 +220,7 @@ export default function Profile() {
                 </label>
                 <input
                   type="text"
+                  placeholder="e.g. Orthopedics"
                   className={inputClass}
                   value={specialization}
                   onChange={(e) => setSpecialization(e.target.value)}
@@ -219,31 +237,46 @@ export default function Profile() {
                   onChange={(e) => setRegistrationNo(e.target.value)}
                 />
               </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Qualification / Degrees
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. MBBS, MD (Orthopedics)"
+                  className={inputClass}
+                  value={qualification}
+                  onChange={(e) => setQualification(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Experience (years)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="80"
+                  step="1"
+                  className={`${inputClass} ${experienceInvalid ? "border-red-300" : ""}`}
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(e.target.value)}
+                />
+              </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Role</label>
-              {/* Read-only, and `role_label` rather than `role`: the raw slug
-                  would render the PA's role as "pa". The API ignores this
-                  field on PATCH /auth/me regardless. */}
-              <input
-                type="text"
-                disabled
-                className={inputClass}
-                value={user?.role_label || user?.role || "—"}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Qualification</label>
-              <input
-                type="text"
-                disabled
-                className={inputClass}
-                value={user?.qualification || "—"}
-              />
-            </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">Role</label>
+            {/* Read-only, and `role_label` rather than `role`: the raw slug
+                would render the PA's role as "pa". The API ignores this
+                field on PATCH /auth/me regardless. */}
+            <input
+              type="text"
+              disabled
+              className={inputClass}
+              value={user?.role_label || user?.role || "—"}
+            />
           </div>
 
           {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
@@ -258,7 +291,7 @@ export default function Profile() {
               {saving ? "Saving…" : "Save changes"}
             </button>
             <Link
-              to="/dashboard/settings"
+              to="/dashboard/settings/security"
               className="text-sm font-semibold text-brand-600 transition hover:text-brand-700"
             >
               Change password →

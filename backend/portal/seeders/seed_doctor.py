@@ -10,9 +10,9 @@ from portal.seeders.seed_accounts import (
 )
 
 DOCTOR_DEFAULTS = {
-    "name": "Dr.Ramana",
-    "email": "goddumahesh2@gmail.com",
-    "password": "Virat@100",
+    "name": "Dr.jennie",
+    "email": "deepthi@gmail.com",
+    "password": "deepu@123",
 }
 
 

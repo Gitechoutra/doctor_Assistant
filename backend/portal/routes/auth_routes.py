@@ -133,12 +133,29 @@ def update_me():
             return error("That email is already in use", status=409)
         user.email = email
 
+    if "notifications_enabled" in payload:
+        user.notifications_enabled = bool(payload.get("notifications_enabled"))
+
     # Doctor-only fields live on the doctor profile, not the user row.
     if user.doctor_profile:
         if "specialization" in payload:
             user.doctor_profile.specialization = (payload.get("specialization") or "").strip() or None
         if "registration_no" in payload:
             user.doctor_profile.registration_no = (payload.get("registration_no") or "").strip() or None
+        if "qualification" in payload:
+            user.doctor_profile.qualification = (payload.get("qualification") or "").strip() or None
+        if "experience_years" in payload:
+            raw = payload.get("experience_years")
+            if raw in (None, ""):
+                user.doctor_profile.experience_years = None
+            else:
+                try:
+                    years = int(raw)
+                except (TypeError, ValueError):
+                    return error("Experience must be a whole number of years", status=422)
+                if years < 0 or years > 80:
+                    return error("Experience must be between 0 and 80 years", status=422)
+                user.doctor_profile.experience_years = years
 
     db.session.commit()
     return success(user.to_dict(), message="Profile updated")
