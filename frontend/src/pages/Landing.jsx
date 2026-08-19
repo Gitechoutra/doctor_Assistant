@@ -85,25 +85,16 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-b from-brand-50/50 via-white to-white">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <Logo />
-        <div className="flex items-center gap-2">
-          {/* Two doors, named. The accounts live in different tables and
-              neither sign-in accepts the other's credentials, so an unlabelled
-              "Sign in" sends half the people who click it to a form that will
-              tell them their password is wrong. */}
-          <Link
-            to="/portal/login"
-            className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-          >
-            I am a patient
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-          >
-            Practice sign in
-            <HiOutlineArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        {/* One door, named. The sign-in accepts practice credentials only, so
+            the label says so rather than leaving it to be discovered at the
+            password field. */}
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+        >
+          Practice sign in
+          <HiOutlineArrowRight className="h-4 w-4" />
+        </Link>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
@@ -116,19 +107,13 @@ export default function Landing() {
             appointment book, the day&rsquo;s queue, and the consultation record
             that comes out of it. Two people, one shared set of records.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-10 flex justify-center">
             <Link
               to="/login"
               className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:bg-brand-700"
             >
               Sign in to your practice
               <HiOutlineArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/portal/login"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              Patients: book an appointment
             </Link>
           </div>
         </section>
