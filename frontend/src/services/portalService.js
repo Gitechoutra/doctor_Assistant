@@ -41,10 +41,6 @@ export async function updateMe(payload) {
   return unwrap(await portalApi.patch("/portal/me", payload));
 }
 
-export async function fetchMyDoctor() {
-  return unwrap(await portalApi.get("/portal/doctor"));
-}
-
 /** Appointments still to come: booked, arrived, and with the doctor now. */
 export async function fetchActiveAppointments() {
   return unwrap(await portalApi.get("/portal/appointments")) || [];

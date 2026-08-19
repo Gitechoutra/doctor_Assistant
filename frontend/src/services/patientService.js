@@ -30,12 +30,6 @@ export async function fetchPatients(scope = "all", search, limit, range = {}) {
   return res.data.data;
 }
 
-/** How many patients sit in each scope, for the tab labels. */
-export async function fetchPatientCounts() {
-  const res = await api.get("/patients/counts");
-  return res.data.data;
-}
-
 /** One patient record, full detail. */
 export async function fetchPatient(patientId) {
   const res = await api.get(`/patients/${patientId}`);
@@ -69,17 +63,5 @@ export async function updatePatient(patientId, payload) {
  */
 export async function deletePatient(patientId) {
   const res = await api.delete(`/patients/${patientId}`);
-  return res.data.data;
-}
-
-export async function uploadPatientPhoto(patientId, file) {
-  const form = new FormData();
-  form.append("photo", file);
-  const res = await api.post(`/patients/${patientId}/photo`, form);
-  return res.data.data;
-}
-
-export async function removePatientPhoto(patientId) {
-  const res = await api.delete(`/patients/${patientId}/photo`);
   return res.data.data;
 }

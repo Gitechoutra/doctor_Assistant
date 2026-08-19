@@ -104,7 +104,36 @@ def main():
         )
         return response, (data_of(response) or {})
 
-    response, pa_session = sign_in("pa@mediassist.local", "PA@12345")
+    # Read from the seeder rather than hardcoded, so changing the practice's
+    # login does not silently break this suite -- the same rule the patient
+    # portal suite follows.
+    from portal.seeders.seed_doctor import doctor_credentials  # noqa: PLC0415
+
+    _name, doctor_email, doctor_password, _default = doctor_credentials()
+
+    # There is no seeded PA: the doctor creates the desk's accounts, and that
+    # route generates the password and emails it rather than returning it (see
+    # routes/pa_routes.create_pa). So the desk account is made here as
+    # fixture, with a password this suite knows. Test setup, not a stand-in
+    # for anything under test -- every assertion below still goes through HTTP.
+    PA_EMAIL = "desk.assistant@gmail.com"
+    PA_PASSWORD = "Desk@12345"
+    with app.app_context():
+        from portal.models.role import PA as PA_ROLE, Role  # noqa: PLC0415
+        from portal.models.user import User  # noqa: PLC0415
+
+        if not User.query.filter_by(email=PA_EMAIL).first():
+            desk = User(
+                name="Desk Assistant",
+                username="desk.assistant",
+                email=PA_EMAIL,
+                role_id=Role.query.filter_by(name=PA_ROLE).first().id,
+            )
+            desk.set_password(PA_PASSWORD)
+            db.session.add(desk)
+            db.session.commit()
+
+    response, pa_session = sign_in(PA_EMAIL, PA_PASSWORD)
     check("the PA signs in", response.status_code == 200, body(response))
     check(
         "the PA's role is 'pa'",
@@ -117,7 +146,7 @@ def main():
         (pa_session.get("user") or {}).get("role_label"),
     )
 
-    response, doctor_session = sign_in("doctor@mediassist.local", "Doctor@12345")
+    response, doctor_session = sign_in(doctor_email, doctor_password)
     check("the doctor signs in", response.status_code == 200, body(response))
     check(
         "the doctor's role is 'doctor'",
@@ -130,10 +159,10 @@ def main():
         doctor_session.get("user"),
     )
 
-    response, _ = sign_in("pa@mediassist.local", "wrong-password")
+    response, _ = sign_in(PA_EMAIL, "wrong-password")
     check("a wrong password is refused", response.status_code == 401, response.status_code)
 
-    response, _ = sign_in("nobody@mediassist.local", "PA@12345")
+    response, _ = sign_in("nobody@mediassist.local", PA_PASSWORD)
     check("an unknown account is refused", response.status_code == 401, response.status_code)
 
     PA = {"Authorization": f"Bearer {pa_session['access_token']}"}
@@ -321,8 +350,15 @@ def main():
         json={"patient_id": rahul_id, "walk_in": True},
         headers=PA,
     )
-    check("a double-booking within the window is refused",
-          response.status_code == 409, message(response))
+    # Not an error: `add_to_todays_queue` returns the "existing" outcome, which
+    # hands back the row already on the board and writes nothing. Clicking the
+    # desk's button twice must not raise a second appointment, and must not
+    # make the PA read an error to find that out.
+    check("re-queuing a waiting patient is a no-op",
+          response.status_code == 200, message(response))
+    check("it returns the appointment already on the board, not a second one",
+          (data_of(response) or {}).get("id") == rahul_appt.get("id"),
+          data_of(response))
 
     response = client.post(
         "/api/appointments",
@@ -342,6 +378,40 @@ def main():
     )
     check("a booking with neither a time nor a walk-in flag is refused",
           response.status_code == 422, message(response))
+
+    # A slot already gone is always a slip -- a mistyped year, or yesterday's
+    # date left in the field. It is also unreachable once made: it never
+    # appears under Upcoming, so it can never be checked in, and it sits in
+    # the book for good. Someone who is here now is a walk-in, which is the
+    # flag below, not a booking backdated to this morning.
+    response = client.post(
+        "/api/appointments",
+        json={"patient_id": sriram_id, "scheduled_at": _soon(-30)},
+        headers=PA,
+    )
+    check("a booking in the past is refused",
+          response.status_code == 422, f"{response.status_code}: {message(response)}")
+
+    # The walk-in path ignores `scheduled_at` entirely, so the guard above
+    # must not catch the patient standing at the desk right now.
+    response = client.post(
+        "/api/appointments",
+        json={"patient_id": sriram_id, "walk_in": True, "scheduled_at": _soon(-30)},
+        headers=PA,
+    )
+    check("a walk-in is still accepted whatever time is on the form",
+          response.status_code == 201, f"{response.status_code}: {message(response)}")
+
+    # Withdrawn again immediately: that walk-in put Sriram on today's board,
+    # and the queue assertions further down are written against the three
+    # patients this suite puts there on purpose. Cancelling leaves the guard
+    # above tested and the board as the rest of the run expects it -- and a
+    # cancelled row is not counted as a duplicate, so it blocks nothing later.
+    client.post(
+        f"/api/appointments/{(data_of(response) or {}).get('id')}/cancel",
+        json={"reason": "fixture for the walk-in guard test"},
+        headers=PA,
+    )
 
     response = client.post(
         "/api/appointments", json={"patient_id": sriram_id, "walk_in": True}, headers=DOCTOR
@@ -659,7 +729,12 @@ def main():
     check("a patient with a consultation cannot be deleted",
           response.status_code == 409, message(response))
 
-    response = client.post("/api/patients", json={"name": "Typo Entry"}, headers=PA)
+    response = client.post(
+        "/api/patients",
+        json={"name": "Typo Entry", "age": 30, "gender": "male", "phone": "9000000123"},
+        headers=PA,
+    )
+    check("the throwaway registration was created", response.status_code == 201, body(response))
     typo_id = (data_of(response) or {}).get("id")
     response = client.delete(f"/api/patients/{typo_id}", headers=PA)
     check("a patient with no records can be deleted", response.status_code == 200, body(response))

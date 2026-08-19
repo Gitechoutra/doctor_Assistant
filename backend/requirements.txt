@@ -5,6 +5,14 @@ Flask-JWT-Extended==4.6.0
 Flask-Cors==4.0.1
 Flask-SocketIO==5.4.1
 python-socketio==5.11.4
+# Not a Flask-SocketIO dependency, and required all the same: with
+# async_mode="threading" (see portal/__init__.py) the WebSocket transport is
+# served by this package alone. Without it the handshake at
+# /socket.io/?transport=websocket answers 500, the browser falls back to
+# polling, and the queue's live refresh degrades silently -- it was installed
+# here by hand and missing from a fresh checkout, which is what produced the
+# run of 500s in backend_restart.log.
+simple-websocket==1.1.0
 PyMySQL==1.1.1
 cryptography==43.0.1
 python-dotenv==1.0.1
@@ -13,6 +21,8 @@ google-genai
 truststore
 reportlab
 
-# --extra-index-url https://download.pytorch.org/whl/cpu
+# torch pulls its CUDA build by default, which is ~2GB the transcriber never
+# uses. For the CPU-only wheels, install with:
+#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 torch
 openai-whisper

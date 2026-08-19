@@ -108,6 +108,32 @@ def _parse_datetime(raw, field):
         return None, f"{field} must be an ISO date-time, e.g. 2026-08-20T10:30"
 
 
+# A booking a few minutes either side of "now" is a walk-in being entered as
+# the patient stands there, not a mistake, and the browser's clock is not the
+# server's to the second. Anything older than this is a slip -- a mistyped
+# year, or yesterday's date left in the field -- and a booking in the past is
+# never actionable: it cannot be checked in from the Upcoming tab, so it would
+# sit in the book forever.
+PAST_BOOKING_GRACE = timedelta(minutes=15)
+
+
+def _reject_past(when, field):
+    """Returns an error message if `when` is meaningfully in the past.
+
+    Naive local time throughout, matching what `datetime-local` sends and what
+    `helpers/datetime_helper` already assumes about this practice: one clinic,
+    one timezone, so a wall-clock comparison is the honest one.
+    """
+    if when is None:
+        return None
+    if when < datetime.now() - PAST_BOOKING_GRACE:
+        return (
+            f"{field} is in the past. Book a future slot, or mark it as a "
+            "walk-in if the patient is here now."
+        )
+    return None
+
+
 # --------------------------------------------------------------------------
 # reading
 # --------------------------------------------------------------------------
@@ -344,6 +370,12 @@ def create_appointment():
             "Give a date and time for the appointment, or mark it as a walk-in.",
             status=422,
         )
+    # Only for a booking: a walk-in ignores `scheduled_at` entirely and joins
+    # today's queue at whatever time it actually is.
+    if not walk_in:
+        past_error = _reject_past(scheduled_at, "scheduled_at")
+        if past_error:
+            return error(past_error, status=422)
 
     reason = (payload.get("reason") or "").strip() or None
     notes = (payload.get("notes") or "").strip() or None
@@ -445,6 +477,9 @@ def update_appointment(appointment_id):
             return error(when_error, status=422)
         if not scheduled_at:
             return error("Give a date and time to move the appointment to", status=422)
+        past_error = _reject_past(scheduled_at, "scheduled_at")
+        if past_error:
+            return error(past_error, status=422)
         appointment.scheduled_at = scheduled_at
 
     if "reason" in payload:

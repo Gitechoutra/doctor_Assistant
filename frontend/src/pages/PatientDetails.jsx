@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   HiOutlineArrowLeft,
+  HiOutlineCalendarDays,
   HiOutlineClipboardDocumentList,
   HiOutlineExclamationTriangle,
   HiOutlinePlayCircle,
 } from "react-icons/hi2";
 import Avatar from "../components/Avatar";
+import BookAppointmentModal from "../components/BookAppointmentModal";
 import StatusBadge from "../components/StatusBadge";
 import useLiveRefresh from "../hooks/useLiveRefresh";
 import { useAuth } from "../context/AuthContext";
@@ -14,7 +16,7 @@ import { fetchAppointmentHistory, fetchQueue } from "../services/appointmentServ
 import { startConsultation } from "../services/consultationService";
 import { fetchPatient } from "../services/patientService";
 import { fetchPrescriptions } from "../services/prescriptionService";
-import { canRunConsultation } from "../utils/permissions";
+import { canManageAppointments, canRunConsultation } from "../utils/permissions";
 
 function when(iso, fallback = "—") {
   if (!iso) return fallback;
@@ -72,9 +74,10 @@ function Empty({ children }) {
  * Deliberately not everything known about them. Their consultations, their
  * appointments and their reports each have a screen of their own, and a page
  * that repeated all three in a sidebar was answering questions nobody had
- * arrived here to ask. Both roles open the same page; Start consultation is
- * the only button on it, and it is the doctor's alone — booking and editing
- * a patient's own details live where the rest of that record does.
+ * arrived here to ask. Both roles open the same page; what differs is the
+ * buttons — Start consultation is the doctor's, Book is the desk's. Editing
+ * a patient's own details lives on the Patients list, next to registering
+ * them, because correcting a record and creating one are the same job.
  *
  * Some of what is loaded is never drawn, and is meant to be: the queue entry
  * and the appointment history are what tell this page whether the patient
@@ -99,6 +102,7 @@ export default function PatientDetails() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [starting, setStarting] = useState(false);
+  const [booking, setBooking] = useState(false);
 
   const id = Number(patientId);
 
@@ -275,6 +279,15 @@ export default function PatientDetails() {
                       : "Start consultation"}
               </button>
             )}
+            {canManageAppointments(user?.role) && (
+              <button
+                onClick={() => setBooking(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+              >
+                <HiOutlineCalendarDays className="h-4.5 w-4.5" />
+                Book
+              </button>
+            )}
           </div>
         </div>
 
@@ -335,6 +348,14 @@ export default function PatientDetails() {
           </ul>
         )}
       </Section>
+
+      {booking && (
+        <BookAppointmentModal
+          patient={patient}
+          onClose={() => setBooking(false)}
+          onBooked={() => load(true)}
+        />
+      )}
     </div>
   );
 }

@@ -301,6 +301,36 @@ def main():
         f"{response.status_code}: {message(response)}",
     )
 
+    # The same refusal, in the clock the browser actually books on. The form
+    # is a `datetime-local` field, so it sends the wall-clock time the patient
+    # picked with no zone on it -- while the check above sends UTC. The two
+    # only agree in a practice running at UTC+00:00, and everywhere else the
+    # naive local number is simply the larger one: judged against utcnow() a
+    # slot minutes away looked hours ahead, and the minimum-lead rule passed
+    # everything. Asserted on the status *and* the message because a duplicate
+    # 409 from the booking above would otherwise look like a pass.
+    response = client.post(
+        "/api/portal/appointments",
+        json={"scheduled_at": (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M")},
+        headers=MEERA,
+    )
+    check(
+        "booking five minutes ahead on the browser's own clock is refused too",
+        response.status_code == 422 and "at least" in (message(response) or ""),
+        f"{response.status_code}: {message(response)}",
+    )
+
+    response = client.post(
+        "/api/portal/appointments",
+        json={"scheduled_at": (datetime.now() - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M")},
+        headers=MEERA,
+    )
+    check(
+        "and a slot in the past is refused",
+        response.status_code == 422,
+        f"{response.status_code}: {message(response)}",
+    )
+
     # ------------------------------------------------- both sides agree --
     section("the doctor sees the same appointment")
 

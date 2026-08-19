@@ -19,8 +19,3 @@ export async function fetchPrescriptions(params = {}) {
   const res = await api.get("/prescriptions", { params });
   return res.data.data;
 }
-
-export async function fetchPrescription(consultationId) {
-  const res = await api.get(`/prescriptions/${consultationId}`);
-  return res.data.data;
-}

@@ -1,5 +1,5 @@
 import api from "./api";
-import { downloadPdf, openPdfForPrint } from "./reportService";
+import { openPdfForPrint } from "./reportService";
 
 /**
  * Today's queue, already numbered by the server.
@@ -96,10 +96,6 @@ export async function startAppointment(appointmentId) {
 export async function generateAppointmentSlip(appointmentId) {
   const res = await api.post(`/appointments/${appointmentId}/slip`);
   return res.data.data;
-}
-
-export function downloadAppointmentSlip(appointmentId, suggestedName) {
-  return downloadPdf(`/appointments/${appointmentId}/slip/download`, suggestedName);
 }
 
 export function printAppointmentSlip(appointmentId, suggestedName) {

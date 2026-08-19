@@ -2,10 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   HiOutlineArrowRightCircle,
+  HiOutlineArrowRightOnRectangle,
   HiOutlineCalendarDays,
   HiOutlineClock,
+  HiOutlinePencilSquare,
+  HiOutlinePrinter,
+  HiOutlineXCircle,
 } from "react-icons/hi2";
 import Avatar from "../components/Avatar";
+import BookAppointmentModal from "../components/BookAppointmentModal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import QueueBoard from "../components/QueueBoard";
 import SearchInput from "../components/SearchInput";
 import StatusBadge from "../components/StatusBadge";
@@ -13,14 +19,20 @@ import useDebouncedValue from "../hooks/useDebouncedValue";
 import useLiveRefresh from "../hooks/useLiveRefresh";
 import { useAuth } from "../context/AuthContext";
 import {
+  cancelAppointment,
+  checkInAppointment,
   fetchAppointmentHistory,
   fetchAppointments,
   fetchQueue,
+  fetchUpcoming,
+  generateAppointmentSlip,
+  printAppointmentSlip,
   startAppointment,
 } from "../services/appointmentService";
 
 const TABS = [
   { key: "today", label: "Today's queue" },
+  { key: "upcoming", label: "Upcoming" },
   { key: "past", label: "Past" },
 ];
 
@@ -250,8 +262,16 @@ function DoctorAppointments() {
  * The appointment book. The PA's screen — every write behind it is
  * `@front_desk_only` on the server.
  *
- * Two tabs, which are two different questions rather than two filters of one
- * list: who is here now, and what has already happened.
+ * Three tabs, which are three different questions rather than three filters
+ * of one list: who is here now, who is coming, and what has already happened.
+ * They are kept apart because the actions differ completely — you check a
+ * booking in, you cancel a booking, and you can only read a past one.
+ *
+ * A booking is not made from here. It starts at the patient, not at the
+ * calendar: the desk needs to know who is in front of them before a slot
+ * means anything, and the record is where their history, their phone number
+ * and the Book button already are. This screen is what happens to a booking
+ * afterwards — arriving, moving, cancelling, printing.
  */
 const TAB_KEYS = new Set(TABS.map((entry) => entry.key));
 
@@ -266,22 +286,29 @@ function FrontDeskAppointments() {
   const debouncedSearch = useDebouncedValue(search);
 
   const [queue, setQueue] = useState([]);
+  const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [busyId, setBusyId] = useState(null);
+
+  const [rescheduling, setRescheduling] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
 
   const load = useCallback(
     async (background = false) => {
       if (!background) setLoading(true);
       try {
-        const [queueRows, history] = await Promise.all([
+        const [queueRows, upcomingRows, history] = await Promise.all([
           fetchQueue(),
+          fetchUpcoming(90),
           fetchAppointmentHistory({
             page_size: 50,
             ...(debouncedSearch ? { search: debouncedSearch } : {}),
           }),
         ]);
         setQueue(queueRows);
+        setUpcoming(upcomingRows);
         setPast(history.items || []);
         setErrorMsg("");
       } catch (err) {
@@ -299,10 +326,52 @@ function FrontDeskAppointments() {
 
   useLiveRefresh(load);
 
-  // Client-side, and only on today's queue. The past tab searches on the
-  // server (it is paginated and can be long); today's queue is a day's worth
-  // of rows, already in memory, so filtering it here is instant and costs no
-  // request.
+  async function handleCheckIn(appointment) {
+    setBusyId(appointment.id);
+    setErrorMsg("");
+    try {
+      await checkInAppointment(appointment.id);
+      await load(true);
+      setTab("today");
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Could not check this patient in.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleCancel(reason) {
+    const appointment = cancelling;
+    setCancelling(null);
+    setBusyId(appointment.id);
+    try {
+      await cancelAppointment(appointment.id, reason);
+      await load(true);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Could not cancel this appointment.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handlePrintSlip(appointment) {
+    setBusyId(appointment.id);
+    try {
+      // Generated first: the slip is rendered on demand rather than stored, so
+      // printing one that has never been generated would 404.
+      await generateAppointmentSlip(appointment.id);
+      await printAppointmentSlip(appointment.id, `${appointment.code}.pdf`);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Could not produce the slip.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // Client-side, and only on the two short lists. The past tab searches on the
+  // server (it is paginated and can be long); today's queue and the upcoming
+  // list are a day's and a quarter's worth of rows, already in memory, so
+  // filtering them here is instant and costs no request.
   const term = debouncedSearch.trim().toLowerCase();
   const matches = (appointment) =>
     !term ||
@@ -311,13 +380,14 @@ function FrontDeskAppointments() {
       .some((field) => field.toLowerCase().includes(term));
 
   const visibleQueue = queue.filter(matches);
+  const visibleUpcoming = upcoming.filter(matches);
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-slate-900">Appointments</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Today's queue, and what has already happened.
+          Check patients in, reschedule or cancel a booking, and print a slip.
         </p>
       </header>
 
@@ -357,7 +427,57 @@ function FrontDeskAppointments() {
           ))}
         </div>
       ) : tab === "today" ? (
-        <QueueBoard queue={visibleQueue} />
+        <QueueBoard
+          queue={visibleQueue}
+          emptyMessage="Nobody has been checked in yet. Check a booking in from the Upcoming tab when the patient arrives."
+        />
+      ) : tab === "upcoming" ? (
+        visibleUpcoming.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
+            <HiOutlineCalendarDays className="mx-auto h-9 w-9 text-slate-300" />
+            <p className="mt-3 text-sm font-medium text-slate-600">Nothing booked ahead</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Appointments booked from a patient's record appear here until they arrive.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {visibleUpcoming.map((appointment) => (
+              <Row key={appointment.id} appointment={appointment}>
+                <button
+                  onClick={() => handleCheckIn(appointment)}
+                  disabled={busyId === appointment.id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  <HiOutlineArrowRightOnRectangle className="h-3.5 w-3.5" />
+                  Check in
+                </button>
+                <button
+                  onClick={() => setRescheduling(appointment)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-200"
+                >
+                  <HiOutlinePencilSquare className="h-3.5 w-3.5" />
+                  Reschedule
+                </button>
+                <button
+                  onClick={() => handlePrintSlip(appointment)}
+                  disabled={busyId === appointment.id}
+                  aria-label="Print appointment slip"
+                  className="grid h-8 w-8 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-60"
+                >
+                  <HiOutlinePrinter className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setCancelling(appointment)}
+                  aria-label="Cancel appointment"
+                  className="grid h-8 w-8 place-items-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                >
+                  <HiOutlineXCircle className="h-4 w-4" />
+                </button>
+              </Row>
+            ))}
+          </div>
+        )
       ) : past.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
           <HiOutlineClock className="mx-auto h-9 w-9 text-slate-300" />
@@ -383,6 +503,26 @@ function FrontDeskAppointments() {
             </Row>
           ))}
         </div>
+      )}
+
+      {rescheduling && (
+        <BookAppointmentModal
+          appointment={rescheduling}
+          onClose={() => setRescheduling(null)}
+          onBooked={() => load(true)}
+        />
+      )}
+
+      {cancelling && (
+        <ConfirmDialog
+          title={`Cancel ${cancelling.patient}'s appointment?`}
+          message={`${whenLabel(cancelling.scheduled_at)}\n\nThe appointment stays on file as cancelled, so the record still shows they were expected.`}
+          confirmLabel="Cancel appointment"
+          cancelLabel="Keep it"
+          destructive
+          onConfirm={() => handleCancel("Cancelled at the desk")}
+          onCancel={() => setCancelling(null)}
+        />
       )}
     </div>
   );

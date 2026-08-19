@@ -123,6 +123,10 @@ export default function BookAppointmentModal({ patient, appointment, onClose, on
             <input
               type="datetime-local"
               required
+              // A slot in the past is always a slip of the keyboard — the desk
+              // books ahead, and someone already here is a walk-in. The server
+              // refuses one too; this only saves the round trip.
+              min={localInputValue(new Date())}
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
               className={INPUT}

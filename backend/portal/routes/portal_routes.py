@@ -562,15 +562,33 @@ def create_appointment():
     if not scheduled_at:
         return error("Choose a date and time for your appointment", status=422)
 
+    # Two clocks, deliberately, because the two things being compared are
+    # stored on different ones:
+    #
+    #   `scheduled_at` arrives from a `datetime-local` field -- the wall-clock
+    #   time the patient picked, with no zone on it. It has to be judged
+    #   against local time. Judging it against utcnow() silently scaled both
+    #   guards by the practice's offset: at +05:30 the "30 minutes from now"
+    #   floor accepted a slot five minutes away, or hours into the past,
+    #   because the naive local number is simply the larger one.
+    #
+    #   `created_at`, which `book_appointment` measures its duplicate window
+    #   against, is written by db.func.now() and is UTC. Handing it local time
+    #   moves the cutoff into its future and matches nothing, which disables
+    #   the duplicate check entirely.
+    #
+    # `helpers/datetime_helper` makes the same one-clinic-one-timezone
+    # assumption everywhere it decides what "today" means.
+    local_now = datetime.now()
     now = datetime.utcnow()
-    if scheduled_at < now + timedelta(minutes=MIN_BOOKING_LEAD_MINUTES):
+    if scheduled_at < local_now + timedelta(minutes=MIN_BOOKING_LEAD_MINUTES):
         return error(
             "Please choose a time at least "
             f"{MIN_BOOKING_LEAD_MINUTES} minutes from now. If you need to be seen "
             "today, call the practice.",
             status=422,
         )
-    if scheduled_at > now + timedelta(days=MAX_BOOKING_DAYS):
+    if scheduled_at > local_now + timedelta(days=MAX_BOOKING_DAYS):
         return error(
             f"Appointments can be booked up to {MAX_BOOKING_DAYS} days ahead.",
             status=422,
