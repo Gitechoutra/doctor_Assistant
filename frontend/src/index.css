@@ -69,3 +69,34 @@ body {
 .animate-soft-float {
   animation: soft-float 7s ease-in-out infinite;
 }
+
+/* The dashed connector in the hero diagram, flowing in the direction the
+   record travels. Stroke-dash only — nothing here reflows or repaints layout,
+   and the reduced-motion block above stops it like everything else. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.animate-dash-flow {
+  animation: dash-flow 2.6s linear infinite;
+}
+
+/* The hero cards' drift. Five pixels, not the fourteen of `soft-float`: these
+   cards sit 20px apart, so anything larger closes the gap between neighbours
+   to nothing and the stack reads as bouncing rather than floating. Long
+   durations and staggered delays keep any two cards out of phase. */
+@keyframes card-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -5px, 0);
+  }
+}
+
+.animate-card-drift {
+  animation: card-drift 9s ease-in-out infinite;
+}
