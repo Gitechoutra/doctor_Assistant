@@ -68,14 +68,14 @@ export default function HeroComposition() {
           gravity without adding another edge to the page. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-8 rounded-[3rem] bg-brand-50/60 blur-2xl"
+        className="pointer-events-none absolute -inset-4 rounded-[3rem] bg-brand-50/60 blur-2xl sm:-inset-8"
       />
 
       <m.div style={style} className="relative flex flex-col gap-5 sm:gap-6">
         {/* The thread, on the base plane and therefore behind every panel. */}
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block"
+          className="pointer-events-none absolute inset-0 h-full w-full"
           style={{ transform: "translateZ(0px)" }}
           viewBox="0 0 100 160"
           preserveAspectRatio="none"
@@ -96,7 +96,7 @@ export default function HeroComposition() {
 
         {/* Secondary — the queue. Narrow, and pushed left. */}
         <div
-          className="hidden w-[62%] self-start rounded-2xl border border-slate-200/70 bg-white p-3.5 shadow-[0_16px_32px_-24px_rgba(51,43,113,0.5)] sm:block"
+          className="w-[68%] self-start rounded-2xl border border-slate-200/70 bg-white p-3 shadow-[0_16px_32px_-24px_rgba(51,43,113,0.5)] sm:w-[62%] sm:p-3.5"
           style={{ transform: "translateZ(34px)" }}
         >
           <div className="flex items-center gap-2">
@@ -123,8 +123,8 @@ export default function HeroComposition() {
         />
 
         {/* Secondary — the prescription, with its status annotation. */}
-        <div className="hidden w-[66%] self-end sm:block" style={{ transform: "translateZ(34px)" }}>
-          <div className="rounded-2xl border border-slate-200/70 bg-white p-3.5 shadow-[0_16px_32px_-24px_rgba(51,43,113,0.5)]">
+        <div className="w-[72%] self-end sm:w-[66%]" style={{ transform: "translateZ(34px)" }}>
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-[0_16px_32px_-24px_rgba(51,43,113,0.5)] sm:p-3.5">
             <div className="flex items-center gap-2">
               <HiOutlineClipboardDocumentList className="h-4 w-4 text-brand-500" />
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">

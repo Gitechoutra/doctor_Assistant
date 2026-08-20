@@ -32,7 +32,10 @@ from portal.models.appointment import Appointment
 from portal.models.consultation import Consultation
 from portal.models.patient import Patient
 from portal.models.report import Report
-from portal.routes.appointment_routes import todays_completed_count
+from portal.routes.appointment_routes import (
+    completed_consultations_count,
+    todays_completed_count,
+)
 from portal.routes.report_routes import scope_reports
 
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -74,6 +77,10 @@ def summary():
     # midnight was counted on the previous day and the card sat one behind the
     # Consultations page it links to.
     todays_completed = todays_completed_count(doctor)
+    # What the "Completed" card shows. It links to the consultation
+    # history, which carries every visit rather than today's, so the card
+    # counts the same set the page it opens does.
+    completed_total = completed_consultations_count(doctor)
 
     upcoming = upcoming_query(doctor).limit(RECENT_LIMIT).all()
     upcoming_total = upcoming_query(doctor).count()
@@ -92,6 +99,7 @@ def summary():
         "waiting": waiting,
         "in_consultation": in_consultation,
         "todays_completed": todays_completed,
+        "completed_total": completed_total,
         "upcoming_total": upcoming_total,
         "total_patients": patients_query.count(),
         "todays_registrations": patients_query.filter(

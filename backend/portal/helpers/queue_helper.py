@@ -256,15 +256,34 @@ def queue_query(doctor=None):
     makes `number_queue` below able to hand out positions without a second
     opinion about who is next.
 
-    Bounded to today. A `waiting` row left over from yesterday is somebody the
-    desk forgot to close, and carrying it into this morning's queue would put
-    a patient who is not in the building at the head of the line.
+    Waiting patients are bounded to today. A `waiting` row left over from
+    yesterday is somebody the desk forgot to close, and carrying it into this
+    morning's queue would put a patient who is not in the building at the head
+    of the line.
+
+    **A consultation that is under way is not bounded by anything.** The day
+    filter used to apply to `in_progress` rows too, which meant a consultation
+    still running after midnight — or one opened on a previous day and never
+    ended — dropped out of the queue while it was still open. Everything
+    downstream then disagreed with itself: the board went empty, the "Active
+    consultations" count fell to zero, and the Appointments page kept listing
+    the patient as In Consultation, because the book is not day-bounded. An
+    in-progress row is by definition somebody the doctor still has open, so
+    the only honest thing the queue can do is keep showing them until it is
+    closed. `arrived_at` is also allowed to be NULL here for the same reason:
+    a patient called straight in has no arrival time, and their consultation
+    is no less open for it.
     """
     day_start, day_end = local_day_bounds()
     query = Appointment.query.filter(
         Appointment.status.in_(QUEUE_STATUSES),
-        Appointment.arrived_at >= day_start,
-        Appointment.arrived_at <= day_end,
+        db.or_(
+            Appointment.status == "in_progress",
+            db.and_(
+                Appointment.arrived_at >= day_start,
+                Appointment.arrived_at <= day_end,
+            ),
+        ),
     )
     if doctor:
         query = query.filter(Appointment.doctor_id == doctor.id)

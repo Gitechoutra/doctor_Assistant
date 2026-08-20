@@ -10,12 +10,11 @@ import { BUTTON_GHOST, FOCUS, NAV_LINK } from "./motion3d";
  *
  * Three things it has to get right, none of which the old two-item bar did:
  *
- * 1. Both doors are visible. The practice signs in at /login and patients sign
- *    in at /portal/login - two separate account tables, two separate sessions.
- *    A header offering only one of them sends every patient to a form that
- *    will tell them their password is wrong. They are weighted, not equal: the
- *    practice CTA is the filled button because this is the practice's
- *    software, and the portal is the quieter link beside it.
+ * 1. The portal door is named. The practice signs in at /login and patients
+ *    sign in at /portal/login - two separate account tables, two separate
+ *    sessions - so an unlabelled "Sign in" would send half the people who
+ *    click it to a form that tells them their password is wrong. The header
+ *    now carries only the portal link; the practice signs in from the hero.
  * 2. The in-page links actually go somewhere. Every href below matches a real
  *    `id` on the page, and `scroll-margin-top` in index.css keeps the sticky
  *    header off the heading it lands on.
@@ -121,15 +120,9 @@ export default function LandingNav() {
             Patient portal
           </Link>
 
-          <Link
-            to="/login"
-            className={`group inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_20px_-12px_rgba(91,75,209,0.9)] transition duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-[0_12px_26px_-12px_rgba(91,75,209,0.95)] active:translate-y-0 motion-reduce:transform-none sm:px-4 sm:text-sm ${FOCUS}`}
-          >
-            <span className="sm:hidden">Sign in</span>
-            <span className="hidden sm:inline">Practice login</span>
-            <HiOutlineArrowRight className="hidden h-4 w-4 transition group-hover:translate-x-0.5 motion-reduce:transform-none sm:block" />
-          </Link>
-
+          {/* The practice CTA stood here. It is now the hero's "Sign in" and
+              the footer's link only — the header keeps the quieter portal link
+              and the menu. /login itself is untouched. */}
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}

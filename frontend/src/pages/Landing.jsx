@@ -386,7 +386,7 @@ export default function Landing() {
                 <Reveal delay={0.12}>
                   <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
                     <Link to="/login" className={`${BUTTON_PRIMARY} ${FOCUS}`}>
-                      Access your practice
+                      Sign in
                       <HiOutlineArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5 motion-reduce:transform-none" />
                     </Link>
                     <a href="#how-it-works" className={`${BUTTON_SECONDARY} ${FOCUS}`}>
@@ -687,19 +687,15 @@ export default function Landing() {
                   </Reveal>
 
                   <Reveal delay={0.14}>
-                    <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-                      <Link to="/portal/register" className={`${BUTTON_PRIMARY} ${FOCUS}`}>
-                        Create a patient account
-                        <HiOutlineArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5 motion-reduce:transform-none" />
-                      </Link>
-                      <Link to="/portal/login" className={`${BUTTON_SECONDARY} ${FOCUS}`}>
-                        Patient sign in
-                      </Link>
-                    </div>
+                    {/* No buttons in this section. Enrolment and patient
+                        sign-in were a pair of CTAs here; the section now
+                        describes the portal and leaves the doors to the header
+                        and the footer. /portal/register and /portal/login are
+                        unchanged. */}
                     {/* Stated here rather than discovered at the booking form:
                         the API refuses a slot inside half an hour, and a
                         patient who reads that first does not lose a form. */}
-                    <p className="mt-4 text-xs leading-relaxed text-slate-400">
+                    <p className="mt-9 text-xs leading-relaxed text-slate-400">
                       Appointments must be booked at least 30 minutes ahead. To be seen sooner,
                       call the practice.
                     </p>

@@ -111,12 +111,16 @@ export default function Dashboard() {
       )}
 
       {/* The same four numbers for both, so the desk and the room agree.
-          Every one is today's: this row is what the day looks like right now,
-          not what the practice looks like. "Total patients today" counts
-          registrations rather than people currently in the building — a
-          patient registered this morning and already seen still counts,
-          which is what makes it a total and not a fourth way of saying
-          "waiting".
+
+          Each one counts whatever the page it opens lists — that, rather than
+          a shared time window, is what keeps a card from disagreeing with the
+          screen behind it. The first three are today's: registrations today
+          ("Total patients today" counts registrations rather than people
+          currently in the building — a patient registered this morning and
+          already seen still counts, which is what makes it a total and not a
+          fourth way of saying "waiting"), and the two live counts off the
+          queue. "Completed" is the practice's whole history, because the
+          consultation list it opens is.
 
           The three live counts come from the queue payload rather than from
           separate SELECTs, which is what guarantees each card agrees with the
@@ -143,16 +147,18 @@ export default function Dashboard() {
           icon={HiOutlineClock}
           to={dayListPath}
         />
+        {/* Not today's. This card used to count consultations finished since
+            midnight and open the history filtered to today — so on any morning
+            before the first patient was seen it read 0 and led to an empty
+            page, while the practice's completed visits sat one click away
+            behind a filter the reader had not chosen. It now counts what the
+            page it opens lists. */}
         <StatCard
           label="Completed"
-          value={data.todays_completed}
-          hint="Completed consultations today"
+          value={data.completed_total}
+          hint="Completed consultations"
           icon={HiOutlineCheckCircle}
-          to={
-            isDoctor
-              ? "/dashboard/consultations?period=today"
-              : "/dashboard/appointments?tab=past"
-          }
+          to={isDoctor ? "/dashboard/consultations" : "/dashboard/appointments?tab=past"}
         />
       </div>
 

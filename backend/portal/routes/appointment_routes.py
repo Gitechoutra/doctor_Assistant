@@ -728,6 +728,22 @@ def todays_completed_count(doctor=None):
     return query.count()
 
 
+def completed_consultations_count(doctor=None):
+    """Every consultation finished, ever.
+
+    The dashboard's "Completed" card reads this rather than
+    `todays_completed_count`. The card links through to the practice's
+    consultation history, which is not bounded to a day, and a card that reads
+    0 over a list holding a fortnight of visits is read as the software having
+    lost them. Same definition of finished as the count above — a completed
+    consultation, counted once — just without the day.
+    """
+    query = Consultation.query.filter(Consultation.status == "completed")
+    if doctor:
+        query = query.filter(Consultation.doctor_id == doctor.id)
+    return query.count()
+
+
 def practice_doctor_summary():
     """Who the practice's doctor is, for a client that wants to name them."""
     doctor = practice_doctor()
