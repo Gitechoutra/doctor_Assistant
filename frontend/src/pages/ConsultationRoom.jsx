@@ -7,6 +7,7 @@ import {
   HiOutlineChevronDown,
   HiOutlineClipboardDocumentList,
   HiOutlineFolderOpen,
+  HiOutlineSparkles,
 } from "react-icons/hi2";
 import ConversationTurns, { TranscriptCaveat } from "../components/ConversationTurns";
 import PatientInfoPanel from "../components/PatientInfoPanel";
@@ -68,6 +69,7 @@ export default function ConsultationRoom() {
   const streamRef = useRef(null);
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const endingRef = useRef(false);
 
   // Live input level, so "is it actually hearing the patient?" is answerable
   // while the consultation is happening rather than after it, when the only
@@ -264,6 +266,8 @@ export default function ConsultationRoom() {
   }
 
   async function handleEndConsultation() {
+    if (endingRef.current) return;
+    endingRef.current = true;
     await stopRecording();
     setIsEnding(true);
     setErrorMsg("");
@@ -274,6 +278,7 @@ export default function ConsultationRoom() {
       setErrorMsg(err.response?.data?.message || "Could not end this consultation.");
     } finally {
       setIsEnding(false);
+      endingRef.current = false;
     }
   }
 
@@ -379,9 +384,23 @@ export default function ConsultationRoom() {
               <button
                 onClick={handleEndConsultation}
                 disabled={isEnding || isProcessing}
-                className="rounded-full border border-red-200 px-4 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                title={
+                  recordingStopped
+                    ? "Write up this conversation — summary, diagnosis and medicines"
+                    : undefined
+                }
+                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition disabled:opacity-60 ${
+                  recordingStopped
+                    ? "bg-gradient-to-r from-brand-500 to-brand-700 text-white shadow-md hover:shadow-lg"
+                    : "border border-red-200 text-red-600 hover:bg-red-50"
+                }`}
               >
-                {isEnding ? "Generating consultation summary…" : "End Consultation"}
+                {recordingStopped && !isEnding && <HiOutlineSparkles className="h-4 w-4" />}
+                {isEnding
+                  ? "Generating consultation summary…"
+                  : recordingStopped
+                    ? "Generate Summary"
+                    : "End Consultation"}
               </button>
             ) : (
               <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
@@ -524,7 +543,7 @@ export default function ConsultationRoom() {
                       : isRecording
                         ? "Recording… just talk normally, the AI will sort out who said what."
                         : recordingStopped
-                          ? "Press the mic again to record more, or generate the summary below."
+                          ? "Recording stopped. Press the mic again to record more, or press Generate Summary above when the conversation is finished."
                           : "Press the mic, have the whole consultation, then press stop."}
                   </p>
 
@@ -573,28 +592,6 @@ export default function ConsultationRoom() {
                       </p>
                     </div>
                   )}
-
-                  {/* Stopping the mic stops there, deliberately. The summary,
-                      diagnosis and prescription cost a model call and are
-                      written over the whole transcript, so they wait until the
-                      doctor says the conversation is finished — which may be
-                      several takes after the first stop. */}
-                  {recordingStopped && !isRecording && !isProcessing && (
-                    <div className="flex w-full flex-col items-center gap-2 border-t border-slate-100 pt-4">
-                      <p className="text-sm font-semibold text-slate-900">Recording stopped</p>
-                      <p className="text-center text-sm text-slate-400">
-                        Generate the summary, diagnosis and medicines when you’re ready.
-                      </p>
-                      <button
-                        onClick={handleEndConsultation}
-                        disabled={isEnding}
-                        className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:opacity-60"
-                      >
-                        <HiOutlineClipboardDocumentList className="h-4 w-4" />
-                        {isEnding ? "Generating consultation summary…" : "Generate Summary"}
-                      </button>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <p className="mt-4 border-t border-slate-100 pt-4 text-center text-sm text-slate-400">
@@ -603,6 +600,29 @@ export default function ConsultationRoom() {
               )}
             </div>
           )}
+
+          {/* The conversation always has somewhere to be seen. Normally that
+              is the speaker-labelled version inside the summary panel below,
+              which is where it belongs — above the summary and prescription
+              it was written from. This is the fallback for when that
+              labelling pass came back empty: the raw takes are shown here
+              instead, so a written-up consultation is never left without its
+              transcript. */}
+          {isCompleted &&
+            !consultation.summary?.labeled_transcript?.length &&
+            consultation.messages.length > 0 && (
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <h2 className="mb-3 text-base font-semibold text-slate-900">Conversation</h2>
+                <div className="max-h-[420px] space-y-3 overflow-y-auto">
+                  {consultation.messages.some((m) => m.turns?.length > 0) && (
+                    <TranscriptCaveat className="pb-1 text-center" />
+                  )}
+                  {consultation.messages.map((m) => (
+                    <TranscriptLine key={m.id} message={m} />
+                  ))}
+                </div>
+              </div>
+            )}
 
           {isCompleted && (
             <SummaryPanel
