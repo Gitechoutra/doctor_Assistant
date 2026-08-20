@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  /* The product's accent. Indigo-violet, used for every interactive and
+     branded surface across the app — not the landing page alone. */
   --color-brand-50: #f2f1fd;
   --color-brand-100: #e6e4fb;
   --color-brand-200: #c9c5f7;
@@ -11,6 +13,23 @@
   --color-brand-700: #4c3eb0;
   --color-brand-800: #3e348e;
   --color-brand-900: #332b71;
+
+  /* A clinical teal, added for the public page. It is deliberately *not* an
+     interactive colour: nothing clickable is ever teal, and no status uses it.
+     It appears only in decoration — gradient washes, illustrative strokes, the
+     second stop of a mesh — where a single-hue page reads as a SaaS template
+     rather than as healthcare. Keeping it non-interactive is what stops it
+     being read as a second kind of button, or as a success state. */
+  --color-care-50: #eefbf7;
+  --color-care-100: #d3f4ea;
+  --color-care-200: #a9e8d7;
+  --color-care-300: #74d5bf;
+  --color-care-400: #41bda3;
+  --color-care-500: #22a189;
+  --color-care-600: #17816f;
+  --color-care-700: #14675a;
+  --color-care-800: #14524a;
+  --color-care-900: #13443e;
 }
 
 body {
@@ -45,31 +64,6 @@ body {
   }
 }
 
-@keyframes marquee-drift {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-/* The slow ambient float behind the hero. Transform-only, so it never
-   triggers layout. */
-@keyframes soft-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(0, -14px, 0);
-  }
-}
-
-.animate-soft-float {
-  animation: soft-float 7s ease-in-out infinite;
-}
-
 /* The dashed connector in the hero diagram, flowing in the direction the
    record travels. Stroke-dash only — nothing here reflows or repaints layout,
    and the reduced-motion block above stops it like everything else. */
@@ -83,7 +77,7 @@ body {
   animation: dash-flow 2.6s linear infinite;
 }
 
-/* The hero cards' drift. Five pixels, not the fourteen of `soft-float`: these
+/* The hero cards' drift. Five pixels, deliberately small: these
    cards sit 20px apart, so anything larger closes the gap between neighbours
    to nothing and the stack reads as bouncing rather than floating. Long
    durations and staggered delays keep any two cards out of phase. */
@@ -99,4 +93,50 @@ body {
 
 .animate-card-drift {
   animation: card-drift 9s ease-in-out infinite;
+}
+
+/* The faint square grid behind the hero and the closing CTA. A background
+   image rather than an element, so it costs no DOM and cannot be tabbed to.
+   `mask-image` fades it out before it reaches any text. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(15 23 42 / 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* The clinical trace under the "why choose" band — a heartbeat line drawn as
+   an SVG stroke and revealed left to right, once. Stroke-dashoffset only. */
+@keyframes trace-draw {
+  from {
+    stroke-dashoffset: var(--trace-length, 1000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-trace-draw {
+  stroke-dasharray: var(--trace-length, 1000);
+  animation: trace-draw 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* The live dot on the stats strip. Opacity and scale only. */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 }

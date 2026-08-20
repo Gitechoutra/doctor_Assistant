@@ -80,10 +80,34 @@ export function useTilt({ max = 7, baseX = 0, baseY = 0 } = {}) {
   };
 }
 
-/* There were shared CARD / CARD_HOVER surfaces here. They are gone with the
-   cards they dressed: the page now has three panels in total, each with its
-   own weight, and a shared "every box looks like this" constant is exactly
-   what turns a landing page into a dashboard. */
+/**
+ * The one card surface.
+ *
+ * A shared constant is only right where the things wearing it really are peers
+ * — the six feature tiles, the four benefit tiles. Those are lists of
+ * equivalent items, and giving each its own weight would be noise, not
+ * hierarchy. Everywhere the page has *one* thing to say (the hero panel, the
+ * closing CTA, the last step of the workflow) the surface is written inline
+ * and is deliberately different.
+ *
+ * The shadow is two layers on purpose: a 1px contact shadow that keeps the
+ * card's edge crisp against white, and a wide soft one that carries the lift.
+ * A single large blur alone reads as a smudge at these radii.
+ */
+export const CARD =
+  "relative rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_-20px_rgba(51,43,113,0.45)]";
+
+/** Hover lift for a card that is not itself a link — transform and shadow. */
+export const CARD_HOVER =
+  "transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-[0_1px_2px_rgba(15,23,42,0.05),0_26px_46px_-24px_rgba(51,43,113,0.55)] motion-reduce:transform-none";
+
+/** The tinted square an icon sits in, at the top of every tile. */
+export const ICON_TILE =
+  "grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-50 to-brand-100/60 text-brand-600 ring-1 ring-inset ring-brand-100 transition duration-300 group-hover:from-brand-500 group-hover:to-brand-600 group-hover:text-white group-hover:ring-brand-500";
+
+/** The small caps label above every section heading. */
+export const EYEBROW =
+  "text-[11px] font-bold uppercase tracking-[0.18em] text-brand-600";
 
 /** Buttons lift on hover and press back down — the only affordance that moves. */
 export const BUTTON_PRIMARY =
@@ -91,6 +115,24 @@ export const BUTTON_PRIMARY =
 
 export const BUTTON_SECONDARY =
   "group inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:translate-y-0 active:shadow-sm motion-reduce:transform-none";
+
+/**
+ * The header's quieter door — the patient portal, next to the practice CTA.
+ *
+ * Deliberately carries no `display` utility. It did carry `inline-flex`, and
+ * the call site added `hidden sm:inline-flex` to keep it off phones — but
+ * `hidden` and `inline-flex` are both unprefixed display utilities, so which
+ * one wins is decided by their order in Tailwind's generated stylesheet rather
+ * than by their order in the class string. `inline-flex` won, the link stayed
+ * visible at 320px, and the header pushed the whole page sideways. Leaving the
+ * display to the call site removes the collision instead of betting on it.
+ */
+export const BUTTON_GHOST =
+  "group items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition duration-200 hover:bg-slate-100 hover:text-slate-900 sm:text-sm";
+
+/** A link in the desktop nav. Underline grows from the left on hover. */
+export const NAV_LINK =
+  "relative rounded-md px-1 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-slate-900 after:absolute after:inset-x-1 after:-bottom-0.5 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-500 after:transition-transform after:duration-300 hover:after:scale-x-100 motion-reduce:after:transition-none";
 
 export const FOCUS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2";

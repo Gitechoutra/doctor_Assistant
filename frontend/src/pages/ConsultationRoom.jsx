@@ -54,6 +54,10 @@ export default function ConsultationRoom() {
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Set the moment a take is stopped, cleared when a new one starts. This is
+  // what puts "Generate Summary" on screen: stopping the mic no longer walks
+  // itself into the summary, it just parks here until the doctor asks.
+  const [recordingStopped, setRecordingStopped] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isStartingNext, setIsStartingNext] = useState(false);
@@ -220,6 +224,7 @@ export default function ConsultationRoom() {
     recorderRef.current = recorder;
     recorder.start();
     setIsRecording(true);
+    setRecordingStopped(false);
   }
 
   // Stops the recorder and transcribes the whole take as one clip. Returns
@@ -237,6 +242,7 @@ export default function ConsultationRoom() {
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
         setIsRecording(false);
+        setRecordingStopped(true);
 
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         chunksRef.current = [];
@@ -284,6 +290,7 @@ export default function ConsultationRoom() {
     setErrorMsg("");
     try {
       setConsultation(await continueConsultation(id));
+      setRecordingStopped(false);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || "Could not reopen this consultation.");
     } finally {
@@ -374,7 +381,7 @@ export default function ConsultationRoom() {
                 disabled={isEnding || isProcessing}
                 className="rounded-full border border-red-200 px-4 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
               >
-                {isEnding ? "Generating summary…" : isProcessing ? "Wrapping up…" : "End Consultation"}
+                {isEnding ? "Generating consultation summary…" : "End Consultation"}
               </button>
             ) : (
               <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
@@ -516,7 +523,9 @@ export default function ConsultationRoom() {
                       ? "Processing what was just recorded…"
                       : isRecording
                         ? "Recording… just talk normally, the AI will sort out who said what."
-                        : "Press the mic, have the whole consultation, then press stop."}
+                        : recordingStopped
+                          ? "Press the mic again to record more, or generate the summary below."
+                          : "Press the mic, have the whole consultation, then press stop."}
                   </p>
 
                   <button
@@ -562,6 +571,28 @@ export default function ConsultationRoom() {
                           ? "Barely picking anything up — move the microphone closer, or ask everyone to speak up."
                           : "Microphone level"}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Stopping the mic stops there, deliberately. The summary,
+                      diagnosis and prescription cost a model call and are
+                      written over the whole transcript, so they wait until the
+                      doctor says the conversation is finished — which may be
+                      several takes after the first stop. */}
+                  {recordingStopped && !isRecording && !isProcessing && (
+                    <div className="flex w-full flex-col items-center gap-2 border-t border-slate-100 pt-4">
+                      <p className="text-sm font-semibold text-slate-900">Recording stopped</p>
+                      <p className="text-center text-sm text-slate-400">
+                        Generate the summary, diagnosis and medicines when you’re ready.
+                      </p>
+                      <button
+                        onClick={handleEndConsultation}
+                        disabled={isEnding}
+                        className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:opacity-60"
+                      >
+                        <HiOutlineClipboardDocumentList className="h-4 w-4" />
+                        {isEnding ? "Generating consultation summary…" : "Generate Summary"}
+                      </button>
                     </div>
                   )}
                 </div>
