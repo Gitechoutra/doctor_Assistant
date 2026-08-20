@@ -11,6 +11,7 @@ import {
   HiOutlinePrinter,
 } from "react-icons/hi2";
 import ConfirmDialog from "./ConfirmDialog";
+import ConversationTurns, { TranscriptCaveat } from "./ConversationTurns";
 import PrescriptionEditor from "./PrescriptionEditor";
 import {
   savePrescriptions,
@@ -24,26 +25,6 @@ function Section({ title, children }) {
     <div>
       <h3 className="text-sm font-semibold text-brand-700">{title}</h3>
       <div className="mt-1.5 text-sm text-slate-600">{children}</div>
-    </div>
-  );
-}
-
-function ConversationBubble({ turn }) {
-  const isDoctor = turn.speaker === "doctor";
-  return (
-    <div className={`flex ${isDoctor ? "justify-start" : "justify-end"}`}>
-      <div
-        className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
-          isDoctor
-            ? "rounded-tl-sm bg-slate-100 text-slate-700"
-            : "rounded-tr-sm bg-brand-600 text-white"
-        }`}
-      >
-        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-60">
-          {turn.speaker}
-        </p>
-        {turn.text}
-      </div>
     </div>
   );
 }
@@ -180,14 +161,9 @@ export default function SummaryPanel({
         {summary.labeled_transcript?.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-brand-700">Conversation</h3>
-            <p className="mt-0.5 text-xs italic text-slate-400">
-              AI-reconstructed from the recording — speakers were not manually tagged, so this
-              is an inferred best guess.
-            </p>
-            <div className="mt-2 max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-              {summary.labeled_transcript.map((turn, i) => (
-                <ConversationBubble key={i} turn={turn} />
-              ))}
+            <TranscriptCaveat className="mt-0.5" />
+            <div className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+              <ConversationTurns turns={summary.labeled_transcript} />
             </div>
           </div>
         )}

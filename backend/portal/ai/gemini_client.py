@@ -844,6 +844,132 @@ def transcribe_audio(audio_bytes):
     return text
 
 
+# --- Splitting a recorded take into speaker turns --------------------------
+
+# `transcribe_audio` returns the take as one block of prose, because that is
+# what transcribes most faithfully: asking for verbatim text and for a
+# who-said-what judgement in the same breath is what makes a model start
+# tidying the words to fit the labels. So the split is a second, separate
+# pass over the text that came back.
+#
+# It is presentational only. The block returned by `transcribe_audio` remains
+# the record of what was said and is what the end-of-consultation summary is
+# still built from — nothing downstream reads these turns. That is deliberate:
+# a doctor reading the transcript mid-visit needs it laid out as a
+# conversation, and a best-effort split can serve that without any of it
+# reaching the clinical summary or the prescription.
+SPEAKER_LABEL_INSTRUCTION = """You are given the raw transcript of a single doctor-patient \
+consultation, recorded on one microphone and transcribed as one continuous block with no \
+speaker labels. Split it into the turns of the conversation and mark who said each one.
+
+How to decide who is speaking:
+- The doctor asks the clinical questions, examines, explains, and gives instructions and \
+advice ("How long has this been going on?", "Any fever?", "Take this twice a day after food").
+- The patient describes what they are feeling, answers those questions, and asks about their \
+own condition ("Since yesterday evening", "It hurts when I bend down").
+- A consultation usually opens with the patient stating their complaint, or the doctor \
+greeting them and asking what is wrong.
+- Speakers normally alternate, but not always — one person may say several sentences in a \
+row before the other replies. Keep a run of consecutive sentences by the same person as one \
+turn rather than splitting it into fragments, and never alternate the labels mechanically \
+just to keep them taking it in turns.
+
+Rules:
+- Reproduce the words EXACTLY as they appear in the transcript. Do not paraphrase, correct, \
+translate, shorten, tidy or add anything.
+- Use every word of the transcript. Nothing may be dropped, summarised or merged away — the \
+turns joined back together must read as the whole transcript.
+- Do not invent dialogue that is not in the transcript.
+- If the whole transcript is plainly one person talking, return it as a single turn.
+- Respond with ONLY valid JSON matching the requested schema."""
+
+SPEAKER_TURNS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "turns": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "speaker": {"type": "STRING", "enum": ["doctor", "patient"]},
+                    "text": {"type": "STRING"},
+                },
+                "required": ["speaker", "text"],
+            },
+        }
+    },
+    "required": ["turns"],
+}
+
+# How much of the original text the turns have to account for, measured in
+# characters. A model that starts summarising instead of splitting comes back
+# noticeably short, and a laid-out conversation missing a third of what was
+# said is worse than the honest block of prose — so a split that fails this
+# is thrown away rather than shown. The window is wide because punctuation and
+# spacing legitimately shift a little either way.
+MIN_TURN_COVERAGE = 0.75
+MAX_TURN_COVERAGE = 1.35
+
+
+def label_speakers(transcript):
+    """Splits one transcribed take into [{"speaker", "text"}, ...].
+
+    Best-effort and non-clinical: the caller keeps the raw text regardless, and
+    an empty list simply means the take is shown as it was transcribed. Raises
+    on an AI failure so the caller can log it — deciding that a failed split
+    is survivable is the caller's call, not this function's.
+    """
+    text = (transcript or "").strip()
+    if not text:
+        return []
+
+    client = _get_client()
+    response = _generate_json(
+        client,
+        chat_model_name(),
+        f"Transcript:\n{text}",
+        types.GenerateContentConfig(
+            system_instruction=SPEAKER_LABEL_INSTRUCTION,
+            response_mime_type="application/json",
+            response_schema=SPEAKER_TURNS_SCHEMA,
+            # Splitting text at the seams is not a creative task, and this
+            # pass must not reword what it was given.
+            temperature=0,
+        ),
+        doing="working out who said what",
+    )
+
+    turns = []
+    for turn in (response or {}).get("turns") or []:
+        if not isinstance(turn, dict):
+            continue
+        spoken = (turn.get("text") or "").strip()
+        speaker = turn.get("speaker")
+        if not spoken or speaker not in ("doctor", "patient"):
+            continue
+        turns.append({"speaker": speaker, "text": spoken})
+
+    if not turns:
+        return []
+
+    # Guards against the split quietly becoming a rewrite. Compared on
+    # non-whitespace characters, so the turn boundaries themselves — which add
+    # and drop spacing — don't count against it.
+    def _weight(value):
+        return len("".join(value.split()))
+
+    coverage = sum(_weight(t["text"]) for t in turns) / max(_weight(text), 1)
+    if not MIN_TURN_COVERAGE <= coverage <= MAX_TURN_COVERAGE:
+        logger.warning(
+            "Discarding a speaker split covering %.0f%% of the transcript — "
+            "the take will be shown unsplit",
+            coverage * 100,
+        )
+        return []
+
+    return turns
+
+
 def _format_prescriptions(prescriptions):
     lines = []
     for p in prescriptions or []:

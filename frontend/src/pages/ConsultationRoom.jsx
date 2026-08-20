@@ -8,6 +8,7 @@ import {
   HiOutlineClipboardDocumentList,
   HiOutlineFolderOpen,
 } from "react-icons/hi2";
+import ConversationTurns, { TranscriptCaveat } from "../components/ConversationTurns";
 import PatientInfoPanel from "../components/PatientInfoPanel";
 import SummaryPanel from "../components/SummaryPanel";
 import CaseSessionCard from "../components/CaseSessionCard";
@@ -21,7 +22,23 @@ import {
 } from "../services/consultationService";
 import { getSocket, joinConsultationRoom } from "../services/socket";
 
+/**
+ * One recorded take.
+ *
+ * A take is a whole stretch of conversation — the doctor presses the mic once
+ * and speaks with the patient until they press stop — so as a single block it
+ * arrives as a paragraph with both people's words run together. The server
+ * splits it back into turns (`message.turns`), which is what gets drawn here.
+ *
+ * The unsplit paragraph is the fallback, not the intent: it appears for takes
+ * recorded before the split existed, and for the ones where it failed or came
+ * back doubtful. Everything that was said is in `message.message` either way,
+ * so a take that cannot be laid out is still shown in full rather than hidden.
+ */
 function TranscriptLine({ message }) {
+  if (message.turns?.length) {
+    return <ConversationTurns turns={message.turns} />;
+  }
   return (
     <div className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm text-slate-700">
       {message.message}
@@ -473,7 +490,17 @@ export default function ConsultationRoom() {
                       : "Nothing recorded yet."}
                   </p>
                 ) : (
-                  consultation.messages.map((m) => <TranscriptLine key={m.id} message={m} />)
+                  <>
+                    {/* Said once, above the conversation, rather than on every
+                        turn: the speakers were worked out from the recording,
+                        not tagged while it was made. */}
+                    {consultation.messages.some((m) => m.turns?.length > 0) && (
+                      <TranscriptCaveat className="pb-1 text-center" />
+                    )}
+                    {consultation.messages.map((m) => (
+                      <TranscriptLine key={m.id} message={m} />
+                    ))}
+                  </>
                 )}
                 {isProcessing && (
                   <p className="py-2 text-center text-sm text-slate-400">

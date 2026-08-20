@@ -158,6 +158,7 @@ CREATE TABLE `conversation_messages` (
   `consultation_id` int NOT NULL,
   `speaker` enum('doctor','patient','unknown') COLLATE utf8mb4_unicode_ci NOT NULL,
   `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `speaker_turns` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT (now()),
   PRIMARY KEY (`id`),
   KEY `consultation_id` (`consultation_id`),

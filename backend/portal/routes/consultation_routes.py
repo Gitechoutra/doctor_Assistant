@@ -352,7 +352,32 @@ def transcribe_turn(consultation_id):
             status=422,
         )
 
-    message = ConversationMessage(consultation_id=consultation.id, speaker=speaker, message=text)
+    # Laid out as the conversation it was, so what comes back on screen reads
+    # as turns rather than one unbroken block of prose. A second, separate pass
+    # over the text — see `gemini_client.label_speakers`.
+    #
+    # Every failure here is swallowed on purpose. By the time this runs the
+    # recording has already been transcribed and the browser has let go of the
+    # audio, so raising would throw away a consultation that was captured
+    # perfectly well over a step that only decides how it is displayed. A quota
+    # refusal, an outage, a doubtful split: all of them leave `speaker_turns`
+    # NULL, and the take is shown exactly as it was before this existed.
+    try:
+        turns = gemini_client.label_speakers(text)
+    except Exception:  # noqa: BLE001 - presentation only, never fatal
+        current_app.logger.exception(
+            "Could not split the recording into speaker turns for consultation %s; "
+            "showing it unsplit",
+            consultation.id,
+        )
+        turns = []
+
+    message = ConversationMessage(
+        consultation_id=consultation.id,
+        speaker=speaker,
+        message=text,
+        speaker_turns=json.dumps(turns) if turns else None,
+    )
     db.session.add(message)
     db.session.commit()
 
