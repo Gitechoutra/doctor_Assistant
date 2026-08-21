@@ -12,6 +12,7 @@ import {
 import ConversationTurns, { TranscriptCaveat } from "../components/ConversationTurns";
 import PatientInfoPanel from "../components/PatientInfoPanel";
 import SummaryPanel from "../components/SummaryPanel";
+import AiSafetyNote from "../components/AiSafetyNote";
 import CaseSessionCard from "../components/CaseSessionCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import {
@@ -457,6 +458,13 @@ export default function ConsultationRoom() {
       {errorMsg && (
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMsg}</p>
       )}
+
+      {/* Page level, not inside the recorder card: this frames the whole
+          consultation - the recording, the draft it produces and the medicines
+          suggested from it - so it sits above all of them rather than in the
+          panel for one. Below the header, so "End Consultation" stays the first
+          thing in reach. */}
+      {!isCompleted && <AiSafetyNote className="mb-6" />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         <PatientInfoPanel patient={consultation.patient_detail} />

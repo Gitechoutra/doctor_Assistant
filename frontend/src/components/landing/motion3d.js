@@ -116,20 +116,6 @@ export const BUTTON_PRIMARY =
 export const BUTTON_SECONDARY =
   "group inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:translate-y-0 active:shadow-sm motion-reduce:transform-none";
 
-/**
- * The header's quieter door — the patient portal, next to the practice CTA.
- *
- * Deliberately carries no `display` utility. It did carry `inline-flex`, and
- * the call site added `hidden sm:inline-flex` to keep it off phones — but
- * `hidden` and `inline-flex` are both unprefixed display utilities, so which
- * one wins is decided by their order in Tailwind's generated stylesheet rather
- * than by their order in the class string. `inline-flex` won, the link stayed
- * visible at 320px, and the header pushed the whole page sideways. Leaving the
- * display to the call site removes the collision instead of betting on it.
- */
-export const BUTTON_GHOST =
-  "group items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition duration-200 hover:bg-slate-100 hover:text-slate-900 sm:text-sm";
-
 /** A link in the desktop nav. Underline grows from the left on hover. */
 export const NAV_LINK =
   "relative rounded-md px-1 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-slate-900 after:absolute after:inset-x-1 after:-bottom-0.5 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-brand-500 after:transition-transform after:duration-300 hover:after:scale-x-100 motion-reduce:after:transition-none";
