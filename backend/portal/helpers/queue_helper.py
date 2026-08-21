@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 
 from portal.extensions import db
 from portal.helpers.audit import APPOINTMENT_CREATED, audit
-from portal.helpers.datetime_helper import local_day_bounds
+from portal.helpers.datetime_helper import local_day_bounds, local_naive_day_bounds
 from portal.helpers.notify import notify
 from portal.helpers.practice import practice_doctor
 from portal.helpers.response import error
@@ -197,7 +197,10 @@ def add_to_todays_queue(patient, *, reason=None, notes=None, actor_user_id=None,
     if already_queued:
         return already_queued, "existing", None
 
-    day_start, day_end = local_day_bounds()
+    # `scheduled_at` is local wall time, so the window it is measured against
+    # has to be too -- `local_day_bounds` is the UTC-shifted one, and using it
+    # here lost an evening booking out of today.
+    day_start, day_end = local_naive_day_bounds()
     scheduled_today = (
         Appointment.query.filter(
             Appointment.patient_id == patient.id,

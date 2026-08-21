@@ -1,0 +1,25 @@
+# Build context for frontend.Dockerfile -- see the note in
+# backend.Dockerfile.dockerignore about why the ignore file lives here.
+# Paths are relative to the project root (doctor_Assistant/).
+
+*
+
+!frontend/
+# The server config this image copies in at its second stage. Without this
+# line the context has no docker/ at all and the build fails on that COPY.
+!docker/nginx/
+
+# Installed inside the image from package-lock.json by `npm ci`. Copying the
+# host's tree in would be slow and could carry Windows-specific binaries.
+frontend/node_modules/
+
+# A previous local `npm run build`. The image builds its own.
+frontend/dist/
+
+# Per-machine API address, and a file the rules say not to ship. The image
+# gets VITE_API_BASE_URL as a build argument instead; Vite gives a real
+# environment variable precedence over a .env file, but excluding it removes
+# the question entirely.
+frontend/.env
+
+frontend/*.log

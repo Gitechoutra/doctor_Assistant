@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from portal.extensions import db
-from portal.helpers.datetime_helper import to_utc_iso
+from portal.helpers.datetime_helper import to_local_iso, to_utc_iso
 
 # The life of an appointment, in order.
 #
@@ -142,7 +142,10 @@ class Appointment(db.Model):
             "reason": self.reason,
             "notes": self.notes,
             "cancelled_reason": self.cancelled_reason,
-            "scheduled_at": to_utc_iso(self.scheduled_at),
+            # Local wall time, unlike every other column here -- see
+            # `datetime_helper`. Serialised without a "Z" so the browser
+            # does not shift a 09:00 booking to 14:30.
+            "scheduled_at": to_local_iso(self.scheduled_at),
             "arrived_at": to_utc_iso(self.arrived_at),
             # Position in the waiting queue, assigned by the listing route.
             # 0 for the patient currently with the doctor, 1..n for those

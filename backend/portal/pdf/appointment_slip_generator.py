@@ -12,7 +12,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from config.config import get_config
-from portal.helpers.datetime_helper import to_utc_iso
+from portal.helpers.datetime_helper import to_local_iso, to_utc_iso
 from portal.pdf.report_generator import (
     SLATE_100,
     SLATE_400,
@@ -36,7 +36,15 @@ def generate_appointment_slip_pdf(appointment, output_path):
     booked_at = to_utc_iso(appointment.created_at)
     # What the patient actually needs off this piece of paper: when to come.
     # Falls back to the booking time for a walk-in, which has no future slot.
-    appointment_time = to_utc_iso(appointment.scheduled_at) if appointment.scheduled_at else booked_at
+    #
+    # `to_local_iso`, not `to_utc_iso`: `scheduled_at` is local wall time (see
+    # helpers/datetime_helper), so stamping a 'Z' on it labels 09:00 as UTC and
+    # anyone reading the slip in the practice's own zone is out by the offset --
+    # 09:00 printed as 14:30 on an IST desk. The walk-in fallback is genuinely
+    # UTC and keeps its marker.
+    appointment_time = (
+        to_local_iso(appointment.scheduled_at) if appointment.scheduled_at else booked_at
+    )
 
     doc = SimpleDocTemplate(
         output_path,

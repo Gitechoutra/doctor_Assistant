@@ -60,6 +60,7 @@ from portal.helpers.audit import audit
 from portal.helpers.broadcast import dashboard_changed
 from portal.helpers.contact import normalize_email, normalize_phone
 from portal.helpers.credentials import MIN_PASSWORD
+from portal.helpers.datetime_helper import local_clock
 from portal.helpers.notify import notify
 from portal.helpers.portal_auth import (
     PORTAL_SCOPE,
@@ -471,7 +472,8 @@ def list_appointments():
     without this route knowing anything about consultations.
     """
     patient = current_portal_patient()
-    when = db.func.coalesce(Appointment.scheduled_at, Appointment.created_at)
+    # See appointment_routes: the two branches are on different clocks.
+    when = db.func.coalesce(Appointment.scheduled_at, local_clock(Appointment.created_at))
     appointments = (
         Appointment.query.filter(
             Appointment.patient_id == patient.id,
@@ -517,7 +519,8 @@ def appointment_history():
     page_size = max(1, min(page_size, MAX_PAGE_SIZE))
 
     total = query.order_by(None).count()
-    when = db.func.coalesce(Appointment.scheduled_at, Appointment.created_at)
+    # See appointment_routes: the two branches are on different clocks.
+    when = db.func.coalesce(Appointment.scheduled_at, local_clock(Appointment.created_at))
     rows = (
         query.order_by(when.desc(), Appointment.id.desc())
         .offset((page - 1) * page_size)

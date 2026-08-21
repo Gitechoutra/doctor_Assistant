@@ -1,0 +1,115 @@
+name: Verify
+
+# Every push and every pull request. The workflow is the same one a developer
+# runs locally -- `python verify/run.py` -- rather than a parallel set of CI-only
+# steps, so a green pipeline and a green laptop mean the same thing.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A second push to the same branch cancels the first: the older run is
+  # answering a question nobody is asking any more.
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        # The suites and the browser pass run against a real MySQL, because
+        # that is what the application runs against -- the queue ordering and
+        # the date bucketing are SQL, and SQLite would agree with neither.
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: doctor
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            verify/e2e/package-lock.json
+
+      # TestingConfig derives `doctor_test` by suffixing the configured name
+      # but will not create the database -- it only ever connects to it. The
+      # suites fail at the first query without this.
+      - name: Create the test database
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "
+            CREATE DATABASE IF NOT EXISTS doctor_test
+            CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        # The CPU-only wheels: torch's default build pulls its CUDA payload,
+        # about 2GB that nothing in this application imports.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt \
+            --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install the browser pass
+        working-directory: verify/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # config/dev.ini is git-ignored and holds real credentials, so it does
+      # not exist on a runner. Every setting resolves from the environment
+      # first (see config/config.py), which is what a deployment does too.
+      - name: Run the verification workflow
+        env:
+          APP_ENV: development
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: doctor
+          SECRET_KEY: ci-secret-not-a-real-one
+          JWT_SECRET_KEY: ci-jwt-secret-not-a-real-one
+          # No Gemini key on CI. Nothing in this workflow calls the model --
+          # the AI paths are exercised by hand against a real key -- and the
+          # client is built lazily, so an unset key costs nothing here.
+          GEMINI_API_KEY: ""
+        run: python verify/run.py --json verify-report.json
+
+      # Uploaded on failure as well as success: the JSON report and the two
+      # server logs are the whole of what a failed run leaves behind, and
+      # without them a red pipeline says only which stage went red.
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-report
+          path: |
+            verify-report.json
+            verify/.logs/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -7,11 +7,19 @@ export default function Reports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     return fetchReports()
-      .then(setReports)
+      .then((rows) => {
+        setReports(rows);
+        setErrorMsg("");
+      })
+      // Without this a failed fetch fell through to the empty state, so an
+      // API that was down read as "no reports yet" -- the one message that
+      // makes a doctor stop looking.
+      .catch(() => setErrorMsg("Could not load reports."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -28,6 +36,9 @@ export default function Reports() {
       const name = (report.patient || "patient").replace(/\s+/g, "_");
       const suffix = report.kind === "case" ? "full_medical_report" : "consultation_report";
       await downloadReport(report.id, `${name}_${suffix}.pdf`);
+      setErrorMsg("");
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Could not download that report.");
     } finally {
       setDownloadingId(null);
     }
@@ -36,6 +47,10 @@ export default function Reports() {
   return (
     <div>
       <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Reports</h1>
+
+      {errorMsg && (
+        <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMsg}</p>
+      )}
 
       <div className="mt-6">
         {loading ? (

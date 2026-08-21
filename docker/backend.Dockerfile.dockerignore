@@ -1,0 +1,40 @@
+# Build context for backend.Dockerfile. BuildKit reads
+# <dockerfile>.dockerignore in preference to a context-root .dockerignore,
+# which is what keeps every Docker file inside docker/ without dropping an
+# ignore file into the project root.
+#
+# The context is the project root (doctor_Assistant/), so paths below are
+# relative to that.
+
+# Everything, then re-admit only what the backend image needs. Safer than an
+# exclusion list: a new secret file added to the project is out by default.
+*
+
+!backend/
+!docker/entrypoint.sh
+
+# --- carved back out of backend/ -------------------------------------------
+
+# Secrets and per-machine configuration. The container is configured entirely
+# through environment variables (APP_ENV=production makes config.py look for
+# config/prod.ini, which does not exist, so nothing falls back to a file).
+backend/.env
+backend/config/dev.ini
+backend/config/prod.ini
+
+# Local virtualenv, ~200 MB and Windows-built -- useless in a Linux image.
+backend/venv/
+
+# The Windows ffmpeg.exe copy. The image installs Debian's ffmpeg instead.
+backend/.bin/
+
+# Runtime state that belongs in a volume, not an image layer.
+backend/uploads/
+backend/logs/
+backend/*.log
+
+# Caches and editor droppings.
+**/__pycache__/
+**/*.py[cod]
+backend/.pytest_cache/
+backend/migrations/

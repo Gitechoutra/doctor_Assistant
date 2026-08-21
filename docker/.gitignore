@@ -1,0 +1,11 @@
+# The real configuration, holding the database password and the signing keys.
+# Never committed. .env.example beside it is the template, and stays tracked.
+.env
+.env.*
+!.env.example
+
+# Compose writes nothing else here, but a stray override file is a common way
+# for a local password to end up in a commit.
+compose.override.yaml
+compose.override.yml
+docker-compose.override.yml

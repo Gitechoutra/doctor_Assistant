@@ -85,6 +85,11 @@ export default function ConsultationRoom() {
   useEffect(() => {
     fetchConsultation(id)
       .then(setConsultation)
+      // A consultation that has been deleted, or an id typed by hand, answers
+      // 404. Without this the rejection escapes as an unhandled promise error
+      // in the console; the render below already copes with a null
+      // consultation, so swallowing it here is what makes that path show.
+      .catch(() => setConsultation(null))
       .finally(() => setLoading(false));
 
     joinConsultationRoom(id);

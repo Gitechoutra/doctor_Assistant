@@ -35,7 +35,7 @@ from portal.helpers.case_helper import (
     open_case_for,
     todays_session,
 )
-from portal.helpers.datetime_helper import local_day_bounds
+from portal.helpers.datetime_helper import local_clock, local_day_bounds
 from portal.helpers.decorators import front_desk_only
 from portal.helpers.patient_access import can_access_patient
 from portal.helpers.patient_search import code_clauses, patient_search_filter
@@ -170,7 +170,9 @@ def list_upcoming():
     except (TypeError, ValueError):
         days = 30
 
-    horizon = datetime.utcnow() + timedelta(days=days)
+    # Local, because `scheduled_at` is: a utcnow() horizon is the practice's
+    # offset short, and quietly drops the tail of the window it was asked for.
+    horizon = datetime.now() + timedelta(days=days)
     query = upcoming_query(doctor).filter(
         db.or_(Appointment.scheduled_at.is_(None), Appointment.scheduled_at <= horizon)
     )
@@ -207,8 +209,11 @@ def list_appointments():
         query = query.filter(Appointment.status.notin_(CLOSED_STATUSES))
 
     # Booked time where there is one, creation time otherwise — so a walk-in
-    # and a booking both land in the day they actually belong to.
-    when = db.func.coalesce(Appointment.scheduled_at, Appointment.created_at)
+    # and a booking both land in the day they actually belong to. `created_at`
+    # is UTC and `scheduled_at` is local, so the fallback is shifted onto the
+    # booked branch's clock; without that a walk-in registered before the
+    # offset passes files itself under yesterday.
+    when = db.func.coalesce(Appointment.scheduled_at, local_clock(Appointment.created_at))
     if date_from:
         query = query.filter(when >= date_from)
     if date_to:

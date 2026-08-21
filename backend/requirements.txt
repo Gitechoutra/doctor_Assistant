@@ -18,6 +18,12 @@ cryptography==43.0.1
 python-dotenv==1.0.1
 imageio-ffmpeg
 google-genai
+# Imported directly by portal/ai/gemini_client -- `httpx.TransportError` is
+# what the Gemini retry loop matches a dropped connection on. It arrives today
+# only as a dependency of google-genai, which is exactly how simple-websocket
+# above went missing from a fresh checkout: relied on everywhere, declared
+# nowhere. Unpinned, so it stays whatever google-genai resolves.
+httpx
 truststore
 reportlab
 

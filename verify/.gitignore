@@ -1,0 +1,17 @@
+# Playwright and its browser download live here, not in frontend/.
+e2e/node_modules/
+
+# Build output for the browser pass. A separate directory from frontend/dist
+# on purpose: this one is built against whichever port the run picked, so it
+# is not the artifact that ships and must never be mistaken for it.
+.e2e-dist/
+
+# Server output captured during a run, kept so a startup failure can be read
+# after the fact.
+.logs/
+
+# Whatever `--json` was pointed at, when that is in here.
+report.json
+
+__pycache__/
+*.pyc

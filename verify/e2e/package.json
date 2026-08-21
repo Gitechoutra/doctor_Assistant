@@ -1,0 +1,13 @@
+{
+  "name": "mediassist-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Browser pass for the verification workflow. Kept out of frontend/package.json on purpose: the application should not carry its test harness as a dependency, and CI installs this only when it runs the browser stage.",
+  "scripts": {
+    "test": "node run_e2e.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
