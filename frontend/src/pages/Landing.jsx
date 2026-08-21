@@ -17,6 +17,7 @@ import {
   HiOutlineUserPlus,
   HiOutlineUsers,
 } from "react-icons/hi2";
+import AiSafetyNote from "../components/AiSafetyNote";
 import Logo from "../components/Logo";
 import FeatureGrid from "../components/landing/FeatureGrid";
 import HeroComposition from "../components/landing/HeroComposition";
@@ -51,10 +52,10 @@ import {
  * motion rules - transform and opacity only, and all of it yields to
  * `prefers-reduced-motion`.
  *
- * Both sign-in doors are on this page. The practice signs in at /login; a
- * patient signs in or enrols at /portal/login and /portal/register, which are
- * different accounts in a different table with a different session. An earlier
- * version offered only the first, which left the portal reachable by URL only.
+ * One door, because there is one kind of account. The practice signs in at
+ * /login and the server issues exactly two roles, doctor and PA. A patient
+ * portal was drawn here once; it has been removed rather than left as a link
+ * to a sign-in this application does not have.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -260,14 +261,6 @@ const ROLES = [
   },
 ];
 
-/** What a patient can do for themselves, from the portal. */
-const PORTAL_ACTIONS = [
-  "Enrol with the details the practice already holds",
-  "See what is booked, and what has already happened",
-  "Book a new appointment, or cancel one",
-  "Check whether the report from a visit is ready",
-];
-
 /* What the hero paragraph lists, as things rather than prose. */
 const CAPABILITIES = [
   { icon: HiOutlineIdentification, label: "Patient records" },
@@ -394,18 +387,6 @@ export default function Landing() {
                     </a>
                   </div>
 
-                  {/* The third door, deliberately not a third button: a
-                      patient is not the buyer, and three equal buttons would
-                      make the practice's own sign-in harder to find. */}
-                  <p className="mt-4 text-sm text-slate-500">
-                    Are you a patient?{" "}
-                    <Link
-                      to="/portal/login"
-                      className={`inline-block rounded py-1 font-semibold text-brand-600 underline-offset-4 transition hover:text-brand-700 hover:underline ${FOCUS}`}
-                    >
-                      Use the patient portal
-                    </Link>
-                  </p>
                 </Reveal>
 
                 <Reveal delay={0.18}>
@@ -645,121 +626,13 @@ export default function Landing() {
                   Nothing counts until the doctor signs it.
                 </p>
               </Reveal>
+
+              <Reveal delay={0.26}>
+                <AiSafetyNote className="mx-auto mt-8 max-w-5xl" />
+              </Reveal>
             </div>
           </section>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* The patient portal                                               */}
-          {/* ---------------------------------------------------------------- */}
-          <section id="patients" className="overflow-hidden border-b border-slate-100 bg-slate-50/60">
-            <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-              <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
-                <div className="lg:col-span-6">
-                  <Reveal>
-                    <p className={EYEBROW}>For patients</p>
-                    <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-[2.1rem] lg:leading-tight">
-                      The questions that used to be a phone call
-                    </h2>
-                    <p className="mt-4 text-sm leading-relaxed text-slate-500 sm:text-base">
-                      Patients get their own sign-in - a separate account from the practice's, with
-                      access to their own appointments and nothing else. It exists to take the four
-                      routine questions off the desk, not to move the consultation online.
-                    </p>
-                  </Reveal>
-
-                  <Reveal delay={0.08}>
-                    <ul className="mt-8 space-y-3">
-                      {PORTAL_ACTIONS.map((action) => (
-                        <li key={action} className="flex items-start gap-3 text-sm text-slate-600 sm:text-[15px]">
-                          <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-care-100 text-care-700">
-                            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-                              <path
-                                fillRule="evenodd"
-                                d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </span>
-                          {action}
-                        </li>
-                      ))}
-                    </ul>
-                  </Reveal>
-
-                  <Reveal delay={0.14}>
-                    {/* No buttons in this section. Enrolment and patient
-                        sign-in were a pair of CTAs here; the section now
-                        describes the portal and leaves the doors to the header
-                        and the footer. /portal/register and /portal/login are
-                        unchanged. */}
-                    {/* Stated here rather than discovered at the booking form:
-                        the API refuses a slot inside half an hour, and a
-                        patient who reads that first does not lose a form. */}
-                    <p className="mt-9 text-xs leading-relaxed text-slate-400">
-                      Appointments must be booked at least 30 minutes ahead. To be seen sooner,
-                      call the practice.
-                    </p>
-                  </Reveal>
-                </div>
-
-                <div className="lg:col-span-6">
-                  <Reveal delay={0.1} y={26}>
-                    {/* A schematic of the patient's own screen. Rows are
-                        labels, not invented appointments - there is no fake
-                        patient called Sarah anywhere on this page. */}
-                    <div className="relative mx-auto w-full max-w-md">
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-brand-100/70 to-care-100/60 blur-2xl"
-                      />
-                      <div className="relative rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_30px_56px_-30px_rgba(51,43,113,0.5)] sm:p-6">
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                          <div className="flex items-center gap-2.5">
-                            <HiOutlineCalendarDays className="h-5 w-5 text-brand-600" />
-                            <p className="text-sm font-bold text-slate-900">Your appointments</p>
-                          </div>
-                          <span className="rounded-full bg-care-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-care-700 ring-1 ring-inset ring-care-100">
-                            Portal
-                          </span>
-                        </div>
-
-                        <ul className="mt-4 space-y-3">
-                          {[
-                            { label: "Upcoming", tone: "bg-brand-50 text-brand-700 ring-brand-100" },
-                            { label: "Completed", tone: "bg-slate-100 text-slate-600 ring-slate-200" },
-                            { label: "Report ready", tone: "bg-care-50 text-care-700 ring-care-100" },
-                          ].map(({ label, tone }, index) => (
-                            <li
-                              key={label}
-                              className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5"
-                            >
-                              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[11px] font-bold tabular-nums text-slate-400 ring-1 ring-slate-200">
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
-                              <div className="min-w-0 flex-1 space-y-1.5">
-                                <span className="block h-1.5 w-4/5 rounded-full bg-slate-200" />
-                                <span className="block h-1.5 w-2/5 rounded-full bg-slate-100" />
-                              </div>
-                              <span
-                                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ring-1 ring-inset ${tone}`}
-                              >
-                                {label}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <p className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4 text-[11px] text-slate-400">
-                          <HiOutlineLockClosed className="h-3.5 w-3.5 shrink-0 text-slate-300" />
-                          A patient sees their own record, and only their own.
-                        </p>
-                      </div>
-                    </div>
-                  </Reveal>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* ---------------------------------------------------------------- */}
           {/* Closing CTA                                                      */}
@@ -781,24 +654,20 @@ export default function Landing() {
                 </h2>
                 <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-brand-100 sm:text-base">
                   The patient list, the appointment book and the day&rsquo;s queue are all behind
-                  the same door - and your patients have one of their own.
+                  the same door.
                 </p>
 
-                <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-                  {/* Inverted here rather than reusing BUTTON_PRIMARY: a brand
-                      button on a brand field has no edge to read. */}
+                {/* One button now, so it sits at its own width rather than
+                    stretching: the row it shared with the portal link is gone.
+                    Inverted rather than reusing BUTTON_PRIMARY - a brand button
+                    on a brand field has no edge to read. */}
+                <div className="mt-10 flex justify-center">
                   <Link
                     to="/login"
                     className={`group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-brand-800 shadow-[0_12px_28px_-12px_rgba(0,0,0,0.5)] transition duration-200 hover:-translate-y-0.5 hover:bg-brand-50 active:translate-y-0 motion-reduce:transform-none ${FOCUS} focus-visible:ring-white focus-visible:ring-offset-brand-800`}
                   >
                     Access your practice
                     <HiOutlineArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5 motion-reduce:transform-none" />
-                  </Link>
-                  <Link
-                    to="/portal/login"
-                    className={`inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/15 active:translate-y-0 motion-reduce:transform-none ${FOCUS} focus-visible:ring-white focus-visible:ring-offset-brand-800`}
-                  >
-                    Patient portal
                   </Link>
                 </div>
               </Reveal>
@@ -851,16 +720,6 @@ export default function Landing() {
                   <li>
                     <Link to="/login" className={FOOTER_LINK}>
                       Practice login
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/portal/login" className={FOOTER_LINK}>
-                      Patient portal
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/portal/register" className={FOOTER_LINK}>
-                      Create a patient account
                     </Link>
                   </li>
                 </ul>

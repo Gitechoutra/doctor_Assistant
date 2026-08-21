@@ -3,18 +3,17 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, m, useMotionValueEvent, useScroll } from "framer-motion";
 import { HiOutlineArrowRight, HiOutlineBars3, HiOutlineXMark } from "react-icons/hi2";
 import Logo from "../Logo";
-import { BUTTON_GHOST, FOCUS, NAV_LINK } from "./motion3d";
+import { FOCUS, NAV_LINK } from "./motion3d";
 
 /**
  * The public header.
  *
  * Three things it has to get right, none of which the old two-item bar did:
  *
- * 1. The portal door is named. The practice signs in at /login and patients
- *    sign in at /portal/login - two separate account tables, two separate
- *    sessions - so an unlabelled "Sign in" would send half the people who
- *    click it to a form that tells them their password is wrong. The header
- *    now carries only the portal link; the practice signs in from the hero.
+ * 1. It offers no sign-in of its own. There is one kind of account - the
+ *    practice's, doctor or PA - and it is signed into from the hero. A patient
+ *    portal link stood here; the portal has been removed from the product, so
+ *    the header is section links and the menu, nothing else.
  * 2. The in-page links actually go somewhere. Every href below matches a real
  *    `id` on the page, and `scroll-margin-top` in index.css keeps the sticky
  *    header off the heading it lands on.
@@ -32,7 +31,6 @@ const LINKS = [
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
   { href: "#why-us", label: "Why MediAssist" },
-  { href: "#patients", label: "For patients" },
 ];
 
 export default function LandingNav() {
@@ -116,13 +114,10 @@ export default function LandingNav() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <Link to="/portal/login" className={`hidden ${BUTTON_GHOST} ${FOCUS} sm:inline-flex`}>
-            Patient portal
-          </Link>
-
-          {/* The practice CTA stood here. It is now the hero's "Sign in" and
-              the footer's link only — the header keeps the quieter portal link
-              and the menu. /login itself is untouched. */}
+          {/* Nothing but the menu toggle lives here now: the practice CTA
+              moved to the hero, and the portal link went with the portal. The
+              wrapper stays because it collapses to nothing above `lg`, which
+              leaves the section links sitting against the right edge. */}
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
@@ -166,13 +161,6 @@ export default function LandingNav() {
                 ))}
               </ul>
 
-              <Link
-                to="/portal/login"
-                onClick={close}
-                className={`mt-3 flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden ${FOCUS}`}
-              >
-                Patient portal
-              </Link>
             </nav>
           </m.div>
         )}
