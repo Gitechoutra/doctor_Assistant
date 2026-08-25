@@ -83,6 +83,24 @@ export default function ConsultationRoom() {
     });
   }
 
+  /**
+   * A take the server has since learned more about — currently the speaker
+   * split, which now runs after the transcript has already been sent so the
+   * doctor reads what was said without waiting for who said it. Replaces the
+   * message in place; a take that is no longer on screen is ignored rather
+   * than re-added, since it was removed for a reason.
+   */
+  function replaceMessage(message) {
+    setConsultation((c) => {
+      if (!c) return c;
+      if (!c.messages.some((m) => m.id === message.id)) return c;
+      return {
+        ...c,
+        messages: c.messages.map((m) => (m.id === message.id ? message : m)),
+      };
+    });
+  }
+
   useEffect(() => {
     fetchConsultation(id)
       .then(setConsultation)
@@ -96,17 +114,20 @@ export default function ConsultationRoom() {
     joinConsultationRoom(id);
     const socket = getSocket();
     const onNewMessage = (msg) => addMessageIfNew(msg);
+    const onMessageUpdated = (msg) => replaceMessage(msg);
     const onCompleted = (data) => setConsultation(data);
     // Reopened from another device or tab — this one has to drop back out of
     // the completed view or it would keep showing a summary that is about to
     // be regenerated.
     const onResumed = (data) => setConsultation(data);
     socket.on("new_message", onNewMessage);
+    socket.on("message_updated", onMessageUpdated);
     socket.on("consultation_completed", onCompleted);
     socket.on("consultation_resumed", onResumed);
 
     return () => {
       socket.off("new_message", onNewMessage);
+      socket.off("message_updated", onMessageUpdated);
       socket.off("consultation_completed", onCompleted);
       socket.off("consultation_resumed", onResumed);
       if (recorderRef.current && recorderRef.current.state !== "inactive") {

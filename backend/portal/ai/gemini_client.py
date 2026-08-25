@@ -12,6 +12,8 @@ import httpx
 from google import genai
 from google.genai import errors as genai_errors, types
 
+from portal.helpers.timing import stage
+
 from portal.ai import ffmpeg_setup  # noqa: F401  (puts ffmpeg on PATH)
 
 # A child of the app's own "portal" logger, so these land in portal.log
@@ -776,26 +778,27 @@ def embed_text(text, is_query=False):
         return None
 
     model_name = embedding_model_name()
-    response = _call(
-        lambda model: _get_client().models.embed_content(
-            model=model,
-            contents=[text],
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY" if is_query else "RETRIEVAL_DOCUMENT",
-                output_dimensionality=EMBEDDING_DIMENSIONS,
+    with stage("embed_text", chars=len(text or "")):
+        response = _call(
+            lambda model: _get_client().models.embed_content(
+                model=model,
+                contents=[text],
+                config=types.EmbedContentConfig(
+                    task_type="RETRIEVAL_QUERY" if is_query else "RETRIEVAL_DOCUMENT",
+                    output_dimensionality=EMBEDDING_DIMENSIONS,
+                ),
             ),
-        ),
-        model_name,
-        "matching against past cases",
-        # Fewer attempts than a summary gets: every caller of this already
-        # degrades gracefully to "no precedents", so a long backoff here only
-        # delays a consultation that is going to be summarised regardless.
-        attempts=2,
-        # The fallbacks are chat models and cannot embed. Substituting one here
-        # would turn a clean failure into a confusing error — and vectors from a
-        # different model are not comparable with the stored ones anyway.
-        allow_fallback=False,
-    )
+            model_name,
+            "matching against past cases",
+            # Fewer attempts than a summary gets: every caller of this already
+            # degrades gracefully to "no precedents", so a long backoff here only
+            # delays a consultation that is going to be summarised regardless.
+            attempts=2,
+            # The fallbacks are chat models and cannot embed. Substituting one here
+            # would turn a clean failure into a confusing error — and vectors from a
+            # different model are not comparable with the stored ones anyway.
+            allow_fallback=False,
+        )
     return list(response.embeddings[0].values)
 
 
@@ -810,23 +813,26 @@ def transcribe_audio(audio_bytes):
     what makes the quieter of the two people in the room transcribe, and it is
     also what keeps the upload small enough to survive an ordinary connection.
     """
-    prepared, peak = _prepare_audio(audio_bytes)
+    with stage("audio_preprocess", bytes=len(audio_bytes)):
+        prepared, peak = _prepare_audio(audio_bytes)
     model_name = chat_model_name()
     client = _get_client()
-    part, uploaded_name = _audio_part(client, prepared, model_name)
+    with stage("audio_upload", bytes=len(prepared)):
+        part, uploaded_name = _audio_part(client, prepared, model_name)
 
     try:
-        response = _call(
-            lambda model: client.models.generate_content(
-                model=model,
-                contents=[TRANSCRIBE_INSTRUCTION, part],
-                # Verbatim transcription is not a creative task, and sampling
-                # is where invented dialogue comes from.
-                config=types.GenerateContentConfig(temperature=0),
-            ),
-            model_name,
-            "transcribing the recording",
-        )
+        with stage("transcribe_model_call", model=model_name):
+            response = _call(
+                lambda model: client.models.generate_content(
+                    model=model,
+                    contents=[TRANSCRIBE_INSTRUCTION, part],
+                    # Verbatim transcription is not a creative task, and sampling
+                    # is where invented dialogue comes from.
+                    config=types.GenerateContentConfig(temperature=0),
+                ),
+                model_name,
+                "transcribing the recording",
+            )
     finally:
         if uploaded_name:
             try:
@@ -1128,13 +1134,14 @@ def _generate_json(client, model_name, prompt, config, doing="writing up the con
     """
     last_error = None
     for _attempt in range(2):
-        response = _call(
-            lambda model: client.models.generate_content(
-                model=model, contents=prompt, config=config
-            ),
-            model_name,
-            doing,
-        )
+        with stage("json_model_call", doing=doing.replace(" ", "_"), model=model_name):
+            response = _call(
+                lambda model: client.models.generate_content(
+                    model=model, contents=prompt, config=config
+                ),
+                model_name,
+                doing,
+            )
         try:
             return json.loads(response.text)
         except (json.JSONDecodeError, TypeError) as exc:

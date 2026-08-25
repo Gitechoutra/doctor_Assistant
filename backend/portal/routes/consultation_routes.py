@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import datetime
 
 from flask import Blueprint, current_app, request
@@ -8,6 +9,7 @@ from portal.ai import gemini_client
 from portal.extensions import db, socketio
 from portal.helpers.auth_helper import get_current_doctor
 from portal.helpers import custom_medicines, knowledge_base
+from portal.helpers.timing import stage
 from portal.helpers.audit import (
     CONSULTATION_ENDED,
     CONSULTATION_RESUMED,
@@ -302,6 +304,58 @@ def get_consultation(consultation_id):
     return success(_room_payload(consultation))
 
 
+def _split_speakers_later(consultation_id, message_id, text):
+    """Splits a returned take into speaker turns, after the fact.
+
+    Presentation only, and best-effort in exactly the way the synchronous
+    version was: a quota refusal, an outage or a doubtful split all leave
+    `speaker_turns` NULL and the take is shown as the block of prose it was
+    transcribed as. The difference is only *when* the doctor waits for it,
+    which is now never.
+
+    The socket update is what closes the loop — the browser already has the
+    message, and swaps the block for the conversation when this lands.
+    """
+    app = current_app._get_current_object()
+
+    def run():
+        with app.app_context():
+            try:
+                with stage("label_speakers_async", chars=len(text)):
+                    turns = gemini_client.label_speakers(text)
+            except Exception:  # noqa: BLE001 - presentation only, never fatal
+                app.logger.exception(
+                    "Could not split the recording into speaker turns for consultation "
+                    "%s; showing it unsplit",
+                    consultation_id,
+                )
+                return
+
+            if not turns:
+                return
+
+            try:
+                message = ConversationMessage.query.get(message_id)
+                # Deleted, or already labelled by an earlier run: either way
+                # there is nothing to write and nothing to announce.
+                if message is None or message.speaker_turns:
+                    return
+                message.speaker_turns = json.dumps(turns)
+                db.session.commit()
+                socketio.emit(
+                    "message_updated",
+                    message.to_dict(),
+                    room=consultation_room(consultation_id),
+                )
+            except Exception:  # noqa: BLE001 - the transcript is already safe
+                db.session.rollback()
+                app.logger.exception(
+                    "Could not store speaker turns for message %s", message_id
+                )
+
+    socketio.start_background_task(run)
+
+
 @consultation_bp.post("/<int:consultation_id>/transcribe")
 @doctor_only
 def transcribe_turn(consultation_id):
@@ -352,37 +406,26 @@ def transcribe_turn(consultation_id):
             status=422,
         )
 
-    # Laid out as the conversation it was, so what comes back on screen reads
-    # as turns rather than one unbroken block of prose. A second, separate pass
-    # over the text — see `gemini_client.label_speakers`.
-    #
-    # Every failure here is swallowed on purpose. By the time this runs the
-    # recording has already been transcribed and the browser has let go of the
-    # audio, so raising would throw away a consultation that was captured
-    # perfectly well over a step that only decides how it is displayed. A quota
-    # refusal, an outage, a doubtful split: all of them leave `speaker_turns`
-    # NULL, and the take is shown exactly as it was before this existed.
-    try:
-        turns = gemini_client.label_speakers(text)
-    except Exception:  # noqa: BLE001 - presentation only, never fatal
-        current_app.logger.exception(
-            "Could not split the recording into speaker turns for consultation %s; "
-            "showing it unsplit",
-            consultation.id,
-        )
-        turns = []
-
     message = ConversationMessage(
         consultation_id=consultation.id,
         speaker=speaker,
         message=text,
-        speaker_turns=json.dumps(turns) if turns else None,
+        # Filled in afterwards, by the background split started below.
+        speaker_turns=None,
     )
     db.session.add(message)
     db.session.commit()
 
     payload = message.to_dict()
     socketio.emit("new_message", payload, room=consultation_room(consultation.id))
+
+    # The transcript goes back now; who-said-what follows when it is ready.
+    # This used to be a second Gemini round trip *inside* this request, so the
+    # doctor waited for a presentational nicety before seeing a word of what
+    # was said — on a long take that is the difference between one model call
+    # and two before anything appears. Nothing downstream reads these turns
+    # (the summary is built from `message`), so there is nothing to wait for.
+    _split_speakers_later(consultation.id, message.id, text)
 
     return success(payload, status=201)
 
@@ -712,17 +755,23 @@ def end_consultation(consultation_id):
     if not consultation.messages:
         return error("Cannot end a consultation with no conversation recorded", status=422)
 
+    # Wall clock for the whole write-up, so the stage timings below can be read
+    # as a share of what the doctor actually waited for.
+    ended_started_at = time.perf_counter()
+
     # The practice's catalogue, so every AI suggestion names a real product
     # the doctor could actually write.
-    prescribable = prescribable_for(consultation.doctor)
+    with stage("formulary_lookup"):
+        prescribable = prescribable_for(consultation.doctor)
 
     # What this hospital's doctors have already approved for a presentation
     # like this one. Retrieval failure is deliberately not fatal — a
     # consultation that can't reach the knowledge base is summarised on its
     # own merits, exactly as every consultation was before it existed.
-    matches = knowledge_base.find_similar(
-        consultation.messages, exclude_patient_id=consultation.patient_id
-    )
+    with stage("precedent_retrieval", messages=len(consultation.messages)):
+        matches = knowledge_base.find_similar(
+            consultation.messages, exclude_patient_id=consultation.patient_id
+        )
 
     try:
         ai_result = gemini_client.generate_consultation_summary(
@@ -808,7 +857,12 @@ def end_consultation(consultation_id):
         for precedent, _ in matches
         for medicine in precedent.medicine_list
     }
-    for item in ai_result.get("prescriptions") or []:
+    # Timed without wrapping the loop: the body below is unchanged, and
+    # re-indenting forty lines of prescription mapping to gain a context
+    # manager is a worse trade than two lines of clock.
+    suggested = ai_result.get("prescriptions") or []
+    resolve_started_at = time.perf_counter()
+    for item in suggested:
         medicine_name = item.get("medicine_name") or ""
         brand, medicine_id = resolve_medicine(medicine_name, prescribable)
         from_precedent = medicine_name.strip().lower() in precedent_names
@@ -836,6 +890,12 @@ def end_consultation(consultation_id):
                 source_precedent_id=cited if cited in retrieved_ids else None,
             )
         )
+
+    current_app.logger.info(
+        "pipeline stage=medicine_resolution ms=%.0f items=%d",
+        (time.perf_counter() - resolve_started_at) * 1000,
+        len(suggested),
+    )
 
     doctor_name = consultation.doctor.user.name if consultation.doctor and consultation.doctor.user else "A doctor"
     patient_name = consultation.patient.name if consultation.patient else "a patient"
@@ -873,6 +933,13 @@ def end_consultation(consultation_id):
     except Exception as exc:  # noqa: BLE001 - surface DB failure as a clean JSON error
         db.session.rollback()
         return error(f"Could not save the generated summary: {exc}", status=500)
+
+    logger_stage_total = (time.perf_counter() - ended_started_at) * 1000
+    current_app.logger.info(
+        "pipeline stage=end_consultation_total ms=%.0f consultation=%s",
+        logger_stage_total,
+        consultation.id,
+    )
 
     result = _room_payload(consultation, can_manage=True)
     socketio.emit("consultation_completed", result, room=consultation_room(consultation.id))
